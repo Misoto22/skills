@@ -1,0 +1,9 @@
+{
+  "name": "skills",
+  "version": "0.1.0",
+  "description": "Portable agent skills for reliable everyday work.",
+  "license": "MIT",
+  "skills": [
+    "./skills/email"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "skills",
+  "owner": {
+    "name": "skills contributors"
+  },
+  "description": "Portable agent skills for reliable everyday work.",
+  "plugins": [
+    {
+      "name": "skills",
+      "source": "./",
+      "description": "Portable agent skills for reliable everyday work.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "keywords": [
+        "skills",
+        "email",
+        "productivity"
+      ]
+    }
+  ]
+}
