@@ -39,18 +39,13 @@ def normalize_text(text: str) -> str:
 def render_html(text: str, signature: str | None = None) -> str:
     """Render text as safe HTML, optionally preserving a fixed signature."""
 
-    canonical = _canonical_text(text).strip("\n")
+    canonical_body = normalize_body(text, signature).rstrip("\n")
     signature_text: str | None = None
-    main_text = canonical
+    main_text = canonical_body
 
     if signature is not None:
         signature_text = _normalize_fixed_text(signature)
-        if not signature_text or not canonical.endswith(signature_text):
-            raise ValueError("signature does not match the end of the text body")
-        prefix = canonical[: -len(signature_text)]
-        if prefix and not prefix.endswith("\n\n"):
-            raise ValueError("signature does not match a complete final block")
-        main_text = prefix.rstrip("\n")
+        main_text = canonical_body[: -len(signature_text)].rstrip("\n")
 
     parts = _render_blocks(normalize_text(main_text))
     if signature_text is not None:
@@ -63,6 +58,25 @@ def render_html(text: str, signature: str | None = None) -> str:
         '<html><head><meta charset="utf-8"></head>'
         f"<body>{body}</body></html>\n"
     )
+
+
+def normalize_body(text: str, signature: str | None = None) -> str:
+    """Return canonical sendable text while preserving a configured signature."""
+
+    canonical = _canonical_text(text).strip("\n")
+    if signature is None:
+        return normalize_text(canonical)
+
+    signature_text = _normalize_fixed_text(signature)
+    if not signature_text or not canonical.endswith(signature_text):
+        raise ValueError("signature does not match the end of the text body")
+    prefix = canonical[: -len(signature_text)]
+    if prefix and not prefix.endswith("\n\n"):
+        raise ValueError("signature does not match a complete final block")
+    normalized_main = normalize_text(prefix.rstrip("\n")).rstrip("\n")
+    if normalized_main:
+        return f"{normalized_main}\n\n{signature_text}\n"
+    return f"{signature_text}\n"
 
 
 def _canonical_text(text: str) -> str:
