@@ -1,0 +1,6 @@
+interface:
+  display_name: "Email"
+  short_description: "Draft or safely send verified email"
+  default_prompt: "Use $email to prepare a policy-aware email draft; send only when my trusted instruction explicitly requests it and readback verification is available."
+policy:
+  allow_implicit_invocation: true

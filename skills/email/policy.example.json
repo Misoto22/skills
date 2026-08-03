@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "sender_name": "Example Sender",
+    "sender_address": "sender@example.test",
+    "internal_domains": [
+      "example.test"
+    ]
+  },
+  "composition": {
+    "greeting_style": "first-name",
+    "target_words": 120,
+    "max_words": 250,
+    "signature_file": "assets/signature.example.txt",
+    "humanizer": "optional"
+  },
+  "recipients": {
+    "allowed_external_domains": [],
+    "required_cc_rules": [],
+    "reply_all": "review"
+  },
+  "authorization": {
+    "default_mode": "draft",
+    "allow_automated_send": false,
+    "automated_send_scopes": []
+  }
+}

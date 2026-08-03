@@ -129,6 +129,19 @@ class ValidateMessageTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "draft_ready")
 
+    def test_draft_without_configured_identity_remains_usable(self) -> None:
+        result = validate_bundle(
+            self.bundle(
+                mode="draft",
+                sender="",
+                authorization={"source": "none", "scope": None},
+            ),
+            safe_default_policy(),
+        )
+
+        self.assertEqual(result["status"], "draft_ready")
+        self.assertIn("identity", self.messages(result))
+
     def test_send_without_policy_identity_is_blocked(self) -> None:
         result = validate_bundle(self.bundle(mode="send"), safe_default_policy())
 

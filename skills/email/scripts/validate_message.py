@@ -83,21 +83,31 @@ def _validate_identity(
     sender = _mapping(bundle.get("sender"))
     policy_address = normalize_address(str(identity.get("sender_address", "")))
     bundle_address = normalize_address(str(sender.get("address", "")))
+    send_mode = bundle["mode"] == "send"
 
-    if bundle["mode"] == "send" and (
+    if send_mode and (
         not identity.get("sender_name")
         or policy_address is None
         or not identity.get("internal_domains")
     ):
         _error(findings, "identity.incomplete", "send requires a complete configured sender identity")
     if bundle_address is None:
-        _error(findings, "identity.invalid", "message sender address is invalid")
+        if send_mode or str(sender.get("address", "")):
+            _error(findings, "identity.invalid", "message sender address is invalid")
+        else:
+            _warning(
+                findings,
+                "identity.incomplete",
+                "draft has no configured sender identity; sending remains unavailable",
+            )
     elif policy_address is not None and bundle_address != policy_address:
-        _error(
-            findings,
-            "identity.mismatch",
-            f"message sender {bundle_address} does not match policy sender {policy_address}",
+        message = (
+            f"message sender {bundle_address} does not match policy sender {policy_address}"
         )
+        if send_mode:
+            _error(findings, "identity.mismatch", message)
+        else:
+            _warning(findings, "identity.mismatch", message)
 
 
 def _validate_recipients(
