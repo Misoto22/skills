@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Repository root: `/Users/macbook01/local-projects/personal-projects/skills`.
+- Repository root: the current `skills/` checkout.
 - Runtime defaults contain no organization, person, address, domain, signature, word limit, provider command, or machine-specific path.
 - Humanizer is optional and is referenced from `https://github.com/blader/humanizer`; its absence never blocks drafting.
 - Draft is the default for ambiguous intent; send fails closed without trusted authorization, a valid policy, and readback capability.
@@ -541,7 +541,7 @@ class SkillContractTests(unittest.TestCase):
 
     def test_runtime_skill_contains_no_original_hardcodes(self):
         runtime = "\n".join(path.read_text() for path in EMAIL_SKILL.rglob("*") if path.is_file())
-        for forbidden in ("INOVIT", "Victor", "JARVIS", "victor@", "gog gmail", "/Users/macbook01"):
+        for forbidden in ("/Users/", "/home/", "smtp.gmail.com", "provider-specific mail command"):
             self.assertNotIn(forbidden, runtime)
 
     def test_example_policy_is_draft_only_and_uses_reserved_example_domains(self):
@@ -591,7 +591,7 @@ Run the same four evaluation prompts with skill path `skills/email`. Save output
 Aggregate grading and timing into `benchmark.json`, then generate a static review file using the official skill-creator viewer:
 
 ```bash
-python3 /Users/macbook01/.codex/plugins/cache/claude-cowork/anthropic-skills/1.0.0/skills/skill-creator/eval-viewer/generate_review.py \
+python3 "$SKILL_CREATOR_DIR/eval-viewer/generate_review.py" \
   ../skills-workspace/iteration-1 \
   --skill-name email \
   --benchmark ../skills-workspace/iteration-1/benchmark.json \
@@ -728,7 +728,7 @@ git commit -m "chore: add portable skills monorepo tooling"
 python3 -m unittest discover -s tests -v
 python3 scripts/validate-repository.py
 python3 scripts/package-skill.py skills/email dist
-python3 /Users/macbook01/.codex/plugins/cache/claude-cowork/anthropic-skills/1.0.0/skills/skill-creator/scripts/quick_validate.py skills/email
+python3 "$SKILL_CREATOR_DIR/scripts/quick_validate.py" skills/email
 git diff --check
 ```
 

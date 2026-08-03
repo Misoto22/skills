@@ -24,6 +24,7 @@ class RepositoryContractTests(unittest.TestCase):
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
 
         self.assertEqual(plugin["skills"], ["./skills/email"])
+        self.assertEqual(plugin["author"]["name"], "skills contributors")
         self.assertNotIn("drafts", json.dumps(plugin))
         self.assertNotIn("deprecated", json.dumps(plugin))
 
@@ -118,6 +119,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn('version: "0.1.0"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("skills@1.5.20", workflow)
+        self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
 
     def test_repository_validator_accepts_the_checkout(self) -> None:

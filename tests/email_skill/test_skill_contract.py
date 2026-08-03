@@ -57,12 +57,10 @@ class SkillContractTests(unittest.TestCase):
         )
 
         for forbidden in (
-            "INOVIT",
-            "Victor",
-            "JARVIS",
-            "victor@",
-            "gog gmail",
-            "/Users/macbook01",
+            "/Users/",
+            "/home/",
+            "smtp.gmail.com",
+            "provider-specific mail command",
         ):
             self.assertNotIn(forbidden, runtime)
 

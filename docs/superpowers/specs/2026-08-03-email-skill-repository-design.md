@@ -6,8 +6,8 @@ Status: approved in conversation on 2026-08-03
 
 Create a portable, public skills monorepo whose first published skill drafts,
 validates, sends, and verifies email. The design generalizes the useful policy
-from the existing `outbound-email-skill` without retaining INOVIT, Victor,
-JARVIS, personal addresses, machine paths, or provider-specific commands.
+from an existing outbound-mail workflow without retaining organization names,
+personal identities, private addresses, machine paths, or provider-specific commands.
 
 The repository takes two references as inputs:
 
@@ -357,8 +357,8 @@ results. New rationalizations become regression scenarios.
 - referenced files exist and references are one level deep;
 - `SKILL.md` stays under 500 lines;
 - repository and skill versions appear in their required surfaces;
-- the initial email skill contains no INOVIT, Victor, JARVIS, personal email,
-  original absolute path, or provider-specific send command;
+- the initial email skill contains no organization name, personal identity,
+  private email, local absolute path, or provider-specific send command;
 - draft and deprecated trees do not appear in package manifests;
 - all unit tests pass.
 

@@ -15,12 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "0.1.0"
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 FORBIDDEN_RUNTIME_TEXT = (
-    "INOVIT",
-    "Victor",
-    "JARVIS",
-    "victor@",
-    "gog gmail",
-    "/Users/macbook01",
+    "/Users/",
+    "/home/",
+    "smtp.gmail.com",
+    "provider-specific mail command",
 )
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
@@ -45,6 +43,9 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     ):
         if plugin.get(field) != expected:
             errors.append(f"plugin {field} must be {expected!r}")
+    author = plugin.get("author")
+    if not isinstance(author, dict) or author.get("name") != "skills contributors":
+        errors.append("plugin author must identify 'skills contributors'")
 
     plugins = marketplace.get("plugins")
     marketplace_plugin = plugins[0] if isinstance(plugins, list) and len(plugins) == 1 and isinstance(plugins[0], dict) else {}

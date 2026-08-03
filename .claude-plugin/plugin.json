@@ -2,6 +2,9 @@
   "name": "skills",
   "version": "0.1.0",
   "description": "Portable agent skills for reliable everyday work.",
+  "author": {
+    "name": "skills contributors"
+  },
   "license": "MIT",
   "skills": [
     "./skills/email"
