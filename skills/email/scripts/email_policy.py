@@ -20,6 +20,7 @@ _TOP_LEVEL_KEYS = {
     "composition",
     "recipients",
     "authorization",
+    "style",
 }
 _IDENTITY_KEYS = {"sender_name", "sender_address", "internal_domains"}
 _COMPOSITION_KEYS = {
@@ -39,6 +40,19 @@ _AUTHORIZATION_KEYS = {
     "allow_automated_send",
     "automated_send_scopes",
 }
+_STYLE_KEYS = {
+    "font_family",
+    "font_size_px",
+    "line_height",
+    "text_color",
+    "paragraph_spacing_px",
+    "list_style",
+    "table",
+    "status_colors",
+}
+_STYLE_TABLE_KEYS = {"border_color", "font_size_px", "cell_padding_px"}
+_STATUS_COLOR_KEYS = {"ok", "warn", "bad"}
+_LIST_STYLES = {"semantic", "paragraph"}
 _REQUIRED_CC_KEYS = {"address", "recipient_domains", "sensitivity"}
 _AUTOMATION_SCOPE_KEYS = {
     "name",
@@ -56,6 +70,10 @@ _ADDRESS_PATTERN = re.compile(
     r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+"
     r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z"
 )
+# Style tokens are interpolated into inline `style` attributes, so each one is
+# constrained to a shape that cannot terminate a declaration or an attribute.
+_HEX_COLOR_PATTERN = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\Z")
+_FONT_FAMILY_PATTERN = re.compile(r"[A-Za-z0-9 ,.'_-]{1,200}\Z")
 
 
 class PolicyError(ValueError):
@@ -88,6 +106,32 @@ def safe_default_policy() -> dict[str, object]:
             "default_mode": "draft",
             "allow_automated_send": False,
             "automated_send_scopes": [],
+        },
+        # No style profile means the renderer emits bare semantic HTML, which is
+        # the behaviour every existing bundle was validated against.
+        "style": None,
+    }
+
+
+def default_style_profile() -> dict[str, object]:
+    """Return neutral style tokens used to complete a partial style profile."""
+
+    return {
+        "font_family": "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
+        "font_size_px": 14,
+        "line_height": 1.5,
+        "text_color": "#222222",
+        "paragraph_spacing_px": 16,
+        "list_style": "semantic",
+        "table": {
+            "border_color": "#cccccc",
+            "font_size_px": 13,
+            "cell_padding_px": [6, 10],
+        },
+        "status_colors": {
+            "ok": "#1a7f37",
+            "warn": "#b36b00",
+            "bad": "#c00000",
         },
     }
 
@@ -141,6 +185,19 @@ def load_policy(path: Path | None) -> dict[str, object]:
         policy[section].update(supplied)
     if "schema_version" in raw:
         policy["schema_version"] = raw["schema_version"]
+    # `style` is null by default, so it cannot join the section merge loop above.
+    # A supplied object is completed from the neutral defaults, which lets a
+    # policy override one token without restating the whole profile.
+    if "style" in raw:
+        supplied_style = raw["style"]
+        if supplied_style is None:
+            policy["style"] = None
+        elif isinstance(supplied_style, dict):
+            merged = copy.deepcopy(default_style_profile())
+            merged.update(supplied_style)
+            policy["style"] = merged
+        else:
+            raise PolicyError("style must be an object or null")
 
     _validate_policy(policy, resolved_path)
     return policy
@@ -266,6 +323,107 @@ def _validate_policy(policy: dict[str, object], path: Path) -> None:
     authorization["automated_send_scopes"] = _validate_automation_scopes(
         authorization["automated_send_scopes"]
     )
+
+    if policy["style"] is not None:
+        _validate_style(_require_mapping(policy["style"], "style"))
+
+
+def _validate_style(style: dict[str, object]) -> None:
+    _reject_unknown(style, _STYLE_KEYS, "style")
+
+    style["font_family"] = _require_font_family(style["font_family"], "style.font_family")
+    style["font_size_px"] = _require_positive_integer(
+        style["font_size_px"],
+        "style.font_size_px",
+    )
+    style["line_height"] = _require_positive_number(
+        style["line_height"],
+        "style.line_height",
+    )
+    style["text_color"] = _require_hex_colour(style["text_color"], "style.text_color")
+    style["paragraph_spacing_px"] = _require_non_negative_integer(
+        style["paragraph_spacing_px"],
+        "style.paragraph_spacing_px",
+    )
+    if style["list_style"] not in _LIST_STYLES:
+        raise PolicyError(
+            "style.list_style must be " + " or ".join(sorted(_LIST_STYLES))
+        )
+
+    table = _require_mapping(style["table"], "style.table")
+    _reject_unknown(table, _STYLE_TABLE_KEYS, "style.table")
+    for key, value in default_style_profile()["table"].items():
+        table.setdefault(key, value)
+    table["border_color"] = _require_hex_colour(
+        table["border_color"],
+        "style.table.border_color",
+    )
+    table["font_size_px"] = _require_positive_integer(
+        table["font_size_px"],
+        "style.table.font_size_px",
+    )
+    table["cell_padding_px"] = _require_padding_pair(
+        table["cell_padding_px"],
+        "style.table.cell_padding_px",
+    )
+
+    status_colors = _require_mapping(style["status_colors"], "style.status_colors")
+    _reject_unknown(status_colors, _STATUS_COLOR_KEYS, "style.status_colors")
+    missing = _STATUS_COLOR_KEYS - set(status_colors)
+    if missing:
+        raise PolicyError(
+            f"style.status_colors missing field(s): {', '.join(sorted(missing))}"
+        )
+    for key in sorted(_STATUS_COLOR_KEYS):
+        status_colors[key] = _require_hex_colour(
+            status_colors[key],
+            f"style.status_colors.{key}",
+        )
+
+
+def _require_font_family(value: object, location: str) -> str:
+    family = _require_string(value, location).strip()
+    if _FONT_FAMILY_PATTERN.fullmatch(family) is None:
+        raise PolicyError(
+            f"{location} may only contain letters, digits, spaces, commas, "
+            "periods, apostrophes, hyphens, and underscores"
+        )
+    return family
+
+
+def _require_hex_colour(value: object, location: str) -> str:
+    colour = _require_string(value, location).strip()
+    if _HEX_COLOR_PATTERN.fullmatch(colour) is None:
+        raise PolicyError(f"{location} must be a hex colour such as #1a7f37")
+    return colour
+
+
+def _require_positive_integer(value: object, location: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise PolicyError(f"{location} must be a positive integer")
+    return value
+
+
+def _require_non_negative_integer(value: object, location: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise PolicyError(f"{location} must be a non-negative integer")
+    return value
+
+
+def _require_positive_number(value: object, location: str) -> float | int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise PolicyError(f"{location} must be a positive number")
+    return value
+
+
+def _require_padding_pair(value: object, location: str) -> list[int]:
+    values = _require_list(value, location)
+    if len(values) != 2:
+        raise PolicyError(f"{location} must be [vertical, horizontal] in pixels")
+    return [
+        _require_non_negative_integer(item, f"{location}[{index}]")
+        for index, item in enumerate(values)
+    ]
 
 
 def _validate_required_cc_rules(value: object) -> list[dict[str, object]]:

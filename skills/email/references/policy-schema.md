@@ -32,7 +32,19 @@ The loader checks an explicit task path, `EMAIL_SKILL_POLICY`, `.agents/email-po
 - `allow_automated_send`: boolean; safe default is `false`.
 - `automated_send_scopes`: narrow scopes with unique `name`, nonempty `recipient_domains`, positive `max_recipients`, `allow_attachments`, and nonempty `allowed_sensitivity`. A scope authorizes only an exact matching bundle.
 
-Start from `../policy.example.json`. The shipped example uses reserved `.test` domains and automated send remains disabled.
+`style`: object or `null`. `null` is the default and renders bare semantic HTML. A supplied object is completed from neutral defaults, so a policy may override one token without restating the profile.
+
+- `font_family`: letters, digits, spaces, commas, periods, apostrophes, hyphens, and underscores only.
+- `font_size_px`, `paragraph_spacing_px`: positive and non-negative integers.
+- `line_height`: positive number.
+- `text_color`: hex colour such as `#222222`.
+- `list_style`: `semantic` renders `<ul>`/`<ol>`; `paragraph` renders each authored line as its own paragraph, for composers that mangle pasted list indentation.
+- `table`: `border_color` hex colour, positive `font_size_px`, and `cell_padding_px` as `[vertical, horizontal]` non-negative integers.
+- `status_colors`: hex colours for the `ok`, `warn`, and `bad` markers. All three are required.
+
+Every token is shape-checked because it is interpolated into an inline `style` attribute. Message content is never a source of style: cells recognize only the closed `[!ok]`, `[!warn]`, and `[!bad]` markers, and any other bracketed text stays literal.
+
+Start from `../policy.example.json`. The shipped example uses reserved `.test` domains, automated send remains disabled, and no style profile is configured.
 
 ## Message bundle
 

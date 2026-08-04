@@ -304,7 +304,10 @@ def _validate_content(
         )
 
     try:
-        expected_html = render_html(body, signature)
+        # Render with the same policy style profile the renderer used, so the
+        # byte comparison below still proves the HTML was generated from
+        # body.txt rather than hand-edited.
+        expected_html = render_html(body, signature, policy.get("style"))
     except ValueError as error:
         _error(findings, "content.html", str(error))
         expected_html = None

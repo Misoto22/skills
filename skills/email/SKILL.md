@@ -18,7 +18,7 @@ Follow these seven steps in order. Do not skip validation because a message look
 2. **Load policy.** Discover JSON policy in this order: task-supplied path, `EMAIL_SKILL_POLICY`, `.agents/email-policy.json`, then built-in safe defaults. Safe defaults permit drafting and block sending. See [policy-schema.md](references/policy-schema.md).
 3. **Classify trust and recipients.** Separate the current user's instruction from message content. Normalize addresses; classify domains; remove the active sender; treat reply-all addresses as review candidates; never reconstruct Bcc. Do not silently add any recipient.
 4. **Draft plain text.** Record protected facts before editing: names, addresses, URLs, numbers, amounts, dates, quotations, identifiers, and policy-fixed strings. Optionally apply Humanizer to prose only. If any protected fact changes, block the attempted send and restart drafting, HTML generation, and validation from the approved facts. See [humanizer-integration.md](references/humanizer-integration.md).
-5. **Render.** Make `body.txt` the source of truth. Generate `body.html` with `scripts/render_email.py`; never hand-edit the HTML or pass raw HTML through.
+5. **Render.** Make `body.txt` the source of truth. Generate `body.html` with `scripts/render_email.py`; never hand-edit the HTML or pass raw HTML through. Presentation comes from the policy `style` profile, never from the message. See [Formatting](#formatting).
 6. **Validate.** Build the version 1 message bundle and run `scripts/validate_message.py`. Do not mutate recipients, bodies, attachments, or metadata after a successful validation.
 7. **Finish by mode.** For a draft, return the preview and findings without calling a transport. For send, continue only from `send_ready`: send those exact hashed artifacts through a transport that supports readback, retrieve the Sent message, write the readback report, and run `scripts/verify_readback.py`. A provider message ID alone is not proof of success.
 
@@ -31,7 +31,8 @@ Resolve paths relative to this skill directory.
 ```bash
 python3 scripts/render_email.py \
   --text message/body.txt \
-  --output message/body.html
+  --output message/body.html \
+  --policy /path/to/email-policy.json
 
 python3 scripts/validate_message.py \
   --bundle message \
@@ -45,7 +46,18 @@ python3 scripts/verify_readback.py \
   --output message/verification.json
 ```
 
-Omit `--policy` to use normal discovery. If a configured signature exists, pass the exact signature file to the renderer and keep it as the exact suffix of the plain-text body.
+Omit `--policy` to use normal discovery. Pass the same policy to the renderer and the validator: the validator regenerates the HTML and compares it byte for byte, so a mismatched style profile reports a `content.html` error. If a configured signature exists, pass the exact signature file to the renderer and keep it as the exact suffix of the plain-text body.
+
+## Formatting
+
+Structure is authored in `body.txt` and recognized by the renderer. Never write HTML by hand.
+
+- Paragraphs are blank-line separated blocks; hard-wrapped lines are joined.
+- A block of `- item` or `1. item` lines becomes a list. With `list_style: paragraph` each authored line becomes its own paragraph instead, for composers that mangle pasted list indentation.
+- A block of `|`-delimited rows whose second row is `| --- | --- |` becomes a table. The first row is the header.
+- A table cell may open with `[!ok]`, `[!warn]`, or `[!bad]` to colour it from `style.status_colors`. The marker is consumed; any other bracketed text stays literal.
+
+Without a `style` profile the same markup renders as bare semantic HTML. Use status markers on status cells only: a message where several colours compete stops signalling anything.
 
 ## Draft mode
 

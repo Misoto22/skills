@@ -194,5 +194,145 @@ class PolicyTests(unittest.TestCase):
             load_policy(self.write_policy(policy))
 
 
+class StylePolicyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def write_policy(self, value: object) -> Path:
+        path = self.root / "policy.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        return path
+
+    def policy_with_style(self, style: object) -> dict[str, object]:
+        policy = safe_default_policy()
+        policy["style"] = style
+        return policy
+
+    def valid_style(self, **overrides: object) -> dict[str, object]:
+        style: dict[str, object] = {
+            "font_family": "Helvetica, Arial, sans-serif",
+            "font_size_px": 14,
+            "line_height": 1.55,
+            "text_color": "#222222",
+            "paragraph_spacing_px": 16,
+            "list_style": "semantic",
+            "table": {
+                "border_color": "#cccccc",
+                "font_size_px": 13,
+                "cell_padding_px": [6, 10],
+            },
+            "status_colors": {"ok": "#1a7f37", "warn": "#b36b00", "bad": "#c00000"},
+        }
+        style.update(overrides)
+        return style
+
+    def test_safe_defaults_carry_no_style(self) -> None:
+        self.assertIsNone(safe_default_policy()["style"])
+
+    def test_explicit_null_style_is_accepted(self) -> None:
+        policy = load_policy(self.write_policy(self.policy_with_style(None)))
+
+        self.assertIsNone(policy["style"])
+
+    def test_valid_style_is_loaded(self) -> None:
+        policy = load_policy(self.write_policy(self.policy_with_style(self.valid_style())))
+
+        style = policy["style"]
+        self.assertEqual(style["list_style"], "semantic")
+        self.assertEqual(style["table"]["cell_padding_px"], [6, 10])
+
+    def test_partial_style_is_completed_from_neutral_defaults(self) -> None:
+        policy = load_policy(
+            self.write_policy(self.policy_with_style({"list_style": "paragraph"}))
+        )
+
+        style = policy["style"]
+        self.assertEqual(style["list_style"], "paragraph")
+        self.assertIn("font_family", style)
+        self.assertIn("status_colors", style)
+
+    def test_unknown_style_field_is_rejected(self) -> None:
+        style = self.valid_style()
+        style["background_image"] = "https://example.test/tracker.png"
+
+        with self.assertRaisesRegex(PolicyError, "unknown field"):
+            load_policy(self.write_policy(self.policy_with_style(style)))
+
+    def test_unknown_table_field_is_rejected(self) -> None:
+        style = self.valid_style()
+        style["table"] = {"border_color": "#cccccc", "width": "100%"}
+
+        with self.assertRaisesRegex(PolicyError, "unknown field"):
+            load_policy(self.write_policy(self.policy_with_style(style)))
+
+    def test_unsupported_list_style_is_rejected(self) -> None:
+        with self.assertRaisesRegex(PolicyError, "list_style"):
+            load_policy(
+                self.write_policy(
+                    self.policy_with_style(self.valid_style(list_style="cards"))
+                )
+            )
+
+    def test_non_hex_colour_is_rejected(self) -> None:
+        with self.assertRaisesRegex(PolicyError, "text_color"):
+            load_policy(
+                self.write_policy(
+                    self.policy_with_style(self.valid_style(text_color="red; xss:1"))
+                )
+            )
+
+    def test_status_colour_must_be_hex(self) -> None:
+        style = self.valid_style()
+        style["status_colors"] = {"ok": "#1a7f37", "warn": "#b36b00", "bad": "expression(1)"}
+
+        with self.assertRaisesRegex(PolicyError, "status_colors.bad"):
+            load_policy(self.write_policy(self.policy_with_style(style)))
+
+    def test_font_family_rejects_css_control_characters(self) -> None:
+        for hostile in ("Arial; background:url(x)", "Arial}", "Arial<script>"):
+            with self.subTest(hostile=hostile):
+                with self.assertRaisesRegex(PolicyError, "font_family"):
+                    load_policy(
+                        self.write_policy(
+                            self.policy_with_style(self.valid_style(font_family=hostile))
+                        )
+                    )
+
+    def test_cell_padding_requires_two_non_negative_integers(self) -> None:
+        style = self.valid_style()
+        style["table"] = {
+            "border_color": "#cccccc",
+            "font_size_px": 13,
+            "cell_padding_px": [6, -10],
+        }
+
+        with self.assertRaisesRegex(PolicyError, "cell_padding_px"):
+            load_policy(self.write_policy(self.policy_with_style(style)))
+
+    def test_font_size_must_be_positive_integer(self) -> None:
+        with self.assertRaisesRegex(PolicyError, "font_size_px"):
+            load_policy(
+                self.write_policy(
+                    self.policy_with_style(self.valid_style(font_size_px=0))
+                )
+            )
+
+    def test_line_height_must_be_a_positive_number(self) -> None:
+        with self.assertRaisesRegex(PolicyError, "line_height"):
+            load_policy(
+                self.write_policy(
+                    self.policy_with_style(self.valid_style(line_height="1.55; x"))
+                )
+            )
+
+    def test_style_must_be_object_or_null(self) -> None:
+        with self.assertRaisesRegex(PolicyError, "style"):
+            load_policy(self.write_policy(self.policy_with_style("house")))
+
+
 if __name__ == "__main__":
     unittest.main()

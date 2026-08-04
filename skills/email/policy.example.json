@@ -23,5 +23,6 @@
     "default_mode": "draft",
     "allow_automated_send": false,
     "automated_send_scopes": []
-  }
+  },
+  "style": null
 }
