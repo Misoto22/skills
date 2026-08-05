@@ -6,7 +6,7 @@ Portable, configurable agent skills for reliable everyday work. The repository i
 
 | Skill | Purpose | Version |
 | --- | --- | ---: |
-| [email](skills/email/SKILL.md) | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.1.0 |
+| [email](plugins/writing/skills/email/SKILL.md) | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.1.0 |
 
 ## Install
 
@@ -29,7 +29,7 @@ Maintainers who need editable local installations may run `bash scripts/link-ski
 
 ## Use email
 
-Copy [`skills/email/policy.example.json`](skills/email/policy.example.json) to `.agents/email-policy.json` in a project and replace the reserved example identity. Draft is always the default; automated send remains disabled until a narrow local scope is explicitly configured. See [docs/email.md](docs/email.md).
+Copy [`plugins/writing/skills/email/policy.example.json`](plugins/writing/skills/email/policy.example.json) to `.agents/email-policy.json` in a project and replace the reserved example identity. Draft is always the default; automated send remains disabled until a narrow local scope is explicitly configured. See [docs/email.md](docs/email.md).
 
 ## Development
 
@@ -37,7 +37,7 @@ Copy [`skills/email/policy.example.json`](skills/email/policy.example.json) to `
 python3 -m unittest discover -s tests -v
 python3 scripts/validate-repository.py
 bash scripts/list-skills.sh
-python3 scripts/package-skill.py skills/email dist
+python3 scripts/package-skill.py plugins/writing/skills/email dist
 ```
 
 The repository contains no transport credentials and does not implement SMTP. License: [MIT](LICENSE).

@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_DIR = ROOT / "skills" / "email" / "scripts"
+SCRIPT_DIR = ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from email_policy import safe_default_policy  # noqa: E402

@@ -18,9 +18,14 @@ ARCHIVE_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 def package_skill(skill_path: Path, destination: Path) -> Path:
     source = skill_path.expanduser().resolve()
-    published_root = (ROOT / "skills").resolve()
-    if source.parent != published_root or not source.is_dir():
-        raise ValueError("skill path must be a direct published child of skills/")
+    plugins_root = (ROOT / "plugins").resolve()
+    skills_root = source.parent
+    if (
+        not source.is_dir()
+        or skills_root.name != "skills"
+        or skills_root.parent.parent != plugins_root
+    ):
+        raise ValueError("skill path must be a direct published child of plugins/<plugin>/skills/")
     if not (source / "SKILL.md").is_file():
         raise ValueError("skill is missing SKILL.md")
     nested = [path for path in source.rglob("SKILL.md") if path != source / "SKILL.md"]

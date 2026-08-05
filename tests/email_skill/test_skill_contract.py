@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EMAIL_SKILL = ROOT / "skills" / "email"
+EMAIL_SKILL = ROOT / "plugins" / "writing" / "skills" / "email"
 SCRIPT_DIR = EMAIL_SKILL / "scripts"
 SKILL_PATH = EMAIL_SKILL / "SKILL.md"
 POLICY_PATH = EMAIL_SKILL / "policy.example.json"
