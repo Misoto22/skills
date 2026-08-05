@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_DIR = ROOT / "skills" / "email" / "scripts"
+SCRIPT_DIR = ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from render_email import normalize_text, render_html  # noqa: E402

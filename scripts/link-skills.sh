@@ -29,7 +29,7 @@ print(Path(sys.argv[1]).resolve(strict=False))
 PY
 		)"
 		case "$resolved_target" in
-		"$REPO_DIR"/skills/*)
+		"$REPO_DIR"/plugins/*/skills/*)
 			unlink "$target"
 			;;
 		*)

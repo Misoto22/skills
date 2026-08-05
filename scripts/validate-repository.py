@@ -12,6 +12,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PLUGINS_ROOT = ROOT / "plugins"
+PLUGIN_NAME = "writing"
+MARKETPLACE_NAME = "misoto22"
 VERSION = "0.1.0"
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 FORBIDDEN_RUNTIME_TEXT = (
@@ -25,19 +28,20 @@ MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 def validate_repository(*, run_tests: bool) -> list[str]:
     errors: list[str] = []
-    skills_root = ROOT / "skills"
+    plugin_root = PLUGINS_ROOT / PLUGIN_NAME
+    skills_root = plugin_root / "skills"
     skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
     names = [path.name for path in skill_paths]
     if names != ["email"]:
         errors.append(f"published skills must currently be ['email']; found {names}")
 
-    plugin = _load_json(ROOT / ".claude-plugin" / "plugin.json", errors)
+    plugin = _load_json(plugin_root / ".claude-plugin" / "plugin.json", errors)
     marketplace = _load_json(ROOT / ".claude-plugin" / "marketplace.json", errors)
     expected_plugin_paths = [f"./skills/{name}" for name in names]
     if plugin.get("skills") != expected_plugin_paths:
         errors.append("plugin skill paths do not match the published skills tree")
     for field, expected in (
-        ("name", "skills"),
+        ("name", PLUGIN_NAME),
         ("version", VERSION),
         ("license", "MIT"),
     ):
@@ -49,17 +53,18 @@ def validate_repository(*, run_tests: bool) -> list[str]:
 
     plugins = marketplace.get("plugins")
     marketplace_plugin = plugins[0] if isinstance(plugins, list) and len(plugins) == 1 and isinstance(plugins[0], dict) else {}
-    if marketplace.get("name") != "skills":
-        errors.append("marketplace name must be 'skills'")
-    if marketplace_plugin.get("name") != "skills" or marketplace_plugin.get("source") != "./":
-        errors.append("marketplace must register the root skills plugin")
-    if marketplace_plugin.get("version") != VERSION:
-        errors.append("marketplace plugin version does not match repository version")
+    if marketplace.get("name") != MARKETPLACE_NAME:
+        errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
+    if marketplace_plugin.get("name") != PLUGIN_NAME or marketplace_plugin.get("source") != f"./{PLUGIN_NAME}":
+        errors.append(f"marketplace must register the {PLUGIN_NAME} plugin")
+    metadata = marketplace.get("metadata")
+    if not isinstance(metadata, dict) or metadata.get("pluginRoot") != "./plugins":
+        errors.append("marketplace pluginRoot must be './plugins'")
 
     root_readme = _read_text(ROOT / "README.md", errors)
     skills_readme = _read_text(skills_root / "README.md", errors)
     for name in names:
-        if f"skills/{name}/SKILL.md" not in root_readme:
+        if f"plugins/{PLUGIN_NAME}/skills/{name}/SKILL.md" not in root_readme:
             errors.append(f"README.md does not register {name}")
         if f"{name}/SKILL.md" not in skills_readme:
             errors.append(f"skills/README.md does not register {name}")

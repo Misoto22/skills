@@ -11,10 +11,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = ROOT / "skills"
+PLUGIN = ROOT / "plugins" / "writing"
+SKILLS = PLUGIN / "skills"
 README_PATH = ROOT / "README.md"
 SKILLS_README_PATH = SKILLS / "README.md"
-PLUGIN_PATH = ROOT / ".claude-plugin" / "plugin.json"
+PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 LINK_SCRIPT = ROOT / "scripts" / "link-skills.sh"
 
@@ -28,12 +29,13 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotIn("drafts", json.dumps(plugin))
         self.assertNotIn("deprecated", json.dumps(plugin))
 
-    def test_marketplace_registers_the_root_plugin(self) -> None:
+    def test_marketplace_registers_the_writing_plugin(self) -> None:
         marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
-        self.assertEqual(marketplace["name"], "skills")
-        self.assertEqual(marketplace["plugins"][0]["source"], "./")
-        self.assertEqual(marketplace["plugins"][0]["version"], "0.1.0")
+        self.assertEqual(marketplace["name"], "misoto22")
+        self.assertEqual(marketplace["plugins"][0]["name"], "writing")
+        self.assertEqual(marketplace["plugins"][0]["source"], "./writing")
+        self.assertEqual(marketplace["metadata"]["pluginRoot"], "./plugins")
 
     def test_every_published_skill_is_registered(self) -> None:
         names = sorted(path.parent.name for path in SKILLS.glob("*/SKILL.md"))
@@ -42,7 +44,7 @@ class RepositoryContractTests(unittest.TestCase):
         root_readme = README_PATH.read_text(encoding="utf-8")
         skills_readme = SKILLS_README_PATH.read_text(encoding="utf-8")
         for name in names:
-            self.assertIn(f"skills/{name}/SKILL.md", root_readme)
+            self.assertIn(f"plugins/writing/skills/{name}/SKILL.md", root_readme)
             self.assertIn(f"{name}/SKILL.md", skills_readme)
 
     def test_link_script_never_recursively_deletes_targets(self) -> None:
@@ -60,7 +62,7 @@ class RepositoryContractTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertEqual(result.stdout, "skills/email/SKILL.md\n")
+        self.assertEqual(result.stdout, "plugins/writing/skills/email/SKILL.md\n")
 
     def test_link_script_creates_editable_links_in_isolated_destinations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -139,7 +141,7 @@ class RepositoryContractTests(unittest.TestCase):
                     [
                         sys.executable,
                         "scripts/package-skill.py",
-                        "skills/email",
+                        "plugins/writing/skills/email",
                         str(destination),
                     ],
                     cwd=ROOT,

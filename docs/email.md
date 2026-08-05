@@ -8,7 +8,7 @@ Copy the example into a project:
 
 ```bash
 mkdir -p .agents
-cp skills/email/policy.example.json .agents/email-policy.json
+cp plugins/writing/skills/email/policy.example.json .agents/email-policy.json
 ```
 
 Set the sender identity, internal domains, signature, and any explicitly allowed external domains. Keep `default_mode` as `draft`. Leave automated send disabled unless the project has a narrowly bounded, reviewed scope.
