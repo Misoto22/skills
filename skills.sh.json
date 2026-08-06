@@ -1,0 +1,30 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "writing",
+      "description": "Prose aimed at a person \u2014 drafting outbound email under policy, and rewriting a message that carries more frustration than its author wants to send.",
+      "skills": [
+        "email",
+        "tempering"
+      ]
+    },
+    {
+      "title": "docs",
+      "description": "Prose aimed at whoever opens the repository next, written from what the repository's own files say rather than from its name.",
+      "skills": [
+        "readme"
+      ]
+    },
+    {
+      "title": "dev",
+      "description": "The loop around a change \u2014 pull the base branch level, land the change as a merged pull request, then remove what shipping left behind.",
+      "skills": [
+        "sync",
+        "ship",
+        "cleanup"
+      ]
+    }
+  ]
+}
