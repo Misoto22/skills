@@ -7,6 +7,7 @@ Portable, configurable agent skills for reliable everyday work. The repository i
 | Skill | Purpose | Version |
 | --- | --- | ---: |
 | [email](plugins/writing/skills/email/SKILL.md) | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.1.0 |
+| [tempering](plugins/writing/skills/tempering/SKILL.md) | Rewrite a blunt or frustrated workplace message into three registers without losing the request. | 0.1.0 |
 
 ## Install
 

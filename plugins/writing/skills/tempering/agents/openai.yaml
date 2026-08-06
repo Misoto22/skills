@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tempering"
+  short_description: "Rewrite a blunt workplace message into three usable registers"
+  default_prompt: "Use $tempering to rewrite this message so it removes the attack on the person and keeps the request, the date, and the consequence intact."
+policy:
+  allow_implicit_invocation: true
