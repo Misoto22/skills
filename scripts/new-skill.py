@@ -12,9 +12,10 @@ expected skill names from the tree, so nothing there is written down twice.
   python3 scripts/new-skill.py writing outline    Add a skill to an existing plugin
   python3 scripts/new-skill.py notes capture      Create the plugin too, if it is new
 
-Writes a SKILL.md the validator accepts and a description that will not trigger
-on anything. Both are placeholders: the description is the only field that
-decides whether a skill ever fires, so rewrite it before committing.
+Writes a SKILL.md that satisfies every registry check and a description that
+satisfies none. That is deliberate: the description is the only field deciding
+whether a skill ever fires, so the validator fails on the placeholder until it
+is rewritten. Everything mechanical is done; the one judgement call is not.
 """
 
 from __future__ import annotations
@@ -149,7 +150,8 @@ def main() -> int:
     print(f"\nScaffolded {args.plugin}/{args.skill} → /{args.plugin}:{args.skill}")
     print("Still yours to do, in this order:")
     print(f"  1. Rewrite the description in plugins/{args.plugin}/skills/{args.skill}/SKILL.md")
-    print("     — it is the only field that decides whether the skill ever fires.")
+    print("     — it is the only field that decides whether the skill ever fires,")
+    print("       and the validator fails on the placeholder until you do.")
     print("  2. Write the body, and replace the README and plugin-registry placeholders.")
     print("  3. python3 scripts/validate-repository.py")
     return 0

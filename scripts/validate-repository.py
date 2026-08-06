@@ -110,6 +110,19 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     if result.returncode != 0:
         errors.append("vendored shared/ copies are stale; run scripts/sync-shared.py")
 
+    # The description decides whether a skill ever fires, and it is the one field
+    # a structural check cannot judge. Its rules live in their own script; the
+    # violations are surfaced here rather than reduced to one line.
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "check-descriptions.py")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        errors.extend(line.removeprefix("error: ") for line in result.stderr.splitlines() if line.strip())
+
     if run_tests and not errors:
         result = subprocess.run(
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
