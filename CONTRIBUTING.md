@@ -57,13 +57,13 @@ Tests come before implementation, and a change to what a script asserts needs a 
 ## Releasing
 
 ```bash
-python3 scripts/bump-version.py 0.4.0
+python3 scripts/bump-version.py <version>
 ```
 
 Then update `CHANGELOG.md`, close `## Unreleased` with the version and date, merge, and tag:
 
 ```bash
-git tag -a v0.4.0 -m "skills v0.4.0" && git push origin v0.4.0
+git tag -a v<version> -m "skills v<version>" && git push origin v<version>
 ```
 
 The tag builds a `.skill` for every published skill and attaches them to a GitHub Release, which is how claude.ai and Cowork are served on a personal plan.

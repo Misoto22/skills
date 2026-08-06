@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.4.0 — 2026-08-06
 
 - Added linting: `ruff.toml` selects the rules that catch real defects on a standard-library-only codebase, and CI runs `ruff check`, `ruff format --check`, and `shellcheck`. The first run found 47 findings, including five `subprocess.run` calls whose exit status was inspected but never declared with `check=`.
 - Added `scripts/bump-version.py` and `.version-bump.json`. The version lives in eight files; `--audit` greps for occurrences the declared list does not cover and fails, so a tag cannot ship artefacts that disagree with it. CI runs the audit on every push.
