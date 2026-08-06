@@ -36,6 +36,24 @@ def declared_version() -> str:
     return match.group(1)
 
 
+def bookmarked_plugins() -> set[str]:
+    """Read the bookmarks, which live in the validator beside the published list."""
+
+    text = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+    match = re.search(r"^BOOKMARKED = \{(.*?)\n\}", text, re.MULTILINE | re.DOTALL)
+    assert match, "validate-repository.py declares no BOOKMARKED"
+    return set(re.findall(r'"([^"]+)"', match.group(1)))
+
+
+def declared_bundle() -> str:
+    """Read the name of the entry that installs every other entry."""
+
+    text = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+    match = re.search(r'^BUNDLE = "([^"]+)"', text, re.MULTILINE)
+    assert match, "validate-repository.py declares no BUNDLE"
+    return match.group(1)
+
+
 class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
@@ -53,13 +71,82 @@ class RepositoryContractTests(unittest.TestCase):
         # CLI prepends pluginRoot to it, so setting pluginRoot breaks one of them
         # whichever way the sources are then written.
         self.assertNotIn("pluginRoot", marketplace["metadata"])
-        registered = {entry["name"]: entry for entry in marketplace["plugins"]}
+        # Bookmarks and the bundle are registered here too. Neither has a tree
+        # under plugins/, so only the entries backed by one are matched to it.
+        untreed = bookmarked_plugins() | {declared_bundle()}
+        registered = {
+            entry["name"]: entry for entry in marketplace["plugins"] if entry["name"] not in untreed
+        }
         on_disk = {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
         self.assertEqual(set(registered), on_disk)
         for name, entry in registered.items():
             self.assertEqual(entry["source"], f"./plugins/{name}")
             skills = sorted(path.parent.name for path in (PLUGINS / name / "skills").glob("*/SKILL.md"))
             self.assertEqual(entry["skills"], [f"./skills/{skill}" for skill in skills])
+
+    def test_the_bundle_installs_every_other_entry(self) -> None:
+        """One command is the claim; an entry left out of it is the claim breaking."""
+
+        marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
+        bundle = declared_bundle()
+        manifest = json.loads((ROOT / "bundle" / ".claude-plugin" / "plugin.json").read_text())
+
+        registered = {entry["name"] for entry in marketplace["plugins"]}
+        self.assertIn(bundle, registered)
+        self.assertEqual(
+            sorted(manifest["dependencies"]),
+            sorted(f"{name}@misoto22" for name in registered - {bundle}),
+        )
+        # Depending on itself is a cycle, and carrying skills would make the
+        # bundle a fourth plugin to maintain rather than a way to install three.
+        self.assertNotIn(f"{bundle}@misoto22", manifest["dependencies"])
+        self.assertNotIn("skills", manifest)
+        self.assertFalse((PLUGINS / bundle).exists())
+
+    def test_every_entry_but_the_bundle_declares_a_category(self) -> None:
+        """A category of one is what an invented word gets you in the browser."""
+
+        validator = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+        block = re.search(r"^CATEGORIES = \{(.*?)\n\}", validator, re.MULTILINE | re.DOTALL)
+        vocabulary = set(re.findall(r'"([^"]+)"', block.group(1)))
+        marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
+        bundle = declared_bundle()
+
+        self.assertTrue(vocabulary)
+        for entry in marketplace["plugins"]:
+            if entry["name"] == bundle:
+                # An entry point to the others, so it belongs under none of them.
+                self.assertNotIn("category", entry)
+                continue
+            self.assertIn(entry.get("category"), vocabulary, entry["name"])
+
+    def test_new_and_removed_plugins_move_the_bundle_with_them(self) -> None:
+        """The scaffold and the retirement own this, or the next plugin is missed."""
+
+        scaffold = (ROOT / "scripts" / "new-skill.py").read_text(encoding="utf-8")
+        retire = (ROOT / "scripts" / "remove-skill.py").read_text(encoding="utf-8")
+
+        self.assertIn("_register_bundle(args.plugin, created)", scaffold)
+        self.assertIn("_unregister_bundle(args.plugin, touched)", retire)
+
+    def test_every_bookmark_pins_a_commit(self) -> None:
+        """An unpinned bookmark installs whatever its owner holds at install time."""
+
+        marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
+        bookmarked = bookmarked_plugins()
+        entries = {entry["name"]: entry for entry in marketplace["plugins"] if entry["name"] in bookmarked}
+
+        self.assertEqual(set(entries), bookmarked)
+        for name, entry in sorted(entries.items()):
+            source = entry["source"]
+            self.assertIn(source["source"], {"git-subdir", "url"}, name)
+            self.assertTrue(source["url"].startswith("https://"), name)
+            self.assertRegex(source["sha"], r"\A[0-9a-f]{40}\Z", name)
+            # Which skills a bookmark carries is its owner's to change, and a
+            # stale copy of that list here would advertise skills it dropped.
+            self.assertNotIn("skills", entry, name)
+        for name in bookmarked:
+            self.assertFalse((PLUGINS / name).exists(), f"{name} is bookmarked and vendored")
 
     def test_every_published_skill_is_registered(self) -> None:
         """Every source of truth agrees. The canonical list lives in the validator."""
@@ -667,6 +754,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         touched = [
             ".claude-plugin/marketplace.json",
+            "bundle/.claude-plugin/plugin.json",
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
@@ -710,6 +798,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         registries = [
             ".claude-plugin/marketplace.json",
+            "bundle/.claude-plugin/plugin.json",
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
@@ -739,6 +828,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         registries = [
             ".claude-plugin/marketplace.json",
+            "bundle/.claude-plugin/plugin.json",
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
