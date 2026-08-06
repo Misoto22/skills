@@ -15,7 +15,7 @@ plugins/
       tempering/
 ```
 
-Shared material lives inside the plugin that uses it. A plugin is copied to a cache directory on install, so nothing outside its own directory is available at runtime — a plugin can never reference `../`. Two plugins needing the same reference file each carry a copy.
+Shared material lives inside the plugin that uses it. Installers copy a plugin — or, for most agents, a single skill directory — and nothing above it, so a reference that climbs out with `../` resolves in the repository and dangles after install. `plugins/writing/shared/` is the only copy anyone edits; `scripts/sync-shared.py` vendors it into each `skills/<skill>/shared/`, and CI fails on drift.
 
 ## Published skills
 
@@ -26,7 +26,16 @@ Shared material lives inside the plugin that uses it. A plugin is copied to a ca
 
 ## Install
 
-Claude Code, from GitHub:
+Pick the row that matches your agent. All four routes are exercised by CI on every push, against the tree the installer actually produces.
+
+| Agent | Route |
+| --- | --- |
+| Claude Code | plugin marketplace |
+| Codex | plugin marketplace |
+| Cursor, Windsurf, opencode, Roo, Kilo Code, Qwen, iFlow, Trae, Junie, Continue, Goose, Crush, and ~40 more | `npx skills` |
+| claude.ai, Cowork | `.skill` upload |
+
+### Claude Code
 
 ```bash
 claude plugin marketplace add Misoto22/skills
@@ -36,19 +45,41 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install writing@misoto22
 ```
 
-From a local clone, substitute `claude plugin marketplace add .` for the first command.
+Gives you `/writing:email` and `/writing:tempering`.
 
-Agent Skills-compatible clients can install an individual skill with the pinned CLI used by CI:
+### Codex
+
+Codex reads the same marketplace manifest.
 
 ```bash
-npx --yes skills@1.5.20 add . --skill email
+codex plugin marketplace add https://github.com/Misoto22/skills
 ```
 
-That creates a copied installation. It does not update automatically when the repository changes; rerun the command to refresh it.
+```bash
+codex plugin add writing@misoto22
+```
 
-For claude.ai and Cowork, download the `.skill` files attached to a [release](https://github.com/Misoto22/skills/releases) and upload them. Each archive carries its own copy of the plugin's `shared/` directory, so an uploaded skill is self-contained.
+### Everything else — `npx skills`
 
-Maintainers who want editable local installations may run `bash scripts/link-skills.sh`. The script links only published skill directories, never overwrites real files or directories, and stops on conflicts.
+One command installs into every agent directory found on the machine. Drop `--agent '*'` to be prompted for a subset, or name one (`--agent cursor`).
+
+```bash
+npx --yes skills@1.5.20 add Misoto22/skills --agent '*' --skill '*'
+```
+
+This is a copied installation: it does not track the repository, so rerun the command to update.
+
+### claude.ai and Cowork
+
+Marketplace sync is an organization feature, so on a personal plan these two need a file. Download the `.skill` archives from the [latest release](https://github.com/Misoto22/skills/releases/latest) and upload them in the skills UI.
+
+Every route above installs a self-contained skill: the shared reference files ship inside each skill directory, so nothing dangles once the skill leaves this repository.
+
+### Local clone
+
+Substitute the clone's path for `Misoto22/skills` in any command above — `claude plugin marketplace add .`, `codex plugin marketplace add "$PWD"`, `npx skills add .`.
+
+Maintainers who want editable installs rather than copies may run `bash scripts/link-skills.sh`. It links only published skill directories, never overwrites real files or directories, and stops on conflicts.
 
 ## Use email
 
@@ -69,9 +100,13 @@ bash scripts/list-skills.sh
 ```
 
 ```bash
+python3 scripts/sync-shared.py
+```
+
+```bash
 python3 scripts/package-skill.py plugins/writing/skills/email dist
 ```
 
-Tagging `v*` builds a `.skill` for every published skill and attaches them to a GitHub Release.
+`scripts/verify-install.py <dir>` asserts an installed tree is complete and self-contained; point it at any real install to reproduce what CI checks. Tagging `v*` builds a `.skill` for every published skill and attaches them to a GitHub Release.
 
 The repository contains no transport credentials and does not implement SMTP. License: [MIT](LICENSE).

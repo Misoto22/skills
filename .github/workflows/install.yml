@@ -1,0 +1,115 @@
+name: Install
+
+# Each job installs the skills the way a real user would, then runs
+# verify-install.py against whatever that installer produced. The assertions
+# run on the artifact the agent actually reads, so an installer that silently
+# drops shared/ fails here rather than at the user's first invocation.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  claude-code:
+    name: Claude Code plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - run: npm install --global @anthropic-ai/claude-code@2.1.220
+
+      - name: Install writing@misoto22
+        run: |
+          claude plugin marketplace add "$PWD"
+          claude plugin install writing@misoto22
+
+      - name: Both skills are registered
+        run: claude plugin details writing@misoto22 | grep -E 'Skills \(2\).*email.*tempering'
+
+      - name: Installed tree is complete and self-contained
+        run: |
+          python3 scripts/verify-install.py \
+            "$HOME/.claude/plugins/cache/misoto22/writing" \
+            --expect email --expect tempering
+
+  codex:
+    name: Codex plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - run: npm install --global @openai/codex@0.145.0
+
+      - name: Install writing@misoto22
+        run: |
+          codex plugin marketplace add "$PWD"
+          codex plugin add writing@misoto22
+
+      - name: Installed tree is complete and self-contained
+        run: |
+          python3 scripts/verify-install.py \
+            "$HOME/.codex/plugins/cache/misoto22/writing" \
+            --expect email --expect tempering
+
+  agent-skills-cli:
+    name: npx skills add (all agents)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # An isolated HOME so the install cannot inherit anything from the runner.
+      - name: Install into every supported agent directory
+        run: |
+          FAKE_HOME="$(mktemp -d)"
+          echo "FAKE_HOME=$FAKE_HOME" >> "$GITHUB_ENV"
+          HOME="$FAKE_HOME" npx --yes skills@1.5.20 add "$PWD" \
+            --agent '*' --skill '*' --global --yes --copy
+
+      - name: Every installed copy is complete and self-contained
+        run: |
+          test "$(find "$FAKE_HOME" -name SKILL.md | wc -l)" -gt 0
+          python3 scripts/verify-install.py "$FAKE_HOME" --expect email --expect tempering
+
+  skill-archive:
+    name: .skill upload bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Package and unpack every skill
+        run: |
+          mkdir -p dist unpacked
+          for skill_file in $(bash scripts/list-skills.sh); do
+            python3 scripts/package-skill.py "${skill_file%/SKILL.md}" dist
+          done
+          for archive in dist/*.skill; do
+            python3 -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall('unpacked')" "$archive"
+          done
+
+      - name: Unpacked archive is complete and self-contained
+        run: python3 scripts/verify-install.py unpacked --expect email --expect tempering
