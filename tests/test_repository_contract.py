@@ -176,7 +176,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(all(name.startswith("email/") for name in names))
         self.assertFalse(any("__pycache__" in name or name.endswith(".pyc") for name in names))
 
-    def test_package_carries_shared_material_and_rebases_its_references(self) -> None:
+    def test_package_carries_shared_material_and_stays_self_contained(self) -> None:
         with tempfile.TemporaryDirectory() as destination:
             subprocess.run(
                 [
@@ -196,8 +196,9 @@ class RepositoryContractTests(unittest.TestCase):
 
         for shared in ("email/shared/tone.md", "email/shared/format.md"):
             self.assertIn(shared, names)
-        self.assertIn("${CLAUDE_SKILL_DIR}/shared/tone.md", skill)
-        self.assertNotIn("../../shared/", skill)
+        self.assertIn("(shared/tone.md)", skill)
+        self.assertNotIn("${CLAUDE_", skill)
+        self.assertNotIn("../", skill)
 
     def test_shared_material_carries_no_original_hardcodes(self) -> None:
         shared = "\n".join(
@@ -208,6 +209,37 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(shared.strip())
         for forbidden in ("/Users/", "/home/", "smtp.gmail.com"):
             self.assertNotIn(forbidden, shared)
+
+    def test_every_skill_vendors_the_plugin_shared_material(self) -> None:
+        source = {
+            path.relative_to(PLUGIN / "shared"): path.read_bytes()
+            for path in (PLUGIN / "shared").rglob("*")
+            if path.is_file()
+        }
+        self.assertTrue(source)
+
+        for skill_file in SKILLS.glob("*/SKILL.md"):
+            vendored = skill_file.parent / "shared"
+            for relative, content in source.items():
+                copied = vendored / relative
+                self.assertTrue(copied.is_file(), f"{copied} is missing")
+                self.assertEqual(copied.read_bytes(), content, f"{copied} is stale")
+
+    def test_sync_shared_reports_drift(self) -> None:
+        target = SKILLS / "email" / "shared" / "tone.md"
+        original = target.read_bytes()
+        target.write_bytes(original + b"\ndrift\n")
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/sync-shared.py", "--check"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("stale vendored copy", result.stderr)
+        finally:
+            target.write_bytes(original)
 
 
 if __name__ == "__main__":
