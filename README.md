@@ -20,6 +20,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 [![Claude Code](https://img.shields.io/badge/Claude_Code-D97757?logo=claude&logoColor=fff)](https://claude.com/claude-code)
 [![Codex](https://img.shields.io/badge/Codex-000?logo=openai&logoColor=fff)](https://developers.openai.com/codex/cli)
 [![Agent Skills](https://img.shields.io/badge/Agent_Skills-5A67D8)](https://github.com/vercel-labs/agent-skills)
+[![skills.sh](https://img.shields.io/badge/skills.sh-000?logo=vercel&logoColor=fff)](https://skills.sh/Misoto22/skills)
 [![Python](https://img.shields.io/badge/Python_3.11+-3776AB?logo=python&logoColor=fff)](https://www.python.org/)
 
 </div>
@@ -113,6 +114,19 @@ Substitute the clone's path for `Misoto22/skills` in any command above.
 Maintainers who want editable installs rather than copies can run `bash scripts/link-skills.sh` — it links published skill directories only, never overwrites a real file or directory, and stops on conflicts.
 
 </details>
+
+---
+
+### Directories
+
+This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same six skills grouped by plugin.
+
+The rest index Agent Skills repositories at large. None of them carry this one — they are here for the skills it does not cover:
+
+- [Skills Directory](https://www.skillsdirectory.com/) — scans every listed skill for prompt injection, credential theft, and data exfiltration before publishing it.
+- [Claude Skills Hub](https://claudeskills.info/) — community submissions, reviewed by hand.
+- [OpenAgentSkill](https://www.openagentskill.com/) — attaches risk signals and a fit score to each skill.
+- [SkillsMP](https://skillsmp.com/) — aggregates GitHub, and answers a public search API at `/api/v1/skills/search`.
 
 ---
 
