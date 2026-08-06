@@ -21,8 +21,7 @@
     "plugins/writing/skills/tempering/SKILL.md",
     "plugins/docs/skills/readme/SKILL.md",
     "scripts/validate-repository.py",
-    "tests/test_repository_contract.py",
-    "README.md"
+    "tests/test_repository_contract.py"
   ],
   "audit": {
     "exclude": [

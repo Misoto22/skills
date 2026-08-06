@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- Rewrote the README: skills are grouped under the plugin that ships them rather than listed flat, and the page is a third shorter. Tech Stack, Project Structure, Development, and Release were four sections restating what CONTRIBUTING.md already owns; the structure diagram folds into the constraint it illustrates, and the rest is a link.
+- Fixed fourteen stale claims that had accumulated since 0.4.0 — "three skills across two plugins", two wrong test counts, an install block missing `dev@misoto22`, and a structure diagram and directory tree with no `dev` in them.
+- `README.md` no longer declares a version, so it comes out of `.version-bump.json`. The round-trip test caught that: it asserts every declared file changes when the version moves, which is how a file that has stopped carrying one gets noticed.
+
 ## 0.7.0 — 2026-08-06
 
 - Added `/dev:sync`, which fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards: a diverged branch is reported, never rebased, because choosing between rebase, merge, and reset is the user's call and guessing it destroys work. On a feature branch it advances the base with `git fetch origin <base>:<base>`, which never touches the working tree.
