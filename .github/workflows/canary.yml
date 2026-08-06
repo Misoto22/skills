@@ -36,7 +36,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # One open issue, commented on each week it stays broken. A new issue per
       # run would bury the first report, which is the one holding the context.

@@ -165,14 +165,14 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(plugin["version"], "0.8.0")
         self.assertIn('version: "0.8.0"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
-        self.assertIn("actions/checkout@v7", workflow)
-        self.assertIn("actions/setup-python@v7", workflow)
-        self.assertIn("actions/setup-node@v7", workflow)
+        self.assertIn("actions/checkout@", workflow)
+        self.assertIn("actions/setup-python@", workflow)
+        self.assertIn("actions/setup-node@", workflow)
         self.assertIn("ci-pins.py spec skills", workflow)
         self.assertIn("ci-pins.py spec claude-code", workflow)
         self.assertIn("ci-pins.py check", workflow)
-        self.assertIn('python-version: ["3.11", "3.13"]', workflow)
-        self.assertIn("astral-sh/ruff-action@v3", workflow)
+        self.assertIn('python-version: ["3.11", "3.12", "3.13"]', workflow)
+        self.assertIn("astral-sh/ruff-action@", workflow)
         self.assertIn("version: ${{ env.RUFF_VERSION }}", workflow)
         self.assertIn("shellcheck scripts/*.sh", workflow)
 
@@ -213,8 +213,8 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertIn('tags: ["v*"]', workflow)
         self.assertIn("permissions:\n  contents: write", workflow)
-        self.assertIn("actions/checkout@v7", workflow)
-        self.assertIn("actions/setup-python@v7", workflow)
+        self.assertIn("actions/checkout@", workflow)
+        self.assertIn("actions/setup-python@", workflow)
         self.assertIn("scripts/list-skills.sh", workflow)
         self.assertIn("scripts/package-skill.py", workflow)
         self.assertIn("dist/*.skill", workflow)
@@ -412,6 +412,28 @@ class RepositoryContractTests(unittest.TestCase):
         finally:
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
+
+    def test_every_action_is_pinned_to_a_commit(self) -> None:
+        """A tag is a moving reference. Whoever can move it can change what CI runs."""
+
+        pinned = re.compile(r"^[\w.-]+/[\w.-]+@[0-9a-f]{40} # \S+$")
+        seen = 0
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if not stripped.startswith(("- uses:", "uses:")):
+                    continue
+                reference = stripped.split("uses:", 1)[1].strip()
+                # A reusable workflow in this repository moves with this repository.
+                if reference.startswith("./"):
+                    continue
+                seen += 1
+                self.assertRegex(
+                    reference,
+                    pinned,
+                    f"{path.name}: {reference} is not pinned to a commit with its version in a comment",
+                )
+        self.assertTrue(seen, "no external action found to check")
 
     def test_every_workflow_job_is_bounded_and_supersedes_its_own_runs(self) -> None:
         """An unbounded job holds a runner for six hours, and a superseded one burns it twice."""

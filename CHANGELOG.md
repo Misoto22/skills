@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- Added `SECURITY.md` and `.github/CODEOWNERS`. The email skill documents an authorization model and an artifact-integrity gate, and there was nowhere to report a hole in either; CODEOWNERS names that skill, the workflows, and `.ci-pins.json` apart from the catch-all, so a change to a gate is not reviewed as a change to prose.
+- Every action is pinned to a commit rather than a tag, with the version in a trailing comment for dependabot to move. A tag is a moving reference, and whoever can move it decides what runs in a job holding `contents: write` and an attestation signing key. A test asserts it over every `uses:` in every workflow, so a new one cannot land unpinned.
+- Added Python 3.12 to the test matrix. It ran 3.11 and 3.13, so the version most likely to be installed on a contributor's machine was the one nothing proved.
+
 ## 0.8.0 — 2026-08-06
 
 Adds no skill and changes no install command. It closes the gap an audit found between this repository's structural checks, which were thorough, and its behavioural ones, which did not exist: nothing verified the field deciding whether a skill fires, five of six skills had no evaluation cases, no check could fail on an upstream CLI change, and there was no way to retire a skill.
