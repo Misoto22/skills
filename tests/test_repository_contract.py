@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -143,6 +144,54 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("scripts/list-skills.sh", workflow)
         self.assertIn("scripts/package-skill.py", workflow)
         self.assertIn("dist/*.skill", workflow)
+
+    def test_install_workflow_covers_every_supported_route(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(
+            encoding="utf-8"
+        )
+
+        for route in (
+            "claude plugin install writing@misoto22",
+            "codex plugin add writing@misoto22",
+            "npx --yes skills@1.5.20 add",
+            "scripts/package-skill.py",
+        ):
+            self.assertIn(route, workflow)
+        self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
+        self.assertIn("@openai/codex@0.145.0", workflow)
+        self.assertEqual(workflow.count("scripts/verify-install.py"), 4)
+
+    def test_verify_install_rejects_a_tree_missing_shared(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            broken = Path(temporary) / "email"
+            shutil.copytree(SKILLS / "email", broken)
+            shutil.rmtree(broken / "shared")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/verify-install.py", str(broken)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("the install dropped shared material", result.stderr)
+
+    def test_verify_install_accepts_the_published_tree(self) -> None:
+        subprocess.run(
+            [
+                sys.executable,
+                "scripts/verify-install.py",
+                str(SKILLS),
+                "--expect",
+                "email",
+                "--expect",
+                "tempering",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
 
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(
