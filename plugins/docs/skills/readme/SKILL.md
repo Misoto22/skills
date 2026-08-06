@@ -83,6 +83,8 @@ GitHub strips CSS and JavaScript, so the page has four levers and no others.
 
 Cap the page at two screens of scrolling before the first `<details>`. Long tables wrap badly at GitHub's content width — keep any row under about 90 characters, and if it will not fit, it was prose.
 
+Centred text is for one line. A centred sentence past about 70 characters wraps, and a wrapped centre leaves a stranded last line under the fold of the block. Cut it to one line or left-align it.
+
 ## Section rules
 
 **Features.** Bullets, each `**Term** — what it does`. The term is the thing a user would search for, not a category. Parenthesise the concrete handle where one exists: a route, a shortcut, an endpoint.
