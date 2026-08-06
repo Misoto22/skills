@@ -40,12 +40,12 @@ A plugin is a subject, not a bucket. `writing` is prose aimed at a person; `docs
 
 ### Tech Stack
 
-| | |
-|:--|:--|
-| **Runtime** | Dependency-free Python 3.11+ · Bash |
-| **Skills** | Markdown `SKILL.md` · Agent Skills frontmatter · `agents/openai.yaml` interfaces |
-| **Testing** | `unittest` — 110 tests, no third-party runner |
-| **CI** | Validate (metadata · tests on 3.11 and 3.13) · Install (four routes) · Release (`.skill` on tag) |
+<table>
+<tr><td><b>Runtime</b></td><td>Dependency-free Python 3.11+ · Bash</td></tr>
+<tr><td><b>Skills</b></td><td>Markdown <code>SKILL.md</code> · Agent Skills frontmatter · <code>agents/openai.yaml</code> interfaces</td></tr>
+<tr><td><b>Testing</b></td><td><code>unittest</code> — 118 tests, no third-party runner</td></tr>
+<tr><td><b>CI</b></td><td>Validate (metadata · tests on 3.11 and 3.13) · Install (four routes) · Release (<code>.skill</code> on tag)</td></tr>
+</table>
 
 No package manager, no lockfile, no build step. `python3` and `bash` are the whole toolchain.
 
