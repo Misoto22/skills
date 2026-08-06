@@ -4,14 +4,12 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+- Added `skills.sh.json`, which groups the six skills by the plugin that ships them on the [skills.sh](https://www.skills.sh/Misoto22/skills) directory page instead of listing them flat. Nothing in this repository renders that file, so a test asserts the groups mirror the plugins and cover every published skill exactly once — otherwise a drift is only visible to a user.
+- `new-skill.py` registers the new skill there too, creating the group when the plugin is new.
 - Rewrote the README: skills are grouped under the plugin that ships them rather than listed flat, and the page is a third shorter. Tech Stack, Project Structure, Development, and Release were four sections restating what CONTRIBUTING.md already owns; the structure diagram folds into the constraint it illustrates, and the rest is a link.
 - Fixed fourteen stale claims that had accumulated since 0.4.0 — "three skills across two plugins", two wrong test counts, an install block missing `dev@misoto22`, and a structure diagram and directory tree with no `dev` in them.
 - `README.md` no longer declares a version, so it comes out of `.version-bump.json`. The round-trip test caught that: it asserts every declared file changes when the version moves, which is how a file that has stopped carrying one gets noticed.
-
-## Unreleased
-
-- Added `skills.sh.json`, which groups the six skills by the plugin that ships them on the [skills.sh](https://www.skills.sh/Misoto22/skills) directory page instead of listing them flat. Nothing in this repository renders that file, so a test asserts the groups mirror the plugins and cover every published skill exactly once — otherwise a drift is only visible to a user.
-- `new-skill.py` registers the new skill there too, creating the group when the plugin is new. That is the seventh registration point it covers.
+- The changelog now has a shape the test suite checks: one `## Unreleased` at the top, release headings that parse, versions running newest first, and a section for whatever version the manifests declare. Two `## Unreleased` sections had already accumulated across two merges, and every entry under the second one would have been dropped from the release notes.
 
 ## 0.7.0 — 2026-08-06
 
