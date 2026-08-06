@@ -237,12 +237,10 @@ class RepositoryContractTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
 
         for route in (
-            "claude plugin install writing@misoto22",
-            "codex plugin add writing@misoto22",
-            "claude plugin install docs@misoto22",
+            'claude plugin install "$plugin@misoto22"',
+            'codex plugin add "$plugin@misoto22"',
+            "bash scripts/list-plugins.sh",
             "bash scripts/list-skills.sh",
-            "codex plugin add writing@misoto22",
-            "codex plugin add docs@misoto22",
             "npx --yes skills@1.5.22 add",
             "scripts/package-skill.py",
         ):
@@ -250,6 +248,35 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
         self.assertIn("@openai/codex@0.145.0", workflow)
         self.assertEqual(workflow.count("scripts/verify-install.py"), 4)
+
+    def test_install_workflow_names_no_plugin_or_skill(self) -> None:
+        """A name written here is a name that has to be maintained here. Derive them."""
+
+        workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
+        published = {path.parent.name for path in PLUGINS.glob("*/skills/*/SKILL.md")}
+        published |= {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
+
+        for name in sorted(published):
+            self.assertNotRegex(
+                workflow,
+                rf"\b{re.escape(name)}\b",
+                f"install.yml names {name!r}; derive it from the tree instead",
+            )
+        self.assertEqual(workflow.count("--expect"), 4, "every route asserts a derived --expect list")
+
+    def test_list_script_prints_only_published_plugins(self) -> None:
+        result = subprocess.run(
+            ["bash", "scripts/list-plugins.sh"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        expected = sorted(
+            f"{path.parent.parent.name}\n" for path in PLUGINS.glob("*/.claude-plugin/plugin.json")
+        )
+        self.assertEqual(result.stdout, "".join(expected))
 
     def test_verify_install_rejects_a_tree_missing_shared(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -332,7 +359,6 @@ class RepositoryContractTests(unittest.TestCase):
         touched = [
             ".claude-plugin/marketplace.json",
             "scripts/validate-repository.py",
-            ".github/workflows/install.yml",
             ".version-bump.json",
             "skills.sh.json",
             "README.md",
