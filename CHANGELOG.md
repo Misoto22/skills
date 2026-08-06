@@ -2,7 +2,9 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.8.0 — 2026-08-06
+
+Adds no skill and changes no install command. It closes the gap an audit found between this repository's structural checks, which were thorough, and its behavioural ones, which did not exist: nothing verified the field deciding whether a skill fires, five of six skills had no evaluation cases, no check could fail on an upstream CLI change, and there was no way to retire a skill.
 
 - Added `skills.sh.json`, which groups the six skills by the plugin that ships them on the [skills.sh](https://www.skills.sh/Misoto22/skills) directory page instead of listing them flat. Nothing in this repository renders that file, so a test asserts the groups mirror the plugins and cover every published skill exactly once — otherwise a drift is only visible to a user.
 - `new-skill.py` registers the new skill there too, creating the group when the plugin is new.
