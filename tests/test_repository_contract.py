@@ -356,6 +356,21 @@ class RepositoryContractTests(unittest.TestCase):
             rendered = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", stripped)
             self.assertLessEqual(len(rendered), 70, f"centred line wraps: {rendered}")
 
+    def test_no_table_ships_an_empty_header_row(self) -> None:
+        """Markdown cannot omit a table header; an empty one renders as a blank row."""
+
+        readme = README_PATH.read_text(encoding="utf-8")
+        lines = readme.splitlines()
+        for index, line in enumerate(lines[:-1]):
+            stripped = line.strip()
+            if not stripped.startswith("|") or not lines[index + 1].strip().startswith("|:"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            self.assertTrue(
+                any(cells),
+                f"line {index + 1}: empty header row — write this table as HTML <tr><td>",
+            )
+
     def test_hero_serves_both_themes(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")
 

@@ -43,12 +43,16 @@ Copy this, fill the placeholders, delete the sections the project has not earned
 
 ### Tech Stack
 
-| | |
-|:--|:--|
-| **Framework** | [name version] · [tooling] |
-| **Language** | [name version] |
-| **Testing** | [runner] · [e2e] · [property-based] |
-| **Deploy** | [where and how] |
+<!-- HTML, not markdown: a markdown table cannot omit its header row, and an
+     empty one renders as a blank row above the first entry. Use <code>, not
+     backticks — markdown does not run inside a block-level HTML table. -->
+
+<table>
+<tr><td><b>Framework</b></td><td>[name version] · [tooling]</td></tr>
+<tr><td><b>Language</b></td><td>[name version]</td></tr>
+<tr><td><b>Testing</b></td><td>[runner] · [e2e] · [property-based]</td></tr>
+<tr><td><b>Deploy</b></td><td>[where and how]</td></tr>
+</table>
 
 ---
 

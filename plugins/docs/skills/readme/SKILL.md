@@ -109,7 +109,18 @@ not something you wrote.
 > - **Command palette** (Cmd+K) for quick navigation
 > - **Contact form** sent server-side via Cloudflare Email Service (rate-limited `POST /api/contact`)
 
-**Tech Stack.** A two-column table, `| | |` header with `|:--|:--|` alignment. Left column is a bold category, right column is the actual choices joined by ` · `, with versions. Categories that carry no decision are dropped.
+**Tech Stack.** Two columns: a bold category on the left, the actual choices joined by ` · ` on the right, with versions. Categories that carry no decision are dropped.
+
+Markdown cannot express a headerless table — `| | |` renders as a visible empty row above the first entry — so write this one as HTML, where a `<tr>` of `<td>` needs no header. Backticks do not render inside a block-level HTML table; use `<code>`.
+
+> ```html
+> <table>
+> <tr><td><b>Framework</b></td><td>Next.js 16 · Turbopack</td></tr>
+> <tr><td><b>Testing</b></td><td><code>vitest</code> · Playwright (E2E)</td></tr>
+> </table>
+> ```
+
+Every other table on the page has real headers and stays markdown.
 
 > | **Framework** | Next.js 16 · Turbopack |
 > | **Testing** | Vitest 4 · Playwright (E2E) · fast-check (property-based) |
