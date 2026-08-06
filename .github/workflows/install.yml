@@ -9,13 +9,24 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Canary calls this with channel: latest, so the routes exist once. A second
+  # copy of them would be a second thing to keep in step with the installers.
+  workflow_call:
+    inputs:
+      channel:
+        description: pinned | latest
+        type: string
+        default: pinned
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.channel || 'pinned' }}
   cancel-in-progress: true
+
+env:
+  CI_CHANNEL: ${{ inputs.channel || 'pinned' }}
 
 jobs:
   claude-code:

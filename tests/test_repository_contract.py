@@ -222,6 +222,23 @@ class RepositoryContractTests(unittest.TestCase):
         # leaves a release with no archives on it.
         self.assertIn("cancel-in-progress: false", workflow)
 
+    def test_canary_runs_the_install_routes_against_the_latest_clis(self) -> None:
+        """A pinned route never fails on upstream drift, so Install alone cannot find it."""
+
+        canary = (ROOT / ".github" / "workflows" / "canary.yml").read_text(encoding="utf-8")
+        install = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
+
+        for required in ("schedule:", "workflow_dispatch:", "channel: latest", "issues: write"):
+            self.assertIn(required, canary)
+
+        # The four routes exist once. Canary calls Install rather than copying it,
+        # so a route added there is covered here without being written twice.
+        self.assertIn("uses: ./.github/workflows/install.yml", canary)
+        self.assertIn("workflow_call:", install)
+        self.assertIn("CI_CHANNEL: ${{ inputs.channel || 'pinned' }}", install)
+        for duplicated in ("verify-install.py", "list-skills.sh", "npx --yes"):
+            self.assertNotIn(duplicated, canary, "canary must call Install, not restate it")
+
     def test_ci_pins_are_the_only_place_a_cli_version_is_written(self) -> None:
         """A literal pin cannot be overridden by a channel, so the canary would miss it."""
 
@@ -303,9 +320,9 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(workflows)
         for path in workflows:
             lines = path.read_text(encoding="utf-8").splitlines()
-            self.assertIn(
-                "concurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}",
+            self.assertRegex(
                 "\n".join(lines),
+                r"(?m)^concurrency:\n  group: \$\{\{ github\.workflow \}\}",
                 path.name,
             )
             self.assertRegex("\n".join(lines), r"(?m)^  cancel-in-progress: (true|false)$", path.name)
