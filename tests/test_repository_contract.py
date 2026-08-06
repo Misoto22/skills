@@ -216,6 +216,32 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("scripts/list-skills.sh", workflow)
         self.assertIn("scripts/package-skill.py", workflow)
         self.assertIn("dist/*.skill", workflow)
+        # Superseding a publish between `gh release create` and the upload
+        # leaves a release with no archives on it.
+        self.assertIn("cancel-in-progress: false", workflow)
+
+    def test_every_workflow_job_is_bounded_and_supersedes_its_own_runs(self) -> None:
+        """An unbounded job holds a runner for six hours, and a superseded one burns it twice."""
+
+        workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+        self.assertTrue(workflows)
+        for path in workflows:
+            lines = path.read_text(encoding="utf-8").splitlines()
+            self.assertIn(
+                "concurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}",
+                "\n".join(lines),
+                path.name,
+            )
+            self.assertRegex("\n".join(lines), r"(?m)^  cancel-in-progress: (true|false)$", path.name)
+
+            runners = [index for index, line in enumerate(lines) if line.strip().startswith("runs-on:")]
+            self.assertTrue(runners, f"{path.name} defines no job")
+            for index in runners:
+                self.assertRegex(
+                    lines[index + 1],
+                    r"^\s+timeout-minutes: \d+$",
+                    f"{path.name}: the job at line {index + 1} runs without a timeout",
+                )
 
     def test_release_workflow_refuses_a_tag_the_manifests_do_not_declare(self) -> None:
         """The guard parses `--check`, so that command's output shape is part of the contract."""
