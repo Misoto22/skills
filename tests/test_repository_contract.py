@@ -353,6 +353,25 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("no undeclared occurrences", result.stdout)
 
+    def test_version_audit_reaches_the_workflows_directory(self) -> None:
+        """Excluding `.git` by string prefix excluded `.github` with it, silently."""
+
+        probe = ROOT / ".github" / "workflows" / "audit-probe.yml"
+        probe.write_text(f"probe: {declared_version()}\n", encoding="utf-8")
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/bump-version.py", "--audit"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        finally:
+            probe.unlink()
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
+
     def test_version_bump_round_trips_without_drift(self) -> None:
         config = json.loads((ROOT / ".version-bump.json").read_text(encoding="utf-8"))
         declared = [entry["path"] for entry in config["json"]] + config["text"]
