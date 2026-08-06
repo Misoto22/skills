@@ -119,9 +119,6 @@ Maintainers who want editable installs rather than copies can run `bash scripts/
 
 Rules two skills share live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
 
-<details>
-<summary>How the pieces fit</summary>
-
 ```mermaid
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"]
@@ -138,6 +135,9 @@ flowchart LR
   class W,D,V p
   class E,T,R,SY,SH,CL,SW,SV s
 ```
+
+<details>
+<summary>The directories behind that</summary>
 
 ```
 .claude-plugin/marketplace.json   Marketplace: misoto22
