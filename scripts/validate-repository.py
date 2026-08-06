@@ -10,7 +10,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 MARKETPLACE_NAME = "misoto22"
@@ -59,11 +58,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         errors.append("marketplace pluginRoot must be './plugins'")
     entries = marketplace.get("plugins")
     entries = entries if isinstance(entries, list) else []
-    registered = {
-        entry.get("name"): entry.get("source")
-        for entry in entries
-        if isinstance(entry, dict)
-    }
+    registered = {entry.get("name"): entry.get("source") for entry in entries if isinstance(entry, dict)}
     expected_sources = {name: f"./plugins/{name}" for name in PUBLISHED}
     if registered != expected_sources:
         errors.append(f"marketplace must register exactly {expected_sources}; found {registered}")
@@ -109,6 +104,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode != 0:
         errors.append("vendored shared/ copies are stale; run scripts/sync-shared.py")
@@ -117,6 +113,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         result = subprocess.run(
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
             cwd=ROOT,
+            check=False,
         )
         if result.returncode != 0:
             errors.append("unit test suite failed")

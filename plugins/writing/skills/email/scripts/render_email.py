@@ -7,8 +7,8 @@ import argparse
 import html
 import os
 import re
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 try:  # pragma: no cover - both import styles are exercised by the test suite
     from .email_policy import discover_policy, load_policy
@@ -73,18 +73,12 @@ def render_html(
     if signature_text is not None:
         escaped_lines = [html.escape(line, quote=True) for line in signature_text.split("\n")]
         attributes = _block_attributes(style, first=not parts)
-        parts.append(
-            f'<div class="signature"{attributes}>{"<br>".join(escaped_lines)}</div>'
-        )
+        parts.append(f'<div class="signature"{attributes}>{"<br>".join(escaped_lines)}</div>')
 
     body = "".join(parts)
     if style is not None:
         body = f'<div style="{_container_style(style)}">{body}</div>'
-    return (
-        "<!doctype html>\n"
-        '<html><head><meta charset="utf-8"></head>'
-        f"<body>{body}</body></html>\n"
-    )
+    return f'<!doctype html>\n<html><head><meta charset="utf-8"></head><body>{body}</body></html>\n'
 
 
 def normalize_body(text: str, signature: str | None = None) -> str:
@@ -142,9 +136,7 @@ def _is_table(lines: list[str]) -> bool:
     if len(lines) < 2 or not all(_TABLE_ROW.fullmatch(line) for line in lines):
         return False
     divider = _split_row(lines[1])
-    return bool(divider) and all(
-        _TABLE_DIVIDER_CELL.fullmatch(cell) for cell in divider
-    )
+    return bool(divider) and all(_TABLE_DIVIDER_CELL.fullmatch(cell) for cell in divider)
 
 
 def _split_row(line: str) -> list[str]:
@@ -184,15 +176,12 @@ def _render_list(
         # Some webmail composers mangle list indentation when HTML is pasted in.
         # Paragraph mode keeps each authored line intact as its own block.
         return [
-            f"<p{_block_attributes(style, first and index == 0)}>"
-            f"{html.escape(line, quote=True)}</p>"
+            f"<p{_block_attributes(style, first and index == 0)}>{html.escape(line, quote=True)}</p>"
             for index, line in enumerate(lines)
         ]
     tag = "ul" if _UNORDERED_ITEM.fullmatch(lines[0]) else "ol"
     items = "".join(
-        f"<li>{html.escape(match.group(1), quote=True)}</li>"
-        for match in matches
-        if match is not None
+        f"<li>{html.escape(match.group(1), quote=True)}</li>" for match in matches if match is not None
     )
     return [f"<{tag}{_list_attributes(style, first)}>{items}</{tag}>"]
 
@@ -209,8 +198,7 @@ def _render_table(
     parts = [f"<thead><tr>{head_cells}</tr></thead>"]
     if body_rows:
         rows = "".join(
-            "<tr>" + "".join(_render_cell(cell, "td", style) for cell in row) + "</tr>"
-            for row in body_rows
+            "<tr>" + "".join(_render_cell(cell, "td", style) for cell in row) + "</tr>" for row in body_rows
         )
         parts.append(f"<tbody>{rows}</tbody>")
     return f"<table{_table_attributes(style, first)}>{''.join(parts)}</table>"
@@ -287,10 +275,7 @@ def _cell_attributes(style: Mapping[str, object] | None, tag: str) -> str:
         return ""
     table = style["table"]
     vertical, horizontal = table["cell_padding_px"]
-    declarations = (
-        f"border:1px solid {table['border_color']};"
-        f"padding:{vertical}px {horizontal}px"
-    )
+    declarations = f"border:1px solid {table['border_color']};padding:{vertical}px {horizontal}px"
     if tag == "th":
         declarations += ";text-align:left"
     return f' style="{declarations}"'
@@ -311,11 +296,7 @@ def main() -> int:
     args = parser.parse_args()
 
     text = args.text.read_text(encoding="utf-8")
-    signature = (
-        args.signature.read_text(encoding="utf-8")
-        if args.signature is not None
-        else None
-    )
+    signature = args.signature.read_text(encoding="utf-8") if args.signature is not None else None
     policy = load_policy(discover_policy(args.policy, Path.cwd(), os.environ))
     output = render_html(text, signature, policy["style"])
     args.output.parent.mkdir(parents=True, exist_ok=True)

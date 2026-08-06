@@ -6,12 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from render_email import normalize_text, render_html  # noqa: E402
+from render_email import normalize_text, render_html
 
 
 def style_profile(**overrides: object) -> dict[str, object]:
@@ -218,10 +217,7 @@ class StyledRenderTests(unittest.TestCase):
         self.assertNotIn("[!bad]", actual)
 
     def test_every_status_marker_maps_to_its_configured_colour(self) -> None:
-        source = (
-            "| A | B | C |\n| --- | --- | --- |\n"
-            "| [!ok] Pass | [!warn] Partial | [!bad] Fail |"
-        )
+        source = "| A | B | C |\n| --- | --- | --- |\n| [!ok] Pass | [!warn] Partial | [!bad] Fail |"
 
         actual = render_html(source, None, style_profile())
 

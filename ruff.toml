@@ -1,0 +1,31 @@
+# The repository runs on the standard library only. These rules are the ones that
+# catch real defects in that setting — silent subprocess failures, dead imports,
+# shebangs on files nobody can execute — plus import order and formatting so
+# diffs stay about behaviour.
+
+line-length = 110
+target-version = "py311"
+
+[lint]
+select = [
+    "E",      # pycodestyle
+    "F",      # pyflakes
+    "I",      # import sorting
+    "UP",     # pyupgrade
+    "B",      # bugbear
+    "SIM",    # simplify
+    "RUF",    # ruff-specific
+    "PLW",    # pylint warnings — PLW1510 catches subprocess.run without check=
+    "EXE",    # shebang and executable-bit agreement
+]
+
+[lint.per-file-ignores]
+# Skill scripts are imported by path, so tests prepend sys.path before importing
+# them. That import cannot move to the top of the file.
+"tests/**" = ["E402"]
+
+# package-skill.py writes every archive member as mode 644, and SKILL.md documents
+# these as `python3 scripts/<name>.py`. An executable bit in git would claim a way
+# of running them that no installed copy has. The shebang stays as interpreter
+# documentation.
+"plugins/*/skills/*/scripts/*.py" = ["EXE001"]

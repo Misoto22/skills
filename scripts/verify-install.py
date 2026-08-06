@@ -19,7 +19,6 @@ import re
 import sys
 from pathlib import Path
 
-
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 # Any shared/ file a skill names must have travelled with it. Derived from the
@@ -90,8 +89,7 @@ def _verify_skill(skill: Path, errors: list[str]) -> None:
         for relative in sorted(set(SHARED_REFERENCE.findall(content))):
             if not (skill / relative).is_file():
                 errors.append(
-                    f"{path}: names {relative}, which is not installed —"
-                    " the install dropped shared material"
+                    f"{path}: names {relative}, which is not installed — the install dropped shared material"
                 )
 
 
