@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - run: npm install --global @anthropic-ai/claude-code@2.1.220
+      - run: npm install --global "$(python3 scripts/ci-pins.py spec claude-code)"
 
       # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
@@ -70,7 +70,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - run: npm install --global @openai/codex@0.145.0
+      - run: npm install --global "$(python3 scripts/ci-pins.py spec codex)"
 
       # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
@@ -104,7 +104,7 @@ jobs:
         run: |
           FAKE_HOME="$(mktemp -d)"
           echo "FAKE_HOME=$FAKE_HOME" >> "$GITHUB_ENV"
-          HOME="$FAKE_HOME" npx --yes skills@1.5.22 add "$PWD" \
+          HOME="$FAKE_HOME" npx --yes "$(python3 scripts/ci-pins.py spec skills)" add "$PWD" \
             --agent '*' --skill '*' --global --yes --copy
 
       - name: Every installed copy is complete and self-contained

@@ -40,10 +40,13 @@ Shared material therefore lives in `plugins/<plugin>/shared/`, and `scripts/sync
 uvx ruff check . && uvx ruff format --check .
 shellcheck scripts/*.sh
 python3 scripts/bump-version.py --audit
+python3 scripts/ci-pins.py check
 python3 scripts/validate-repository.py
 ```
 
-The last one runs the metadata checks and then the full test suite. CI runs the same four plus an install of every plugin through all four routes.
+The last one runs the metadata checks and then the full test suite. CI runs the same five plus an install of every plugin through all four routes.
+
+The CLI versions CI installs live in `.ci-pins.json` and nowhere else — workflows ask for a spec with `python3 scripts/ci-pins.py spec <id>`, and `check` rejects any version written down that the file does not account for. Move one with `python3 scripts/ci-pins.py bump <id> <version>`. A literal pin is not just duplication: `CI_CHANNEL=latest` cannot override it, so it would be the one route the weekly canary silently keeps testing at the old version.
 
 Tests come before implementation, and a change to what a script asserts needs a test that fails without it.
 

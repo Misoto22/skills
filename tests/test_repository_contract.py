@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -167,11 +168,12 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("actions/checkout@v7", workflow)
         self.assertIn("actions/setup-python@v7", workflow)
         self.assertIn("actions/setup-node@v7", workflow)
-        self.assertIn("skills@1.5.22", workflow)
-        self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
+        self.assertIn("ci-pins.py spec skills", workflow)
+        self.assertIn("ci-pins.py spec claude-code", workflow)
+        self.assertIn("ci-pins.py check", workflow)
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
         self.assertIn("astral-sh/ruff-action@v3", workflow)
-        self.assertIn('version: "0.14.6"', workflow)
+        self.assertIn("version: ${{ env.RUFF_VERSION }}", workflow)
         self.assertIn("shellcheck scripts/*.sh", workflow)
 
     def test_changelog_keeps_one_unreleased_section_and_descending_releases(self) -> None:
@@ -220,6 +222,80 @@ class RepositoryContractTests(unittest.TestCase):
         # leaves a release with no archives on it.
         self.assertIn("cancel-in-progress: false", workflow)
 
+    def test_ci_pins_are_the_only_place_a_cli_version_is_written(self) -> None:
+        """A literal pin cannot be overridden by a channel, so the canary would miss it."""
+
+        result = subprocess.run(
+            [sys.executable, "scripts/ci-pins.py", "check"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_ci_pin_spec_resolves_the_declared_version_and_the_latest_channel(self) -> None:
+        pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        self.assertTrue(pins)
+        for pin in pins:
+            for channel, expected in (
+                ("pinned", f"{pin['package']}@{pin['version']}"),
+                ("latest", f"{pin['package']}@latest"),
+            ):
+                result = subprocess.run(
+                    [sys.executable, "scripts/ci-pins.py", "spec", pin["id"]],
+                    cwd=ROOT,
+                    env={**os.environ, "CI_CHANNEL": channel},
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                self.assertEqual(result.stdout.strip(), expected, pin["id"])
+
+        unknown = subprocess.run(
+            [sys.executable, "scripts/ci-pins.py", "spec", "no-such-cli"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(unknown.returncode, 0)
+
+    def test_ci_pin_bump_moves_every_documented_occurrence(self) -> None:
+        config_path = ROOT / ".ci-pins.json"
+        pins = json.loads(config_path.read_text(encoding="utf-8"))["pins"]
+        documented = [pin for pin in pins if pin.get("documented_in")]
+        self.assertTrue(documented, "no pin is written down outside .ci-pins.json")
+
+        before = {
+            path: (ROOT / path).read_bytes()
+            for path in [config_path.name, *(file for pin in documented for file in pin["documented_in"])]
+        }
+        try:
+            for pin in documented:
+                moved = subprocess.run(
+                    [sys.executable, "scripts/ci-pins.py", "bump", pin["id"], "9.9.9"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(moved.returncode, 0, moved.stderr)
+                for path in pin["documented_in"]:
+                    self.assertNotEqual((ROOT / path).read_bytes(), before[path], path)
+            # Every occurrence moved together, so the tree agrees with itself again.
+            checked = subprocess.run(
+                [sys.executable, "scripts/ci-pins.py", "check"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+        finally:
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
     def test_every_workflow_job_is_bounded_and_supersedes_its_own_runs(self) -> None:
         """An unbounded job holds a runner for six hours, and a superseded one burns it twice."""
 
@@ -267,12 +343,12 @@ class RepositoryContractTests(unittest.TestCase):
             'codex plugin add "$plugin@misoto22"',
             "bash scripts/list-plugins.sh",
             "bash scripts/list-skills.sh",
-            "npx --yes skills@1.5.22 add",
             "scripts/package-skill.py",
+            "ci-pins.py spec claude-code",
+            "ci-pins.py spec codex",
+            "ci-pins.py spec skills",
         ):
             self.assertIn(route, workflow)
-        self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
-        self.assertIn("@openai/codex@0.145.0", workflow)
         self.assertEqual(workflow.count("scripts/verify-install.py"), 4)
 
     def test_install_workflow_names_no_plugin_or_skill(self) -> None:

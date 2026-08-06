@@ -1,0 +1,32 @@
+{
+  "pins": [
+    {
+      "id": "claude-code",
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.220",
+      "documented_in": []
+    },
+    {
+      "id": "codex",
+      "package": "@openai/codex",
+      "version": "0.145.0",
+      "documented_in": []
+    },
+    {
+      "id": "skills",
+      "package": "skills",
+      "version": "1.5.22",
+      "documented_in": ["README.md"]
+    },
+    {
+      "id": "ruff",
+      "package": "ruff",
+      "version": "0.14.6",
+      "match": "RUFF_VERSION: \"{version}\"",
+      "documented_in": [".github/workflows/validate.yml"]
+    }
+  ],
+  "scan": {
+    "exclude": [".git", "CHANGELOG.md", "docs/superpowers", "dist"]
+  }
+}

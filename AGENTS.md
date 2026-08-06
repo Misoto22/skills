@@ -23,5 +23,6 @@
 - Use dependency-free Python for portable runtime validation unless a reviewed design explicitly justifies a dependency.
 - Add tests before implementation and run `python3 scripts/validate-repository.py` before release.
 - Scaffold a skill with `python3 scripts/new-skill.py <plugin> <skill>` rather than registering it by hand, and move a release with `python3 scripts/bump-version.py <version>` rather than editing eight files.
+- Never write a CLI version into a workflow. `.ci-pins.json` is the only place one lives; ask for a spec with `python3 scripts/ci-pins.py spec <id>`, move it with `bump`, and `check` fails on any literal it does not account for. A literal cannot be overridden by `CI_CHANNEL=latest`, which is what the canary run needs it for.
 - Run `uvx ruff check .`, `uvx ruff format .`, and `shellcheck scripts/*.sh` before committing; CI enforces all three.
 - Do not force-push `main` or `master`.
