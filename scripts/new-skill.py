@@ -153,7 +153,9 @@ def main() -> int:
     print("     — it is the only field that decides whether the skill ever fires,")
     print("       and the validator fails on the placeholder until you do.")
     print("  2. Write the body, and replace the README and plugin-registry placeholders.")
-    print("  3. python3 scripts/validate-repository.py")
+    print(f"  3. Write evals/{args.skill}/evals.json — at least three prompts it must fire")
+    print("     on and two it must stay out of. run-evals.py --check fails until it exists.")
+    print("  4. python3 scripts/validate-repository.py")
     return 0
 
 

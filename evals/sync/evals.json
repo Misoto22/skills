@@ -1,0 +1,40 @@
+{
+  "skill": "sync",
+  "triggers": [
+    {
+      "id": "pull-latest",
+      "prompt": "Pull the latest changes.",
+      "expected": "Fires, fetches, prunes, and fast-forwards the base branch."
+    },
+    {
+      "id": "chinese-align",
+      "prompt": "更新一下代码，跟 main 对齐",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "catch-up",
+      "prompt": "Get me up to date with the remote.",
+      "expected": "Fires, and reports a diverged branch rather than rebasing it."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "ship-it",
+      "prompt": "Ship this branch.",
+      "expected": "Does not fire; landing a change is a different loop step.",
+      "routes_to": "ship"
+    },
+    {
+      "id": "resolve-conflict",
+      "prompt": "Resolve this merge conflict for me.",
+      "expected": "Does not fire. It never resolves a conflict."
+    },
+    {
+      "id": "delete-merged",
+      "prompt": "Delete the branches that already merged.",
+      "expected": "Does not fire; removing merged branches belongs elsewhere.",
+      "routes_to": "cleanup"
+    }
+  ],
+  "behaviors": []
+}

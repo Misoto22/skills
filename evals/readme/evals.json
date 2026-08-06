@@ -1,0 +1,43 @@
+{
+  "skill": "readme",
+  "triggers": [
+    {
+      "id": "stale-readme",
+      "prompt": "This repo's README is out of date. Can you fix it?",
+      "expected": "Fires, reads the repository, and rewrites from what the files say."
+    },
+    {
+      "id": "chinese-tidy",
+      "prompt": "帮我整理 readme，太乱了",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "new-project",
+      "prompt": "Write a README for this project.",
+      "expected": "Fires, and leaves a bracketed placeholder wherever a fact is not in the repository."
+    },
+    {
+      "id": "audit",
+      "prompt": "Does this README actually tell a newcomer what they need?",
+      "expected": "Fires in audit mode rather than rewriting unasked."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "api-reference",
+      "prompt": "Write the API reference for these endpoints.",
+      "expected": "Does not fire. Reference documentation is a different artefact."
+    },
+    {
+      "id": "changelog",
+      "prompt": "Update the CHANGELOG for this release.",
+      "expected": "Does not fire."
+    },
+    {
+      "id": "landing-page",
+      "prompt": "Write the marketing copy for the product page.",
+      "expected": "Does not fire."
+    }
+  ],
+  "behaviors": []
+}
