@@ -87,7 +87,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(plugin["name"], "docs")
         self.assertEqual(plugin["skills"], ["./skills/readme"])
-        self.assertEqual(plugin["version"], "0.8.0")
+        self.assertEqual(plugin["version"], "0.8.1")
         self.assertFalse((DOCS_PLUGIN / "shared").exists(), "docs has one skill and needs no shared/")
 
     def test_link_script_never_recursively_deletes_targets(self) -> None:
@@ -162,8 +162,8 @@ class RepositoryContractTests(unittest.TestCase):
         skill = (SKILLS / "email" / "SKILL.md").read_text(encoding="utf-8")
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.8.0")
-        self.assertIn('version: "0.8.0"', skill)
+        self.assertEqual(plugin["version"], "0.8.1")
+        self.assertIn('version: "0.8.1"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("actions/checkout@", workflow)
         self.assertIn("actions/setup-python@", workflow)
@@ -625,7 +625,7 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn("current version: 9.9.9", run("--check").stdout)
             for path in declared:
                 self.assertNotEqual((ROOT / path).read_bytes(), before[path], path)
-            self.assertEqual(run("0.8.0").returncode, 0)
+            self.assertEqual(run("0.8.1").returncode, 0)
         finally:
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
