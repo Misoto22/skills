@@ -33,11 +33,13 @@ jobs:
           claude plugin marketplace add "$PWD"
           claude plugin install writing@misoto22
           claude plugin install docs@misoto22
+          claude plugin install dev@misoto22
 
       - name: Every skill is registered under its own prefix
         run: |
           claude plugin details writing@misoto22 | grep -E 'Skills \(2\).*email.*tempering'
           claude plugin details docs@misoto22 | grep -E 'Skills \(1\).*readme'
+          claude plugin details dev@misoto22 | grep -E 'Skills \(1\).*ship'
 
       - name: Installed trees are complete and self-contained
         run: |
@@ -64,6 +66,7 @@ jobs:
           codex plugin marketplace add "$PWD"
           codex plugin add writing@misoto22
           codex plugin add docs@misoto22
+          codex plugin add dev@misoto22
 
       - name: Installed trees are complete and self-contained
         run: |
