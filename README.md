@@ -77,15 +77,15 @@ codex plugin add docs@misoto22
 </details>
 
 <details>
-<summary><b>Cursor, Windsurf, opencode, and ~50 more</b> — one command for all of them</summary>
-
-Installs into every agent directory present on the machine: Cursor · Windsurf · opencode · Roo · Kilo Code · Qwen · iFlow · Trae · Junie · Continue · Goose · Crush, and about forty others.
+<summary><b>Cursor, Windsurf, opencode, and ~70 more</b> — one command, then pick</summary>
 
 ```bash
-npx --yes skills@1.5.20 add Misoto22/skills --agent '*' --skill '*'
+npx skills add Misoto22/skills
 ```
 
-Name one instead with `--agent cursor`, or drop the flag to be prompted. This is a copy, not a link: rerun the command to update.
+Asks which skills, which agents, project or global, and symlink or copy. Symlinked installs track this repository; copies do not, so rerun the command to update one.
+
+To skip the questions — in CI, or when you already know — name them: `--skill email --agent cursor`, or `--agent '*' --skill '*' --yes` for everything.
 
 </details>
 

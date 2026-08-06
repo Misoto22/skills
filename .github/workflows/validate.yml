@@ -52,7 +52,7 @@ jobs:
       - name: Validate repository metadata
         run: python3 scripts/validate-repository.py --skip-tests
       - name: Verify Agent Skills discovery
-        run: npx --yes skills@1.5.20 add . --list
+        run: npx --yes skills@1.5.22 add . --list
       - name: Validate Claude Code marketplace
         run: |
           npm install --global @anthropic-ai/claude-code@2.1.220
