@@ -28,12 +28,13 @@ jobs:
 
       - run: npm install --global @anthropic-ai/claude-code@2.1.220
 
+      # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
         run: |
           claude plugin marketplace add "$PWD"
-          claude plugin install writing@misoto22
-          claude plugin install docs@misoto22
-          claude plugin install dev@misoto22
+          for plugin in $(bash scripts/list-plugins.sh); do
+            claude plugin install "$plugin@misoto22"
+          done
 
       # Derived from the tree, so adding a skill never edits this step.
       - name: Every skill is registered under its own prefix
@@ -49,7 +50,7 @@ jobs:
         run: |
           python3 scripts/verify-install.py \
             "$HOME/.claude/plugins/cache/misoto22" \
-            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
+            $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
   codex:
     name: Codex plugin
@@ -65,18 +66,19 @@ jobs:
 
       - run: npm install --global @openai/codex@0.145.0
 
+      # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
         run: |
           codex plugin marketplace add "$PWD"
-          codex plugin add writing@misoto22
-          codex plugin add docs@misoto22
-          codex plugin add dev@misoto22
+          for plugin in $(bash scripts/list-plugins.sh); do
+            codex plugin add "$plugin@misoto22"
+          done
 
       - name: Installed trees are complete and self-contained
         run: |
           python3 scripts/verify-install.py \
             "$HOME/.codex/plugins/cache/misoto22" \
-            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
+            $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
   agent-skills-cli:
     name: npx skills add (all agents)
@@ -102,7 +104,7 @@ jobs:
         run: |
           test "$(find "$FAKE_HOME" -name SKILL.md | wc -l)" -gt 0
           python3 scripts/verify-install.py "$FAKE_HOME" \
-            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
+            $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
   skill-archive:
     name: .skill upload bundle
@@ -126,4 +128,4 @@ jobs:
       - name: Unpacked archive is complete and self-contained
         run: |
           python3 scripts/verify-install.py unpacked \
-            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
+            $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')

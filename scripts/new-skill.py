@@ -2,9 +2,12 @@
 """Scaffold a skill, and register it everywhere the validator will look.
 
 Adding a skill by hand means editing seven places — PUBLISHED in the validator,
-marketplace.json if the plugin is new, the plugin manifest, both READMEs, the
-install workflow's --expect list, .version-bump.json, and skills.sh.json. The validator catches
-a missed one, but catching is not the same as doing.
+marketplace.json if the plugin is new, the plugin manifest, both READMEs,
+.version-bump.json, and skills.sh.json. The validator catches a missed one, but
+catching is not the same as doing.
+
+The install workflow is not one of them. It derives both the plugin list and the
+expected skill names from the tree, so nothing there is written down twice.
 
   python3 scripts/new-skill.py writing outline    Add a skill to an existing plugin
   python3 scripts/new-skill.py notes capture      Create the plugin too, if it is new
@@ -137,7 +140,6 @@ def main() -> int:
         _add_to_plugin_readme(skill_dir.parent / "README.md", args.skill, created)
 
     _register_published(args.plugin, args.skill, created)
-    _register_workflow(args.plugin, args.skill, new_plugin, created)
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
     _register_skills_sh(args.plugin, args.skill, created)
@@ -262,33 +264,6 @@ def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: l
     if new_plugin and all(entry["path"] != manifest for entry in config["json"]):
         config["json"].append({"path": manifest, "field": "version"})
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
-    created.append(f"{path.relative_to(ROOT)} (updated)")
-
-
-def _register_workflow(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
-    """CI installs each plugin by name, so a new plugin needs its own install line."""
-
-    path = ROOT / ".github" / "workflows" / "install.yml"
-    text = path.read_text(encoding="utf-8")
-    updated = text.replace("--expect tempering", f"--expect tempering --expect {skill}")
-    if updated == text:
-        raise SystemExit("error: could not find the --expect list in install.yml")
-
-    if new_plugin:
-        for line, addition in (
-            (
-                "          claude plugin install writing@misoto22\n",
-                f"          claude plugin install {plugin}@misoto22\n",
-            ),
-            (
-                "          codex plugin add writing@misoto22\n",
-                f"          codex plugin add {plugin}@misoto22\n",
-            ),
-        ):
-            if line not in updated:
-                raise SystemExit(f"error: could not find the install line to extend in {path.name}")
-            updated = updated.replace(line, line + addition, 1)
-    path.write_text(updated, encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
