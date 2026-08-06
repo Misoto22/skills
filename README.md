@@ -9,7 +9,7 @@
 
 <br />
 
-Personal skills for Claude Code, Codex, and ~50 other agents.
+Personal skills for Claude Code, Codex, and ~70 other agents.
 
 <br />
 
@@ -28,29 +28,22 @@ Personal skills for Claude Code, Codex, and ~50 other agents.
 
 ### Skills
 
-Three skills across two plugins. The plugin name is the command prefix, so one repository can grow subjects that install separately.
+Six skills in three plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+
+#### `writing` — prose aimed at a person
 
 - **[email](plugins/writing/skills/email/SKILL.md)** (`/writing:email`) — drafts policy-aware email, or sends exact hashed artefacts and verifies them against the Sent message. Draft is the default, and automated send stays off until a narrow local scope is configured.
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)** (`/writing:tempering`) — rewrites a blunt or frustrated workplace message into three registers, keeping the request, the date, and the consequence the raw tone was carrying.
+
+#### `docs` — prose aimed at whoever opens the repository next
+
 - **[readme](plugins/docs/skills/readme/SKILL.md)** (`/docs:readme`) — writes, restructures, or audits a repository README from what its own files say, leaving a bracketed placeholder wherever a fact is unavailable.
-- **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP first, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
-- **[sync](plugins/dev/skills/sync/SKILL.md)** (`/dev:sync`) — fetches, prunes, and fast-forwards the base branch, then reports what diverged. It never rebases a feature branch or discards a local commit.
-- **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge first.
 
-A plugin is a subject, not a bucket. `writing` is prose aimed at a person; `docs` is prose aimed at whoever opens the repository next.
+#### `dev` — the loop around a change
 
----
-
-### Tech Stack
-
-<table>
-<tr><td><b>Runtime</b></td><td>Dependency-free Python 3.11+ · Bash</td></tr>
-<tr><td><b>Skills</b></td><td>Markdown <code>SKILL.md</code> · Agent Skills frontmatter · <code>agents/openai.yaml</code> interfaces</td></tr>
-<tr><td><b>Testing</b></td><td><code>unittest</code> — 118 tests, no third-party runner</td></tr>
-<tr><td><b>CI</b></td><td>Validate (metadata · tests on 3.11 and 3.13) · Install (four routes) · Release (<code>.skill</code> on tag)</td></tr>
-</table>
-
-No package manager, no lockfile, no build step. `python3` and `bash` are the whole toolchain.
+- **[sync](plugins/dev/skills/sync/SKILL.md)** (`/dev:sync`) — fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards; a diverged branch is reported, never rebased.
+- **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
+- **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
 
 ---
 
@@ -60,9 +53,8 @@ No package manager, no lockfile, no build step. `python3` and `bash` are the who
 claude plugin marketplace add Misoto22/skills
 claude plugin install writing@misoto22
 claude plugin install docs@misoto22
+claude plugin install dev@misoto22
 ```
-
-Each plugin installs independently — take only the subjects you want.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
@@ -75,6 +67,7 @@ Each plugin installs independently — take only the subjects you want.
 codex plugin marketplace add https://github.com/Misoto22/skills
 codex plugin add writing@misoto22
 codex plugin add docs@misoto22
+codex plugin add dev@misoto22
 ```
 
 </details>
@@ -94,7 +87,7 @@ To skip the questions — in CI, or when you already know — pin the version an
 npx --yes skills@1.5.22 add Misoto22/skills --agent '*' --skill '*'
 ```
 
-That takes every skill into every agent directory on the machine, with no prompts. Narrow it with `--skill email --agent cursor`.
+Narrow it with `--skill email --agent cursor`.
 
 </details>
 
@@ -116,44 +109,6 @@ Maintainers who want editable installs rather than copies can run `bash scripts/
 
 ---
 
-### Project Structure
-
-```mermaid
-flowchart LR
-  M["misoto22<br/>marketplace"] --> W["writing<br/>plugin"] & D["docs<br/>plugin"]
-  W --> E["/writing:email"] & T["/writing:tempering"]
-  D --> R["/docs:readme"]
-  S(["shared/<br/>tone · format"]) -.vendored into.-> E & T
-
-  classDef m fill:#0969da,stroke:#0969da,color:#fff
-  classDef p fill:#1f883d,stroke:#1f883d,color:#fff
-  classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
-  class M m
-  class W,D p
-  class E,T,R,S s
-```
-
-<details>
-<summary>The directories behind that</summary>
-
-```
-.claude-plugin/marketplace.json   Marketplace: misoto22
-plugins/
-├── writing/                      Plugin: writing → /writing:*
-│   ├── shared/                   Tone and format rules, the only copy anyone edits
-│   └── skills/                   email, tempering
-└── docs/                         Plugin: docs → /docs:*
-    └── skills/                   readme
-scripts/                          Validation, packaging, vendoring, install verification
-tests/                            Repository contract + email skill unit tests
-evals/                            Adversarial cases for the email skill's send gates
-docs/                             Email configuration guide, design records
-```
-
-</details>
-
----
-
 ### Self-contained after install
 
 > [!IMPORTANT]
@@ -162,59 +117,55 @@ docs/                             Email configuration guide, design records
 > repository and dangles everywhere else, and only Claude Code expands
 > `${CLAUDE_*}`. Both forms are rejected in published skill content.
 
-`plugins/writing/shared/` is the only copy anyone edits. `scripts/sync-shared.py` vendors it into each `skills/<skill>/shared/`, those copies are committed so a plain clone installs correctly, and the validator, the packager, and CI all fail on drift.
+Rules two skills share live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
 
-`scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree rather than against this repository. Point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill` to reproduce what CI checks.
+<details>
+<summary>How the pieces fit</summary>
+
+```mermaid
+flowchart LR
+  M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"]
+  W --> E["/writing:email"] & T["/writing:tempering"]
+  D --> R["/docs:readme"]
+  V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
+  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & T
+  SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
+
+  classDef m fill:#0969da,stroke:#0969da,color:#fff
+  classDef p fill:#1f883d,stroke:#1f883d,color:#fff
+  classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
+  class M m
+  class W,D,V p
+  class E,T,R,SY,SH,CL,SW,SV s
+```
+
+```
+.claude-plugin/marketplace.json   Marketplace: misoto22
+plugins/<plugin>/
+├── .claude-plugin/plugin.json    Plugin manifest → /<plugin>:*
+├── shared/                       Rules its skills read, the only copy anyone edits
+└── skills/<skill>/               SKILL.md, references/, agents/, a vendored shared/
+scripts/                          Validation, packaging, vendoring, install verification
+tests/  evals/  docs/             Contract tests, email send-gate cases, guides
+```
+
+</details>
 
 This repository holds no transport credential and implements no SMTP. The email skill validates and hashes artefacts; sending them is the caller's transport.
 
 ---
 
-### Development
+### Contributing
 
 ```bash
 git clone https://github.com/Misoto22/skills.git
 cd skills
-python3 scripts/validate-repository.py    # metadata, registries, skills, then the tests
+python3 scripts/validate-repository.py    # metadata, registries, skills, then 119 tests
 ```
 
-**Prerequisites** — Python 3.11+ and Bash. Nothing to install.
+Python 3.11+ and Bash are the whole toolchain — no package manager, no lockfile, no build step. `python3 scripts/new-skill.py <plugin> <skill>` scaffolds a skill and registers it everywhere the validator looks.
 
-```
-python3 -m unittest discover -s tests -v             All 110 tests
-python3 scripts/validate-repository.py --skip-tests  Metadata and registries only
-python3 scripts/sync-shared.py                       Vendor shared/ into each skill
-bash scripts/list-skills.sh                          Published SKILL.md paths
-python3 scripts/package-skill.py <skill> dist        Build one .skill archive
-python3 scripts/verify-install.py <dir>              Check an installed tree
-python3 scripts/new-skill.py <plugin> <skill>        Scaffold and register a skill
-python3 scripts/bump-version.py --audit              Find undeclared version strings
-```
-
-Adding a plugin or skill means adding it to `PUBLISHED` in `scripts/validate-repository.py`, to `marketplace.json`, to both READMEs, and to the install workflow's `--expect` list. `python3 scripts/new-skill.py <plugin> <skill>` does all of that and leaves the placeholders to you. Conventions are in [AGENTS.md](AGENTS.md); the contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-### Release
-
-Pushing a `v*` tag packages every published skill and attaches the `.skill` files to a GitHub Release, which is how claude.ai and Cowork are served on a personal plan.
-
-```bash
-git tag -a v0.7.0 -m "skills v0.7.0" && git push origin v0.7.0
-```
-
-Bump the version in both `plugin.json` files, all three `SKILL.md` frontmatters, `VERSION` in the validator, and the version assertions first — the validator holds them to one number.
-
----
-
-### Documentation
-
-[docs/email.md](docs/email.md) covers configuring the email skill: copy [`policy.example.json`](plugins/writing/skills/email/policy.example.json) to `.agents/email-policy.json` and replace the reserved example identity.
-
-> [!TIP]
-> Draft is always the default. Automated send stays off until a narrow local scope
-> is configured explicitly, and a send is only reported successful after the Sent
-> message has been read back and compared. [CHANGELOG.md](CHANGELOG.md) records every release, and design records live in [`docs/superpowers/`](docs/superpowers/).
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rest: the checks CI runs, what belongs in a `description`, and how a release is cut. Conventions are in [AGENTS.md](AGENTS.md), releases in [CHANGELOG.md](CHANGELOG.md), and configuring the email skill in [docs/email.md](docs/email.md).
 
 ---
 
