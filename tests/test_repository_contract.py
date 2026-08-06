@@ -65,7 +65,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(plugin["name"], "docs")
         self.assertEqual(plugin["skills"], ["./skills/readme"])
-        self.assertEqual(plugin["version"], "0.2.0")
+        self.assertEqual(plugin["version"], "0.3.0")
         self.assertFalse((DOCS_PLUGIN / "shared").exists(), "docs has one skill and needs no shared/")
 
     def test_link_script_never_recursively_deletes_targets(self) -> None:
@@ -143,8 +143,8 @@ class RepositoryContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertEqual(plugin["version"], "0.2.0")
-        self.assertIn('version: "0.2.0"', skill)
+        self.assertEqual(plugin["version"], "0.3.0")
+        self.assertIn('version: "0.3.0"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("actions/checkout@v7", workflow)
         self.assertIn("actions/setup-python@v7", workflow)

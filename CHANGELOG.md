@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.3.0 — 2026-08-06
 
 - Added the `docs` plugin and its `readme` skill (`/docs:readme`), which writes, restructures, and audits a repository README from what the repository's own files say, against the house style. Reads the manifest, task runner, and tree before writing, and leaves a bracketed placeholder wherever a fact is unavailable rather than inventing a version number.
 - Generalised the repository from one plugin to many: the validator asserts a `PUBLISHED` map of plugin to skills, the marketplace registers each plugin separately, and `verify-install.py` derives a skill's required `shared/` files from its own text instead of a fixed list, so a single-skill plugin needs no `shared/` directory.
