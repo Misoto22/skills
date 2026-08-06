@@ -88,7 +88,7 @@ def audit(config: dict, current: str) -> list[str]:
         if not path.is_file() or path.suffix not in AUDIT_SUFFIXES:
             continue
         relative = path.relative_to(ROOT).as_posix()
-        if relative in declared or relative.startswith(excluded):
+        if relative in declared or _excluded(relative, excluded):
             continue
         try:
             text = path.read_text(encoding="utf-8")
@@ -98,6 +98,12 @@ def audit(config: dict, current: str) -> list[str]:
         if hits:
             stragglers.append(f"{relative} ({hits} occurrences)")
     return stragglers
+
+
+def _excluded(relative: str, excluded: tuple[str, ...]) -> bool:
+    """Exclude a path or a directory, never a string prefix: `.git` is not `.github`."""
+
+    return any(relative == entry or relative.startswith(f"{entry}/") for entry in excluded)
 
 
 def main() -> int:
