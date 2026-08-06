@@ -3,7 +3,7 @@ name: email
 description: Use when drafting, replying to, forwarding, formatting, sending, or verifying outbound email, especially when recipients, external disclosure, attachments, authorization, HTML bodies, or sent-message confirmation matter.
 license: MIT
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 # Email

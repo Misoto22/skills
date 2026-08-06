@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.6.0 — 2026-08-06
 
 - Added the `dev` plugin and its `ship` skill (`/dev:ship`), which lands the current changes as a merged pull request: preflight, branch, test, commit, PR, CI, merge, worktree cleanup. A clean tree on the base branch exits without doing anything, and any step that fails twice stops and asks.
 - `ship` gained three things over the version it was imported from: a secrets gate before staging, since shipping is the last step before a change becomes public and a pushed credential is compromised even after a force-push; merge-strategy detection from what the repository allows and how many commits the branch carries, rather than always squashing; and `--dry-run`, which prints the execution plan and stops.
