@@ -16,15 +16,19 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # ruff-action takes its version as an input, so this is the one pin no
+    # script can resolve. `ci-pins.py check` holds it to .ci-pins.json.
+    env:
+      RUFF_VERSION: "0.14.6"
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/ruff-action@v3
         with:
-          version: "0.14.6"
+          version: ${{ env.RUFF_VERSION }}
           args: check --output-format github
       - uses: astral-sh/ruff-action@v3
         with:
-          version: "0.14.6"
+          version: ${{ env.RUFF_VERSION }}
           args: format --check
       - name: shellcheck
         run: shellcheck scripts/*.sh
@@ -54,13 +58,15 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - name: Audit CLI pins
+        run: python3 scripts/ci-pins.py check
       - name: Audit version declarations
         run: python3 scripts/bump-version.py --audit
       - name: Validate repository metadata
         run: python3 scripts/validate-repository.py --skip-tests
       - name: Verify Agent Skills discovery
-        run: npx --yes skills@1.5.22 add . --list
+        run: npx --yes "$(python3 scripts/ci-pins.py spec skills)" add . --list
       - name: Validate Claude Code marketplace
         run: |
-          npm install --global @anthropic-ai/claude-code@2.1.220
+          npm install --global "$(python3 scripts/ci-pins.py spec claude-code)"
           claude plugin validate .
