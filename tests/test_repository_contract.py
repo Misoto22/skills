@@ -217,6 +217,46 @@ class RepositoryContractTests(unittest.TestCase):
             capture_output=True,
         )
 
+    def test_version_bump_declares_every_occurrence(self) -> None:
+        """--audit is the half that matters: it catches a file nobody declared."""
+
+        result = subprocess.run(
+            [sys.executable, "scripts/bump-version.py", "--audit"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no undeclared occurrences", result.stdout)
+
+    def test_version_bump_round_trips_without_drift(self) -> None:
+        config = json.loads((ROOT / ".version-bump.json").read_text(encoding="utf-8"))
+        declared = [entry["path"] for entry in config["json"]] + config["text"]
+        before = {path: (ROOT / path).read_bytes() for path in declared}
+
+        def run(*args: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [sys.executable, "scripts/bump-version.py", *args],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        try:
+            self.assertEqual(run("9.9.9").returncode, 0)
+            self.assertIn("current version: 9.9.9", run("--check").stdout)
+            for path in declared:
+                self.assertNotEqual((ROOT / path).read_bytes(), before[path], path)
+            self.assertEqual(run("0.3.0").returncode, 0)
+        finally:
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
+        self.assertNotEqual(run("bad-version").returncode, 0)
+
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(
             [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
