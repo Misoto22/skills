@@ -10,7 +10,8 @@
 - A plugin is copied to a cache directory on install, so nothing outside the plugin directory exists at runtime. Never reference `../` out of a plugin. Shared material goes in `plugins/<plugin>/shared/`, duplicated per plugin where two plugins need the same file.
 - Every path a skill references must resolve from the skill root on every installer. `${CLAUDE_*}` variables and `../` are rejected in published skill content: only Claude Code expands the former, and only its plugin cache keeps a directory above the skill.
 - `plugins/<plugin>/shared/` is the only copy anyone edits. `scripts/sync-shared.py` vendors it into `skills/<skill>/shared/`, and those copies are committed so a plain clone installs correctly. The validator, `package-skill.py`, and CI all fail on drift.
-- Only release-ready skills may live under a plugin's `skills/`; use a top-level `drafts/` for unfinished work and `deprecated/` for retired material.
+- Only release-ready skills may live under a plugin's `skills/`; use a top-level `drafts/` for unfinished work and `deprecated/` for retired material. Both sit outside `plugins/`, so no installer, packager, or registry sees them, and the version audit and pin scan skip them.
+- Retire a skill with `python3 scripts/remove-skill.py <plugin> <skill>` rather than unwinding seven registrations by hand. It moves the skill and its evaluation cases under `deprecated/`, clears any `routes_to` that named it, and retires the plugin when that was its last skill.
 
 ## Content
 

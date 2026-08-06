@@ -634,6 +634,127 @@ class RepositoryContractTests(unittest.TestCase):
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
 
+    def test_remove_skill_is_the_exact_inverse_of_new_skill(self) -> None:
+        """Scaffold then retire has to leave every registry byte-identical."""
+
+        registries = [
+            ".claude-plugin/marketplace.json",
+            "scripts/validate-repository.py",
+            ".version-bump.json",
+            "skills.sh.json",
+            "README.md",
+        ]
+        before = {path: (ROOT / path).read_bytes() for path in registries}
+        scaffolded = ROOT / "plugins" / "roundtrip"
+        retired = ROOT / "deprecated" / "roundtrip"
+        try:
+            self._run("scripts/new-skill.py", "roundtrip", "probe")
+            self.assertNotEqual(
+                (ROOT / "README.md").read_bytes(), before["README.md"], "scaffold changed nothing"
+            )
+
+            self._run("scripts/remove-skill.py", "roundtrip", "probe", "--delete")
+            for path in registries:
+                self.assertEqual((ROOT / path).read_bytes(), before[path], path)
+            self.assertFalse(scaffolded.exists(), "the emptied plugin was left behind")
+        finally:
+            shutil.rmtree(scaffolded, ignore_errors=True)
+            shutil.rmtree(retired, ignore_errors=True)
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
+    def test_a_retired_skill_leaves_every_published_surface(self) -> None:
+        """deprecated/ is only useful if nothing published can still see into it."""
+
+        registries = [
+            ".claude-plugin/marketplace.json",
+            "scripts/validate-repository.py",
+            ".version-bump.json",
+            "skills.sh.json",
+            "README.md",
+        ]
+        before = {path: (ROOT / path).read_bytes() for path in registries}
+        scaffolded = ROOT / "plugins" / "roundtrip"
+        retired = ROOT / "deprecated" / "roundtrip"
+        try:
+            self._run("scripts/new-skill.py", "roundtrip", "probe")
+            unwritten = self._run("scripts/validate-repository.py", "--skip-tests", expect_success=False)
+            self.assertNotEqual(unwritten.returncode, 0, "a placeholder description validated")
+
+            self._run("scripts/remove-skill.py", "roundtrip", "probe")
+            self.assertTrue((retired / "probe" / "SKILL.md").is_file(), "the material was not kept")
+
+            # The retired tree still carries a version and a description that no
+            # longer meet the published rules. Nothing may look at it.
+            for command in (
+                ("scripts/validate-repository.py", "--skip-tests"),
+                ("scripts/bump-version.py", "--audit"),
+                ("scripts/check-descriptions.py",),
+                ("scripts/run-evals.py", "--check"),
+                ("scripts/ci-pins.py", "check"),
+            ):
+                self._run(*command)
+
+            listed = subprocess.run(
+                ["bash", "scripts/list-skills.sh"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertNotIn("probe", listed.stdout)
+        finally:
+            shutil.rmtree(scaffolded, ignore_errors=True)
+            shutil.rmtree(retired, ignore_errors=True)
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
+    def test_retiring_a_skill_clears_the_hand_offs_that_named_it(self) -> None:
+        """A routes_to naming a retired skill fails --check, so removal has to own it."""
+
+        edited = [
+            "scripts/validate-repository.py",
+            "README.md",
+            ".version-bump.json",
+            "skills.sh.json",
+            "evals/email/evals.json",
+            "plugins/writing/.claude-plugin/plugin.json",
+            "plugins/writing/skills/README.md",
+        ]
+        before = {path: (ROOT / path).read_bytes() for path in edited}
+        self.assertIn(b'"routes_to": "tempering"', before["evals/email/evals.json"])
+        retired = ROOT / "deprecated" / "writing" / "tempering"
+        try:
+            # Without --delete, so the move is reversible and nothing is destroyed.
+            self._run("scripts/remove-skill.py", "writing", "tempering")
+            self.assertNotIn(b'"routes_to": "tempering"', (ROOT / "evals/email/evals.json").read_bytes())
+            # The case itself survives: that prompt still must not fire email.
+            suite = json.loads((ROOT / "evals/email/evals.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                len(suite["non_triggers"]), len(json.loads(before["evals/email/evals.json"])["non_triggers"])
+            )
+            self._run("scripts/run-evals.py", "--check")
+        finally:
+            if (retired / "evals").is_dir():
+                shutil.move(str(retired / "evals"), str(ROOT / "evals" / "tempering"))
+            if retired.is_dir():
+                shutil.move(str(retired), str(SKILLS / "tempering"))
+            shutil.rmtree(ROOT / "deprecated", ignore_errors=True)
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
+    def _run(self, *command: str, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
+        result = subprocess.run(
+            [sys.executable, *command],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if expect_success:
+            self.assertEqual(result.returncode, 0, f"{command}: {result.stderr}")
+        return result
+
     def test_new_skill_rejects_names_the_marketplace_sync_would_reject(self) -> None:
         for name in ("Writing", "my_skill", "1skill"):
             result = subprocess.run(
