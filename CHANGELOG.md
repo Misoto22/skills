@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- `Release` can now be started with `workflow_dispatch` as well as by pushing a tag, for callers that can trigger a workflow but cannot push one. The dispatch creates the tag itself, refuses any ref other than the default branch, and refuses a version the manifests do not declare — the same check the tag path already ran, now shared by both.
+- It has to finish the release itself rather than hand off: a tag pushed with `GITHUB_TOKEN` does not start another workflow run, so `on: push: tags` would never fire from it. Both triggers resolve to one `$TAG`, and a test asserts nothing downstream still reads `GITHUB_REF_NAME` — on a dispatch that is a branch name, and would publish under the wrong one.
+- The version input reaches the script through the environment rather than by interpolation. This job holds `contents: write` and a Sigstore signing identity, which is not somewhere to expand an arbitrary string into a shell.
+
 ## 0.8.1 — 2026-08-06
 
 Nothing a skill says changed, so the archives differ from 0.8.0 only in the version they declare. This is the governance and CI half of the same audit 0.8.0 closed the rest of.
