@@ -96,7 +96,7 @@ README done.
 - **Every image loads.** A broken icon is the loudest thing on a page. Check the `<img>` reports a non-zero `naturalWidth`, not merely that the file exists.
 - **Nothing centred has wrapped.** Measure the rendered text, not the source: a line of links is 128 characters of markdown and 29 characters on the page.
 - **No table has wrapped mid-cell** at GitHub's content width.
-- **Each `mermaid` fence produced a diagram.** GitHub renders it into a sandboxed `viewscreen` iframe, so the original `<pre lang="mermaid">` stays in the DOM inside `render-plaintext-hidden`. That leftover is the fallback copy, not a failure — look for the iframe.
+- **Each `mermaid` fence produced a diagram.** GitHub renders it into a sandboxed `viewscreen` iframe, so the original `<pre lang="mermaid">` stays in the DOM inside `render-plaintext-hidden` — that leftover is the fallback copy, not a failure. Check the file page, `/blob/<branch>/README.md`: the repository home page reports the iframe at zero width whether or not the diagram is fine, so a measurement taken there proves nothing. Compare against another branch before believing any layout number.
 - **Both themes.** A hero tuned for one is unreadable in the other.
 
 An empty `<summary>` in the DOM is normally GitHub's own control on a diagram,
