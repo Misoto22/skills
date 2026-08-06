@@ -89,7 +89,9 @@ class PolicyTests(unittest.TestCase):
             project.parent.mkdir()
             for path in (explicit, env_policy, project):
                 path.write_text("{}")
-            self.assertEqual(discover_policy(explicit, root, {"EMAIL_SKILL_POLICY": str(env_policy)}), explicit)
+            self.assertEqual(
+                discover_policy(explicit, root, {"EMAIL_SKILL_POLICY": str(env_policy)}), explicit
+            )
             self.assertEqual(discover_policy(None, root, {"EMAIL_SKILL_POLICY": str(env_policy)}), env_policy)
             self.assertEqual(discover_policy(None, root, {}), project)
 
@@ -118,6 +120,7 @@ Implement exact top-level keys `schema_version`, `identity`, `composition`, `rec
 ```python
 class PolicyError(ValueError):
     pass
+
 
 def safe_default_policy() -> dict[str, object]:
     return {
@@ -209,10 +212,7 @@ def render_html(text: str, signature: str | None = None) -> str:
     if signature is not None and not normalized.endswith(normalize_text(signature)):
         raise ValueError("signature does not match the end of the text body")
     blocks = _render_blocks(normalized)
-    return (
-        "<!doctype html>\n<html><head><meta charset=\"utf-8\"></head>"
-        f"<body>{blocks}</body></html>\n"
-    )
+    return f'<!doctype html>\n<html><head><meta charset="utf-8"></head><body>{blocks}</body></html>\n'
 ```
 
 - [ ] **Step 4: Verify GREEN and CLI behavior**
@@ -279,10 +279,14 @@ class ValidateMessageTests(unittest.TestCase):
         self.assertEqual(result["normalized"]["recipients"]["to"], ["owner@example.test"])
 
     def test_required_cc_cannot_widen_disclosure_boundary(self):
-        policy = self.policy(required_cc_rules=[{
-            "address": "audit@outside.test",
-            "recipient_domains": ["example.test"],
-        }])
+        policy = self.policy(
+            required_cc_rules=[
+                {
+                    "address": "audit@outside.test",
+                    "recipient_domains": ["example.test"],
+                }
+            ]
+        )
         result = validate_bundle(self.bundle(mode="send"), policy)
         self.assertEqual(result["status"], "blocked")
         self.assertIn("disclosure boundary", self.messages(result))
@@ -382,7 +386,9 @@ class VerifyReadbackTests(unittest.TestCase):
         self.assertIn("to", self.mismatch_fields(result))
 
     def test_missing_attachment_bytes_cannot_verify_expected_attachment(self):
-        result = verify_readback(self.attachment_bundle, self.attachment_validation, self.readback(attachments=[]))
+        result = verify_readback(
+            self.attachment_bundle, self.attachment_validation, self.readback(attachments=[])
+        )
         self.assertEqual(result["status"], "blocked")
 
     def test_mutated_bundle_after_validation_fails_before_comparison(self):
@@ -404,6 +410,7 @@ Require a prior `send_ready` validation report and verify its hashes before trus
 ```python
 def _mismatch(field: str, expected: object, observed: object) -> dict[str, object]:
     return {"field": field, "expected": expected, "observed": observed}
+
 
 def _result(mismatches: list[dict[str, object]], message_id: str) -> dict[str, object]:
     return {

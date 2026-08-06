@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"))
 
-from email_policy import (  # noqa: E402
+from email_policy import (
     PolicyError,
     classify_address,
     discover_policy,
@@ -246,9 +244,7 @@ class StylePolicyTests(unittest.TestCase):
         self.assertEqual(style["table"]["cell_padding_px"], [6, 10])
 
     def test_partial_style_is_completed_from_neutral_defaults(self) -> None:
-        policy = load_policy(
-            self.write_policy(self.policy_with_style({"list_style": "paragraph"}))
-        )
+        policy = load_policy(self.write_policy(self.policy_with_style({"list_style": "paragraph"})))
 
         style = policy["style"]
         self.assertEqual(style["list_style"], "paragraph")
@@ -271,19 +267,11 @@ class StylePolicyTests(unittest.TestCase):
 
     def test_unsupported_list_style_is_rejected(self) -> None:
         with self.assertRaisesRegex(PolicyError, "list_style"):
-            load_policy(
-                self.write_policy(
-                    self.policy_with_style(self.valid_style(list_style="cards"))
-                )
-            )
+            load_policy(self.write_policy(self.policy_with_style(self.valid_style(list_style="cards"))))
 
     def test_non_hex_colour_is_rejected(self) -> None:
         with self.assertRaisesRegex(PolicyError, "text_color"):
-            load_policy(
-                self.write_policy(
-                    self.policy_with_style(self.valid_style(text_color="red; xss:1"))
-                )
-            )
+            load_policy(self.write_policy(self.policy_with_style(self.valid_style(text_color="red; xss:1"))))
 
     def test_status_colour_must_be_hex(self) -> None:
         style = self.valid_style()
@@ -294,13 +282,8 @@ class StylePolicyTests(unittest.TestCase):
 
     def test_font_family_rejects_css_control_characters(self) -> None:
         for hostile in ("Arial; background:url(x)", "Arial}", "Arial<script>"):
-            with self.subTest(hostile=hostile):
-                with self.assertRaisesRegex(PolicyError, "font_family"):
-                    load_policy(
-                        self.write_policy(
-                            self.policy_with_style(self.valid_style(font_family=hostile))
-                        )
-                    )
+            with self.subTest(hostile=hostile), self.assertRaisesRegex(PolicyError, "font_family"):
+                load_policy(self.write_policy(self.policy_with_style(self.valid_style(font_family=hostile))))
 
     def test_cell_padding_requires_two_non_negative_integers(self) -> None:
         style = self.valid_style()
@@ -315,19 +298,11 @@ class StylePolicyTests(unittest.TestCase):
 
     def test_font_size_must_be_positive_integer(self) -> None:
         with self.assertRaisesRegex(PolicyError, "font_size_px"):
-            load_policy(
-                self.write_policy(
-                    self.policy_with_style(self.valid_style(font_size_px=0))
-                )
-            )
+            load_policy(self.write_policy(self.policy_with_style(self.valid_style(font_size_px=0))))
 
     def test_line_height_must_be_a_positive_number(self) -> None:
         with self.assertRaisesRegex(PolicyError, "line_height"):
-            load_policy(
-                self.write_policy(
-                    self.policy_with_style(self.valid_style(line_height="1.55; x"))
-                )
-            )
+            load_policy(self.write_policy(self.policy_with_style(self.valid_style(line_height="1.55; x"))))
 
     def test_style_must_be_object_or_null(self) -> None:
         with self.assertRaisesRegex(PolicyError, "style"):

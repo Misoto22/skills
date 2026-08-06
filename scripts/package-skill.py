@@ -9,7 +9,6 @@ import sys
 import zipfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED_PARTS = {"__pycache__", ".DS_Store"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
@@ -20,11 +19,7 @@ def package_skill(skill_path: Path, destination: Path) -> Path:
     source = skill_path.expanduser().resolve()
     plugins_root = (ROOT / "plugins").resolve()
     skills_root = source.parent
-    if (
-        not source.is_dir()
-        or skills_root.name != "skills"
-        or skills_root.parent.parent != plugins_root
-    ):
+    if not source.is_dir() or skills_root.name != "skills" or skills_root.parent.parent != plugins_root:
         raise ValueError("skill path must be a direct published child of plugins/<plugin>/skills/")
     if not (source / "SKILL.md").is_file():
         raise ValueError("skill is missing SKILL.md")
@@ -49,9 +44,7 @@ def package_skill(skill_path: Path, destination: Path) -> Path:
     output_directory.mkdir(parents=True, exist_ok=True)
     output = output_directory / f"{source.name}.skill"
     files = sorted(
-        path
-        for path in source.rglob("*")
-        if path.is_file() and not _excluded(path.relative_to(source))
+        path for path in source.rglob("*") if path.is_file() and not _excluded(path.relative_to(source))
     )
     with zipfile.ZipFile(
         output,

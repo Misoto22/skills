@@ -7,7 +7,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Mapping
 
 try:
     from .email_bundle import BundleError, artifact_hashes, load_bundle
@@ -46,13 +45,9 @@ def verify_readback(
     mismatches: list[dict[str, object]] = []
 
     if validation.get("schema_version") != 1:
-        mismatches.append(
-            _mismatch("validation.schema_version", 1, validation.get("schema_version"))
-        )
+        mismatches.append(_mismatch("validation.schema_version", 1, validation.get("schema_version")))
     if validation.get("status") != "send_ready":
-        mismatches.append(
-            _mismatch("validation.status", "send_ready", validation.get("status"))
-        )
+        mismatches.append(_mismatch("validation.status", "send_ready", validation.get("status")))
 
     expected_hashes = validation.get("artifact_sha256")
     observed_hashes = artifact_hashes(bundle_dir, bundle)

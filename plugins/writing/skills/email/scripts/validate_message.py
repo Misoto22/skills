@@ -8,8 +8,8 @@ import hashlib
 import json
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 try:
     from .email_bundle import BundleError, artifact_hashes, load_bundle
@@ -52,11 +52,7 @@ def validate_bundle(
     _validate_transport(bundle, findings)
 
     blocked = any(finding["severity"] == "error" for finding in findings)
-    status = (
-        "blocked"
-        if blocked
-        else ("send_ready" if bundle["mode"] == "send" else "draft_ready")
-    )
+    status = "blocked" if blocked else ("send_ready" if bundle["mode"] == "send" else "draft_ready")
     subject = str(bundle["_subject"]).rstrip("\n")
     return {
         "schema_version": 1,
@@ -86,9 +82,7 @@ def _validate_identity(
     send_mode = bundle["mode"] == "send"
 
     if send_mode and (
-        not identity.get("sender_name")
-        or policy_address is None
-        or not identity.get("internal_domains")
+        not identity.get("sender_name") or policy_address is None or not identity.get("internal_domains")
     ):
         _error(findings, "identity.incomplete", "send requires a complete configured sender identity")
     if bundle_address is None:
@@ -101,9 +95,7 @@ def _validate_identity(
                 "draft has no configured sender identity; sending remains unavailable",
             )
     elif policy_address is not None and bundle_address != policy_address:
-        message = (
-            f"message sender {bundle_address} does not match policy sender {policy_address}"
-        )
+        message = f"message sender {bundle_address} does not match policy sender {policy_address}"
         if send_mode:
             _error(findings, "identity.mismatch", message)
         else:
@@ -203,7 +195,11 @@ def _validate_required_cc(
             continue
         required_domain = required.rsplit("@", 1)[1]
         required_class = classify_address(required, policy)
-        if required_class == "external" and required_domain not in actual_domains and required_domain not in allowed_external:
+        if (
+            required_class == "external"
+            and required_domain not in actual_domains
+            and required_domain not in allowed_external
+        ):
             _error(
                 findings,
                 "recipient.disclosure_boundary",
@@ -250,11 +246,7 @@ def _validate_authorization(
     requested_scope = authorization.get("scope")
     scopes = authorization_policy.get("automated_send_scopes", [])
     scope = next(
-        (
-            _mapping(candidate)
-            for candidate in scopes
-            if _mapping(candidate).get("name") == requested_scope
-        ),
+        (_mapping(candidate) for candidate in scopes if _mapping(candidate).get("name") == requested_scope),
         None,
     )
     if scope is None:

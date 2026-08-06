@@ -6,10 +6,10 @@ from __future__ import annotations
 import copy
 import json
 import re
+from collections.abc import Mapping
 from email.utils import parseaddr
 from pathlib import Path
-from typing import Literal, Mapping
-
+from typing import Literal
 
 POLICY_ENVIRONMENT_VARIABLE = "EMAIL_SKILL_POLICY"
 PROJECT_POLICY_PATH = Path(".agents/email-policy.json")
@@ -301,9 +301,7 @@ def _validate_policy(policy: dict[str, object], path: Path) -> None:
             signature_path = path.parent / signature_path
         signature_path = signature_path.resolve()
         if not signature_path.is_file():
-            raise PolicyError(
-                f"composition.signature_file does not exist: {signature_path}"
-            )
+            raise PolicyError(f"composition.signature_file does not exist: {signature_path}")
         composition["_resolved_signature_file"] = str(signature_path)
 
     recipients["allowed_external_domains"] = _normalize_domains(
@@ -312,9 +310,7 @@ def _validate_policy(policy: dict[str, object], path: Path) -> None:
     )
     if recipients["reply_all"] not in {"review", "never"}:
         raise PolicyError("recipients.reply_all must be review or never")
-    recipients["required_cc_rules"] = _validate_required_cc_rules(
-        recipients["required_cc_rules"]
-    )
+    recipients["required_cc_rules"] = _validate_required_cc_rules(recipients["required_cc_rules"])
 
     if authorization["default_mode"] != "draft":
         raise PolicyError("authorization.default_mode must be draft")
@@ -346,9 +342,7 @@ def _validate_style(style: dict[str, object]) -> None:
         "style.paragraph_spacing_px",
     )
     if style["list_style"] not in _LIST_STYLES:
-        raise PolicyError(
-            "style.list_style must be " + " or ".join(sorted(_LIST_STYLES))
-        )
+        raise PolicyError("style.list_style must be " + " or ".join(sorted(_LIST_STYLES)))
 
     table = _require_mapping(style["table"], "style.table")
     _reject_unknown(table, _STYLE_TABLE_KEYS, "style.table")
@@ -371,9 +365,7 @@ def _validate_style(style: dict[str, object]) -> None:
     _reject_unknown(status_colors, _STATUS_COLOR_KEYS, "style.status_colors")
     missing = _STATUS_COLOR_KEYS - set(status_colors)
     if missing:
-        raise PolicyError(
-            f"style.status_colors missing field(s): {', '.join(sorted(missing))}"
-        )
+        raise PolicyError(f"style.status_colors missing field(s): {', '.join(sorted(missing))}")
     for key in sorted(_STATUS_COLOR_KEYS):
         status_colors[key] = _require_hex_colour(
             status_colors[key],
@@ -420,10 +412,7 @@ def _require_padding_pair(value: object, location: str) -> list[int]:
     values = _require_list(value, location)
     if len(values) != 2:
         raise PolicyError(f"{location} must be [vertical, horizontal] in pixels")
-    return [
-        _require_non_negative_integer(item, f"{location}[{index}]")
-        for index, item in enumerate(values)
-    ]
+    return [_require_non_negative_integer(item, f"{location}[{index}]") for index, item in enumerate(values)]
 
 
 def _validate_required_cc_rules(value: object) -> list[dict[str, object]]:

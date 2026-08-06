@@ -10,7 +10,6 @@ import unittest
 import zipfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = ROOT / "plugins"
 PLUGIN = PLUGINS / "writing"
@@ -130,6 +129,7 @@ class RepositoryContractTests(unittest.TestCase):
                 env=environment,
                 capture_output=True,
                 text=True,
+                check=False,
             )
 
             self.assertNotEqual(result.returncode, 0)
@@ -139,9 +139,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_versions_and_ci_guards_are_consistent(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
         skill = (SKILLS / "email" / "SKILL.md").read_text(encoding="utf-8")
-        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
 
         self.assertEqual(plugin["version"], "0.3.0")
         self.assertIn('version: "0.3.0"', skill)
@@ -152,11 +150,12 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("skills@1.5.20", workflow)
         self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
+        self.assertIn("astral-sh/ruff-action@v3", workflow)
+        self.assertIn('version: "0.14.6"', workflow)
+        self.assertIn("shellcheck scripts/*.sh", workflow)
 
     def test_release_workflow_packages_every_skill_on_tag_push(self) -> None:
-        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
         self.assertIn('tags: ["v*"]', workflow)
         self.assertIn("permissions:\n  contents: write", workflow)
@@ -167,9 +166,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("dist/*.skill", workflow)
 
     def test_install_workflow_covers_every_supported_route(self) -> None:
-        workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
 
         for route in (
             "claude plugin install writing@misoto22",
@@ -196,6 +193,7 @@ class RepositoryContractTests(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                check=False,
             )
 
         self.assertNotEqual(result.returncode, 0)
@@ -276,10 +274,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotIn("../", skill)
 
     def test_shared_material_carries_no_original_hardcodes(self) -> None:
-        shared = "\n".join(
-            path.read_text(encoding="utf-8")
-            for path in (PLUGIN / "shared").rglob("*.md")
-        )
+        shared = "\n".join(path.read_text(encoding="utf-8") for path in (PLUGIN / "shared").rglob("*.md"))
 
         self.assertTrue(shared.strip())
         for forbidden in ("/Users/", "/home/", "smtp.gmail.com"):
@@ -310,6 +305,7 @@ class RepositoryContractTests(unittest.TestCase):
                 cwd=ROOT,
                 capture_output=True,
                 text=True,
+                check=False,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("stale vendored copy", result.stderr)

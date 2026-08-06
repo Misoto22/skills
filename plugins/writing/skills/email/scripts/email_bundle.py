@@ -7,7 +7,6 @@ import hashlib
 import json
 from pathlib import Path
 
-
 _MANIFEST_KEYS = {
     "schema_version",
     "mode",
@@ -148,10 +147,7 @@ def artifact_hashes(
     paths = bundle.get("_artifact_paths")
     if not isinstance(paths, dict):
         raise BundleError("bundle has not been loaded by load_bundle")
-    return {
-        name: hashlib.sha256(path.read_bytes()).hexdigest()
-        for name, path in sorted(paths.items())
-    }
+    return {name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in sorted(paths.items())}
 
 
 def _contained_file(root: Path, relative: str, location: str) -> Path:

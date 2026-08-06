@@ -5,7 +5,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 EMAIL_SKILL = ROOT / "plugins" / "writing" / "skills" / "email"
 SCRIPT_DIR = EMAIL_SKILL / "scripts"
@@ -13,7 +12,7 @@ SKILL_PATH = EMAIL_SKILL / "SKILL.md"
 POLICY_PATH = EMAIL_SKILL / "policy.example.json"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from email_policy import load_policy  # noqa: E402
+from email_policy import load_policy
 
 
 class SkillContractTests(unittest.TestCase):
@@ -70,12 +69,7 @@ class SkillContractTests(unittest.TestCase):
 
         self.assertFalse(raw["authorization"]["allow_automated_send"])
         self.assertEqual(raw["authorization"]["default_mode"], "draft")
-        self.assertTrue(
-            all(
-                domain.endswith(".test")
-                for domain in policy["identity"]["internal_domains"]
-            )
-        )
+        self.assertTrue(all(domain.endswith(".test") for domain in policy["identity"]["internal_domains"]))
 
     def test_openai_interface_supports_model_invocation_without_implied_send(self) -> None:
         text = (EMAIL_SKILL / "agents" / "openai.yaml").read_text(encoding="utf-8")

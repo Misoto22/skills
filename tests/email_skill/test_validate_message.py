@@ -8,15 +8,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from email_bundle import BundleError, artifact_hashes, load_bundle  # noqa: E402
-from email_policy import safe_default_policy  # noqa: E402
-from render_email import render_html  # noqa: E402
-from validate_message import validate_bundle  # noqa: E402
+from email_bundle import BundleError, artifact_hashes, load_bundle
+from email_policy import safe_default_policy
+from render_email import render_html
+from validate_message import validate_bundle
 
 
 class ValidateMessageTests(unittest.TestCase):
