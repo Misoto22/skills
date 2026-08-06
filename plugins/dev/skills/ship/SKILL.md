@@ -9,6 +9,8 @@ argument-hint: "[branch-name] [--dry-run] [--no-test] [--draft] [--base=<branch>
 
 Ship the current changes as a merged PR.
 
+Read [shared/git.md](shared/git.md) first.
+
 Step 0 inspects the repo and prints an **execution plan** that marks each downstream step as `RUN` or `SKIP`. Follow that plan exactly — do not run a `SKIP` step, do not invent new ones. If any step exhausts its retry budget, stop and ask the user.
 
 ## Common paths
@@ -58,12 +60,7 @@ git worktree list
 
 ### 0c. Base branch resolution
 
-In order, take the first that succeeds:
-
-1. `--base=<branch>` flag, if passed.
-2. `git symbolic-ref refs/remotes/origin/HEAD --short | sed 's@^origin/@@'` — works for any remote.
-3. `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — GitHub-only fallback.
-4. Final fallback: `main`.
+Per [shared/git.md](shared/git.md), which also carries the force-push rule and what "merged" means after a rebase. Read it before step 6.
 
 ### 0d. Open PR for the current branch
 

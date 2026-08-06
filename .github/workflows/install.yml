@@ -45,7 +45,7 @@ jobs:
         run: |
           python3 scripts/verify-install.py \
             "$HOME/.claude/plugins/cache/misoto22" \
-            --expect email --expect tempering --expect readme --expect ship
+            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
 
   codex:
     name: Codex plugin
@@ -72,7 +72,7 @@ jobs:
         run: |
           python3 scripts/verify-install.py \
             "$HOME/.codex/plugins/cache/misoto22" \
-            --expect email --expect tempering --expect readme --expect ship
+            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
 
   agent-skills-cli:
     name: npx skills add (all agents)
@@ -98,7 +98,7 @@ jobs:
         run: |
           test "$(find "$FAKE_HOME" -name SKILL.md | wc -l)" -gt 0
           python3 scripts/verify-install.py "$FAKE_HOME" \
-            --expect email --expect tempering --expect readme --expect ship
+            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship
 
   skill-archive:
     name: .skill upload bundle
@@ -122,4 +122,4 @@ jobs:
       - name: Unpacked archive is complete and self-contained
         run: |
           python3 scripts/verify-install.py unpacked \
-            --expect email --expect tempering --expect readme --expect ship
+            --expect email --expect tempering --expect cleanup --expect sync --expect readme --expect ship

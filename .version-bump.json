@@ -14,6 +14,8 @@
     }
   ],
   "text": [
+    "plugins/dev/skills/cleanup/SKILL.md",
+    "plugins/dev/skills/sync/SKILL.md",
     "plugins/dev/skills/ship/SKILL.md",
     "plugins/writing/skills/email/SKILL.md",
     "plugins/writing/skills/tempering/SKILL.md",
