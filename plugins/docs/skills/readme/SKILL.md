@@ -76,7 +76,7 @@ Follow this order. Sections that do not apply are dropped, never reordered or re
 
 GitHub strips CSS and JavaScript, so the page has four levers and no others.
 
-- **A hero image is the only real design surface.** Commit it to the repository rather than hotlinking, and serve both themes with `<picture>` + `(prefers-color-scheme: dark)`. An SVG stays sharp and diffs as text.
+- **A hero image is the only real design surface.** Commit it to the repository rather than hotlinking, and serve both themes with `<picture>` + `(prefers-color-scheme: dark)`. An SVG stays sharp and diffs as text. Place its text at explicit coordinates and left-anchored — `text-anchor` is not honoured by every renderer, and a label clipped at the edge is worse than a plain one.
 - **Alerts** — `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]` — render with an icon and a coloured rule. Use one for the constraint a reader would otherwise miss, not for emphasis; three alerts on a page means none of them signals anything.
 - **`<details>`** collapses a section that only some readers need. Install routes, one per agent, are the usual case: the reader takes their own and never scrolls the rest.
 - **`mermaid` fences** render as diagrams. Use one where a relationship is the point — a tree of directories is not; marketplace to plugin to command is. Keep node labels to `<br/>`, since GitHub disables HTML labels and anything else prints literally.
@@ -84,6 +84,21 @@ GitHub strips CSS and JavaScript, so the page has four levers and no others.
 Cap the page at two screens of scrolling before the first `<details>`. Long tables wrap badly at GitHub's content width — keep any row under about 90 characters, and if it will not fit, it was prose.
 
 Centred text is for one line. A centred sentence past about 70 characters wraps, and a wrapped centre leaves a stranded last line under the fold of the block. Cut it to one line or left-align it.
+
+## Look at the rendered page
+
+Markdown that reads fine as source can render badly, and that class of defect is
+invisible in a diff. Open `https://github.com/<owner>/<repo>` before calling a
+README done.
+
+- **Every image loads.** A broken icon is the loudest thing on a page. Check the `<img>` reports a non-zero `naturalWidth`, not merely that the file exists.
+- **Nothing centred has wrapped.** Measure the rendered text, not the source: a line of links is 128 characters of markdown and 29 characters on the page.
+- **No table has wrapped mid-cell** at GitHub's content width.
+- **Each `mermaid` fence produced a diagram.** GitHub renders it into a sandboxed `viewscreen` iframe, so the original `<pre lang="mermaid">` stays in the DOM inside `render-plaintext-hidden`. That leftover is the fallback copy, not a failure — look for the iframe.
+- **Both themes.** A hero tuned for one is unreadable in the other.
+
+An empty `<summary>` in the DOM is normally GitHub's own control on a diagram,
+not something you wrote.
 
 ## Section rules
 
@@ -156,11 +171,12 @@ Read the existing README and delete before adding. Most stale READMEs are long, 
 
 When asked whether a README is any good rather than to rewrite it, answer against these in order, and stop at the first that fails:
 
-1. Does the first screen say what this is and what it runs on?
-2. Can a newcomer get it running from the Getting Started block alone?
-3. Does every command still exist in the task runner?
-4. Does every version match the lockfile?
-5. Is anything described that no longer ships?
+1. Does the first screen render — every image loading, nothing centred wrapped?
+2. Does the first screen say what this is and what it runs on?
+3. Can a newcomer get it running from the Getting Started block alone?
+4. Does every command still exist in the task runner?
+5. Does every version match the lockfile?
+6. Is anything described that no longer ships?
 
 Report what fails with the line, and what the fix is. Do not rewrite unless asked.
 

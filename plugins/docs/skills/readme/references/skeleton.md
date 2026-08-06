@@ -7,9 +7,15 @@ Copy this, fill the placeholders, delete the sections the project has not earned
 
 <div align="center">
 
-<img alt="[project]" src="[hero image URL]" />
+<!-- Delete this block entirely if you have no hero image; a placeholder in src
+     renders as a broken icon. Commit the asset, and serve both themes:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img alt="[project]" src="assets/hero-light.svg" width="820">
+</picture>
 
 <br />
+-->
 
 **[Two or three words. Who or what this is.]**
 
@@ -119,4 +125,4 @@ No badges for build status, download counts, licence, "PRs welcome", or code sty
 
 ## When there is no hero image
 
-Drop the `<img>` and the `<br />` after it. The centred block still works, and is better than a placeholder graphic. A CLI tool may reasonably open with a fenced sample of its own output instead — one screen, real output, no prompt characters.
+Drop the `<img>` and the `<br />` after it. Never leave the placeholder in `src` — it does not read as a note to the author, it renders as a broken-image icon at the top of the page. The centred block still works, and is better than a placeholder graphic. A CLI tool may reasonably open with a fenced sample of its own output instead — one screen, real output, no prompt characters.
