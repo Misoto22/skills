@@ -55,7 +55,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     marketplace_plugin = plugins[0] if isinstance(plugins, list) and len(plugins) == 1 and isinstance(plugins[0], dict) else {}
     if marketplace.get("name") != MARKETPLACE_NAME:
         errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
-    if marketplace_plugin.get("name") != PLUGIN_NAME or marketplace_plugin.get("source") != f"./{PLUGIN_NAME}":
+    if marketplace_plugin.get("name") != PLUGIN_NAME or marketplace_plugin.get("source") != f"./plugins/{PLUGIN_NAME}":
         errors.append(f"marketplace must register the {PLUGIN_NAME} plugin")
     metadata = marketplace.get("metadata")
     if not isinstance(metadata, dict) or metadata.get("pluginRoot") != "./plugins":

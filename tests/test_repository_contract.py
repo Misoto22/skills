@@ -34,7 +34,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(marketplace["name"], "misoto22")
         self.assertEqual(marketplace["plugins"][0]["name"], "writing")
-        self.assertEqual(marketplace["plugins"][0]["source"], "./writing")
+        self.assertEqual(marketplace["plugins"][0]["source"], "./plugins/writing")
         self.assertEqual(marketplace["metadata"]["pluginRoot"], "./plugins")
 
     def test_every_published_skill_is_registered(self) -> None:
