@@ -137,7 +137,7 @@ def main() -> int:
         _add_to_plugin_readme(skill_dir.parent / "README.md", args.skill, created)
 
     _register_published(args.plugin, args.skill, created)
-    _register_workflow(args.skill, created)
+    _register_workflow(args.plugin, args.skill, new_plugin, created)
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
 
@@ -245,12 +245,29 @@ def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: l
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
-def _register_workflow(skill: str, created: list[str]) -> None:
+def _register_workflow(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
+    """CI installs each plugin by name, so a new plugin needs its own install line."""
+
     path = ROOT / ".github" / "workflows" / "install.yml"
     text = path.read_text(encoding="utf-8")
     updated = text.replace("--expect tempering", f"--expect tempering --expect {skill}")
     if updated == text:
         raise SystemExit("error: could not find the --expect list in install.yml")
+
+    if new_plugin:
+        for line, addition in (
+            (
+                "          claude plugin install writing@misoto22\n",
+                f"          claude plugin install {plugin}@misoto22\n",
+            ),
+            (
+                "          codex plugin add writing@misoto22\n",
+                f"          codex plugin add {plugin}@misoto22\n",
+            ),
+        ):
+            if line not in updated:
+                raise SystemExit(f"error: could not find the install line to extend in {path.name}")
+            updated = updated.replace(line, line + addition, 1)
     path.write_text(updated, encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
