@@ -32,8 +32,8 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     skills_root = plugin_root / "skills"
     skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
     names = [path.name for path in skill_paths]
-    if names != ["email"]:
-        errors.append(f"published skills must currently be ['email']; found {names}")
+    if names != ["email", "tempering"]:
+        errors.append(f"published skills must currently be ['email', 'tempering']; found {names}")
 
     plugin = _load_json(plugin_root / ".claude-plugin" / "plugin.json", errors)
     marketplace = _load_json(ROOT / ".claude-plugin" / "marketplace.json", errors)

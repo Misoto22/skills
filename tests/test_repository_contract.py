@@ -24,7 +24,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
 
-        self.assertEqual(plugin["skills"], ["./skills/email"])
+        self.assertEqual(plugin["skills"], ["./skills/email", "./skills/tempering"])
         self.assertEqual(plugin["author"]["name"], "skills contributors")
         self.assertNotIn("drafts", json.dumps(plugin))
         self.assertNotIn("deprecated", json.dumps(plugin))
@@ -39,7 +39,7 @@ class RepositoryContractTests(unittest.TestCase):
 
     def test_every_published_skill_is_registered(self) -> None:
         names = sorted(path.parent.name for path in SKILLS.glob("*/SKILL.md"))
-        self.assertEqual(names, ["email"])
+        self.assertEqual(names, ["email", "tempering"])
 
         root_readme = README_PATH.read_text(encoding="utf-8")
         skills_readme = SKILLS_README_PATH.read_text(encoding="utf-8")
@@ -62,7 +62,11 @@ class RepositoryContractTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertEqual(result.stdout, "plugins/writing/skills/email/SKILL.md\n")
+        self.assertEqual(
+            result.stdout,
+            "plugins/writing/skills/email/SKILL.md\n"
+            "plugins/writing/skills/tempering/SKILL.md\n",
+        )
 
     def test_link_script_creates_editable_links_in_isolated_destinations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
