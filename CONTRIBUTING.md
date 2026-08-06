@@ -8,11 +8,16 @@ cd skills
 python3 scripts/validate-repository.py
 ```
 
-Python 3.11+ and Bash are the whole toolchain. `ruff` is the one optional extra; CI runs it either way.
+Python 3.11+ and Bash are the whole toolchain. `ruff` and `coverage` are the only extras, both optional locally; CI runs them either way.
 
 ```bash
 uvx ruff check . && uvx ruff format .
+uvx coverage run -m unittest discover -s tests && uvx coverage report
 ```
+
+Coverage is measured on `plugins/` — the Python that actually ships — and floors at 75%. The repository's own
+`scripts/` run through subprocess in the contract tests, where the number would describe the harness rather than
+the code. Raise the floor in `.coveragerc` when the real figure rises; never lower it to make a run pass.
 
 ## Adding a skill
 

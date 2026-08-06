@@ -355,9 +355,13 @@ class RepositoryContractTests(unittest.TestCase):
         pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
         self.assertTrue(pins)
         for pin in pins:
+            # npm and pip spell a pin differently, so a pin may carry its own
+            # template. The default is the npm form every other one uses.
+            pinned = pin.get("spec", "{package}@{version}")
+            latest = pin.get("spec_latest", "{package}@latest")
             for channel, expected in (
-                ("pinned", f"{pin['package']}@{pin['version']}"),
-                ("latest", f"{pin['package']}@latest"),
+                ("pinned", pinned.format(package=pin["package"], version=pin["version"])),
+                ("latest", latest.format(package=pin["package"])),
             ):
                 result = subprocess.run(
                     [sys.executable, "scripts/ci-pins.py", "spec", pin["id"]],
@@ -412,6 +416,21 @@ class RepositoryContractTests(unittest.TestCase):
         finally:
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
+
+    def test_coverage_floors_the_python_that_ships(self) -> None:
+        """A floor nobody runs is a floor that does not exist, so CI has to run it."""
+
+        config = (ROOT / ".coveragerc").read_text(encoding="utf-8")
+        self.assertIn("source = plugins", config)
+        self.assertRegex(config, r"(?m)^fail_under = \d+$")
+
+        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+        self.assertIn("ci-pins.py spec coverage", workflow)
+        self.assertIn("coverage run -m unittest", workflow)
+
+        # Scoped to plugins/ on purpose: the repository's own scripts are driven
+        # through subprocess here, so their coverage would measure this file.
+        self.assertNotIn("source = scripts", config)
 
     def test_every_action_is_pinned_to_a_commit(self) -> None:
         """A tag is a moving reference. Whoever can move it can change what CI runs."""

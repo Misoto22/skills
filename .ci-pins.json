@@ -28,6 +28,14 @@
       "documented_in": [
         ".github/workflows/validate.yml"
       ]
+    },
+    {
+      "id": "coverage",
+      "package": "coverage",
+      "version": "7.15.3",
+      "spec": "{package}=={version}",
+      "spec_latest": "{package}",
+      "documented_in": []
     }
   ],
   "scan": {

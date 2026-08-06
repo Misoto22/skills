@@ -4,6 +4,9 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+- CI now measures coverage on `plugins/` — the Python that actually ships — and floors it at 75% against a current 78% with branches counted. `.gitignore` has listed `.coverage` since the beginning and nothing ever produced one. The floor is a ratchet rather than a target: it sits just under what the suite reaches, so a large untested addition fails and ordinary movement does not.
+- The repository's own `scripts/` are deliberately outside that measurement. The contract tests drive them through subprocess, so the number would describe this harness rather than the code.
+- `.ci-pins.json` grew a `spec` template, because pip and npm spell a pin differently and `coverage` is the first pinned tool that is not an npm package. The declaration stays single: the workflow still asks `ci-pins.py spec coverage` rather than naming a version.
 - Added `SECURITY.md` and `.github/CODEOWNERS`. The email skill documents an authorization model and an artifact-integrity gate, and there was nowhere to report a hole in either; CODEOWNERS names that skill, the workflows, and `.ci-pins.json` apart from the catch-all, so a change to a gate is not reviewed as a change to prose.
 - Every action is pinned to a commit rather than a tag, with the version in a trailing comment for dependabot to move. A tag is a moving reference, and whoever can move it decides what runs in a job holding `contents: write` and an attestation signing key. A test asserts it over every `uses:` in every workflow, so a new one cannot land unpinned.
 - Added Python 3.12 to the test matrix. It ran 3.11 and 3.13, so the version most likely to be installed on a contributor's machine was the one nothing proved.
