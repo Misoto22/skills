@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""Move every declared version string to a new release, and find the ones nobody declared.
+
+The version appears in two plugin manifests, three SKILL.md frontmatters, a
+constant in the validator, and several test assertions. Editing that by hand is
+how a tag ends up describing artefacts that disagree with it.
+
+  python3 scripts/bump-version.py --check      Report the current version, and any drift
+  python3 scripts/bump-version.py --audit      Also grep the repository for stragglers
+  python3 scripts/bump-version.py 0.4.0        Rewrite every declared occurrence
+
+`--audit` is the half that matters: declaring a file is easy to forget, so the
+grep runs over everything not explicitly excluded and reports what the declared
+list missed.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG = ROOT / ".version-bump.json"
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+AUDIT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh", ".toml"}
+
+
+def load_config() -> dict:
+    return json.loads(CONFIG.read_text(encoding="utf-8"))
+
+
+def current_versions(config: dict) -> dict[str, str]:
+    """Return every declared JSON version field, keyed by 'path:field'."""
+
+    found: dict[str, str] = {}
+    for entry in config["json"]:
+        data = json.loads((ROOT / entry["path"]).read_text(encoding="utf-8"))
+        value = data
+        for part in entry["field"].split("."):
+            value = value[int(part)] if part.isdigit() else value[part]
+        found[f"{entry['path']}:{entry['field']}"] = value
+    return found
+
+
+def resolve_current(config: dict) -> tuple[str | None, list[str]]:
+    """Return the agreed current version, plus a line per disagreement."""
+
+    found = current_versions(config)
+    drift = [f"{key} = {value}" for key, value in found.items()]
+    distinct = set(found.values())
+    if len(distinct) == 1:
+        return distinct.pop(), []
+    return None, drift
+
+
+def bump(config: dict, current: str, new: str) -> list[str]:
+    changed: list[str] = []
+    for entry in config["json"]:
+        path = ROOT / entry["path"]
+        text = path.read_text(encoding="utf-8")
+        # Rewrite in place rather than re-serialising, so formatting survives.
+        updated = text.replace(f'"{current}"', f'"{new}"')
+        if updated != text:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(entry["path"])
+
+    for relative in config["text"]:
+        path = ROOT / relative
+        text = path.read_text(encoding="utf-8")
+        updated = text.replace(current, new)
+        if updated != text:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(relative)
+    return changed
+
+
+def audit(config: dict, current: str) -> list[str]:
+    """Return every file still naming `current` that the declared list does not cover."""
+
+    declared = {entry["path"] for entry in config["json"]} | set(config["text"])
+    excluded = tuple(config["audit"]["exclude"])
+    stragglers: list[str] = []
+    for path in sorted(ROOT.rglob("*")):
+        if not path.is_file() or path.suffix not in AUDIT_SUFFIXES:
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        if relative in declared or relative.startswith(excluded):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        hits = text.count(current)
+        if hits:
+            stragglers.append(f"{relative} ({hits} occurrences)")
+    return stragglers
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("version", nargs="?", help="the new version, e.g. 0.4.0")
+    group.add_argument("--check", action="store_true", help="report the current version and any drift")
+    group.add_argument("--audit", action="store_true", help="--check, plus grep for undeclared occurrences")
+    args = parser.parse_args()
+
+    config = load_config()
+    current, drift = resolve_current(config)
+    if current is None:
+        print("error: declared versions disagree:", file=sys.stderr)
+        for line in drift:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+
+    if args.check or args.audit:
+        print(f"current version: {current}")
+        if args.audit:
+            stragglers = audit(config, current)
+            if stragglers:
+                print("undeclared occurrences — add them to .version-bump.json:", file=sys.stderr)
+                for line in stragglers:
+                    print(f"  {line}", file=sys.stderr)
+                return 1
+            print("no undeclared occurrences")
+        return 0
+
+    if not SEMVER.match(args.version):
+        print(f"error: {args.version!r} is not a semantic version", file=sys.stderr)
+        return 1
+    if args.version == current:
+        print(f"error: already at {current}", file=sys.stderr)
+        return 1
+
+    changed = bump(config, current, args.version)
+    for relative, count in sorted(Counter(changed).items()):
+        print(f"{current} → {args.version}  {relative}" + (f" ({count} occurrences)" if count > 1 else ""))
+    print(f"\n{len(set(changed))} files updated. Next: update CHANGELOG.md, then tag v{args.version}.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,23 @@
+{
+  "json": [
+    { "path": "plugins/writing/.claude-plugin/plugin.json", "field": "version" },
+    { "path": "plugins/docs/.claude-plugin/plugin.json", "field": "version" }
+  ],
+  "text": [
+    "plugins/writing/skills/email/SKILL.md",
+    "plugins/writing/skills/tempering/SKILL.md",
+    "plugins/docs/skills/readme/SKILL.md",
+    "scripts/validate-repository.py",
+    "tests/test_repository_contract.py",
+    "README.md"
+  ],
+  "audit": {
+    "exclude": [
+      ".git",
+      ".version-bump.json",
+      "CHANGELOG.md",
+      "docs/superpowers",
+      "dist"
+    ]
+  }
+}
