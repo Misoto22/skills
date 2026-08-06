@@ -88,7 +88,7 @@ jobs:
         run: |
           FAKE_HOME="$(mktemp -d)"
           echo "FAKE_HOME=$FAKE_HOME" >> "$GITHUB_ENV"
-          HOME="$FAKE_HOME" npx --yes skills@1.5.20 add "$PWD" \
+          HOME="$FAKE_HOME" npx --yes skills@1.5.22 add "$PWD" \
             --agent '*' --skill '*' --global --yes --copy
 
       - name: Every installed copy is complete and self-contained

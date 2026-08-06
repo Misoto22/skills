@@ -148,7 +148,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("actions/checkout@v7", workflow)
         self.assertIn("actions/setup-python@v7", workflow)
         self.assertIn("actions/setup-node@v7", workflow)
-        self.assertIn("skills@1.5.20", workflow)
+        self.assertIn("skills@1.5.22", workflow)
         self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
         self.assertIn("astral-sh/ruff-action@v3", workflow)
@@ -175,7 +175,7 @@ class RepositoryContractTests(unittest.TestCase):
             "claude plugin install docs@misoto22",
             "codex plugin add writing@misoto22",
             "codex plugin add docs@misoto22",
-            "npx --yes skills@1.5.20 add",
+            "npx --yes skills@1.5.22 add",
             "scripts/package-skill.py",
         ):
             self.assertIn(route, workflow)
