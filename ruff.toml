@@ -29,3 +29,8 @@ select = [
 # of running them that no installed copy has. The shebang stays as interpreter
 # documentation.
 "plugins/*/skills/*/scripts/*.py" = ["EXE001"]
+
+# The scaffold's description has to be one physical line: the frontmatter parser
+# reads plain key/value pairs and does not fold YAML scalars, so a wrapped
+# description would be rejected by the validator it is meant to satisfy.
+"scripts/new-skill.py" = ["E501"]
