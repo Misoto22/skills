@@ -200,7 +200,7 @@ Adding a plugin or skill means adding it to `PUBLISHED` in `scripts/validate-rep
 Pushing a `v*` tag packages every published skill and attaches the `.skill` files to a GitHub Release, which is how claude.ai and Cowork are served on a personal plan.
 
 ```bash
-git tag -a v0.6.0 -m "skills v0.6.0" && git push origin v0.6.0
+git tag -a v0.7.0 -m "skills v0.7.0" && git push origin v0.7.0
 ```
 
 Bump the version in both `plugin.json` files, all three `SKILL.md` frontmatters, `VERSION` in the validator, and the version assertions first — the validator holds them to one number.

@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.7.0 — 2026-08-06
 
 - Added `/dev:sync`, which fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards: a diverged branch is reported, never rebased, because choosing between rebase, merge, and reset is the user's call and guessing it destroys work. On a feature branch it advances the base with `git fetch origin <base>:<base>`, which never touches the working tree.
 - Added `/dev:cleanup`, which removes merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge rather than against git, and a branch marked `[gone]` with no merged pull request is kept and reported — that is abandoned work or someone else's mistake, and it is unrecoverable once the local copy is gone.
