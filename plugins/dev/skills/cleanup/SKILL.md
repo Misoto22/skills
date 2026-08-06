@@ -3,7 +3,7 @@ name: cleanup
 description: Remove what shipping left behind — local branches whose pull request merged, worktrees for those branches, and ignored residue a move stranded, such as a __pycache__ that git mv could not see. Every deletion is verified against the forge first, and anything unmerged or unexplained is reported rather than removed. Use when asked to clean up, tidy the repo, delete merged branches, remove stale branches, clear out old worktrees, 清理一下, 清掉合并过的分支, 删掉没用的分支, 收拾一下仓库. Not for discarding uncommitted work, resetting a branch, or removing untracked files you have not been shown.
 license: MIT
 metadata:
-  version: "0.8.0"
+  version: "0.8.1"
 argument-hint: "[--base=<branch>] [--branches] [--worktrees] [--residue] [--dry-run]"
 ---
 

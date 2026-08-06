@@ -2,7 +2,9 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.8.1 — 2026-08-06
+
+Nothing a skill says changed, so the archives differ from 0.8.0 only in the version they declare. This is the governance and CI half of the same audit 0.8.0 closed the rest of.
 
 - CI now measures coverage on `plugins/` — the Python that actually ships — and floors it at 75% against a current 78% with branches counted. `.gitignore` has listed `.coverage` since the beginning and nothing ever produced one. The floor is a ratchet rather than a target: it sits just under what the suite reaches, so a large untested addition fails and ordinary movement does not.
 - The repository's own `scripts/` are deliberately outside that measurement. The contract tests drive them through subprocess, so the number would describe this harness rather than the code.
