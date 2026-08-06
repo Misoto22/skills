@@ -23,6 +23,49 @@ PUBLISHED = {
     "docs": ["readme"],
     "writing": ["email", "tempering"],
 }
+
+# Other people's plugins, registered so they install from this marketplace too.
+# Nothing below the marketplace entry reaches them: no tree here, no plugin.json
+# to version, no README bullet with a local path, and no CI route — the install
+# workflow derives its list from plugins/ on disk, so a bookmark whose owner
+# rewrites their repository cannot turn this repository's build red.
+BOOKMARKED = {
+    "codex",
+    "everything-claude-code",
+    "i-have-adhd",
+    "obsidian",
+    "warp",
+}
+# The sha is the whole guarantee. An entry pinned to a branch installs whatever
+# that repository holds at install time, which hands its owner — or anyone who
+# takes it over — a write path into every agent that trusts this marketplace.
+COMMIT_SHA = re.compile(r"\A[0-9a-f]{40}\Z")
+REMOTE_SOURCE_KINDS = {"git-subdir", "url"}
+
+# One entry installs the rest, by depending on every plugin above. It carries no
+# skills, so it sits outside plugins/ where the packager, list-skills.sh, and the
+# per-skill install routes cannot mistake it for one. Its dependency list is
+# asserted against both registries: a bookmark added without a matching entry
+# here would be a plugin the one-command install silently skips.
+BUNDLE = "all"
+BUNDLE_ROOT = ROOT / "bundle"
+
+# What `/plugin` groups an entry under while browsing. The vocabulary is the one
+# Anthropic's own catalogue uses, so an entry here sorts alongside the rest of a
+# user's marketplaces rather than into a category of one. The bundle is exempt:
+# it is an entry point to the others, not a subject anyone browses for.
+CATEGORIES = {
+    "automation",
+    "database",
+    "deployment",
+    "design",
+    "development",
+    "learning",
+    "monitoring",
+    "productivity",
+    "security",
+    "testing",
+}
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 FORBIDDEN_RUNTIME_TEXT = (
     "/Users/",
@@ -80,8 +123,25 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         name: (f"./plugins/{name}", [f"./skills/{skill}" for skill in skills])
         for name, skills in PUBLISHED.items()
     }
-    if registered != expected_entries:
-        errors.append(f"marketplace must register exactly {expected_entries}; found {registered}")
+    published_entries = {
+        name: entry for name, entry in registered.items() if name not in BOOKMARKED and name != BUNDLE
+    }
+    if published_entries != expected_entries:
+        errors.append(f"marketplace must register exactly {expected_entries}; found {published_entries}")
+    _validate_bundle(registered.get(BUNDLE), errors)
+    for entry in entries:
+        name = entry.get("name") if isinstance(entry, dict) else None
+        if name is None or name == BUNDLE:
+            continue
+        category = entry.get("category")
+        if category not in CATEGORIES:
+            expected = sorted(CATEGORIES)
+            errors.append(f"{name} category must be one of {expected}; found {category!r}")
+    bookmarked = sorted(name for name in registered if name in BOOKMARKED)
+    if bookmarked != sorted(BOOKMARKED):
+        errors.append(f"marketplace must bookmark exactly {sorted(BOOKMARKED)}; found {bookmarked}")
+    for name in bookmarked:
+        _validate_bookmark(name, registered[name], errors)
 
     for plugin_name, expected_skills in sorted(PUBLISHED.items()):
         plugin_root = PLUGINS_ROOT / plugin_name
@@ -167,6 +227,63 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         if result.returncode != 0:
             errors.append("unit test suite failed")
     return errors
+
+
+def _validate_bundle(entry: tuple[object, object] | None, errors: list[str]) -> None:
+    """The one-command install: an entry that carries nothing but dependencies."""
+
+    if entry is None:
+        errors.append(f"marketplace must register the {BUNDLE!r} bundle")
+        return
+    source, skills = entry
+    if source != "./bundle":
+        errors.append(f"{BUNDLE} bundle source must be './bundle'; found {source!r}")
+    if skills is not None:
+        errors.append(f"{BUNDLE} bundle carries no skills of its own")
+
+    manifest = _load_json(BUNDLE_ROOT / ".claude-plugin" / "plugin.json", errors)
+    for field, expected in (
+        ("name", BUNDLE),
+        ("version", VERSION),
+        ("license", "MIT"),
+    ):
+        if manifest.get(field) != expected:
+            errors.append(f"{BUNDLE} bundle {field} must be {expected!r}")
+    author = manifest.get("author")
+    if not isinstance(author, dict) or author.get("name") != "skills contributors":
+        errors.append(f"{BUNDLE} bundle author must identify 'skills contributors'")
+    if manifest.get("skills") is not None:
+        errors.append(f"{BUNDLE} bundle must declare no skills path")
+
+    # Both registries, in one list. A plugin registered but left out here is one
+    # the advertised single command quietly does not install.
+    expected_dependencies = sorted(f"{name}@{MARKETPLACE_NAME}" for name in (*PUBLISHED, *BOOKMARKED))
+    dependencies = manifest.get("dependencies")
+    if not isinstance(dependencies, list) or sorted(dependencies) != expected_dependencies:
+        errors.append(f"{BUNDLE} bundle must depend on exactly {expected_dependencies}")
+
+
+def _validate_bookmark(name: str, entry: tuple[object, object], errors: list[str]) -> None:
+    """A bookmark has no tree here, so its marketplace entry is all there is to check."""
+
+    source, skills = entry
+    if skills is not None:
+        errors.append(f"{name} is a bookmark; which skills it carries is its owner's to declare")
+    if not isinstance(source, dict):
+        errors.append(f"{name} bookmark must carry a remote source; found {source!r}")
+        return
+    kind = source.get("source")
+    if kind not in REMOTE_SOURCE_KINDS:
+        expected = sorted(REMOTE_SOURCE_KINDS)
+        errors.append(f"{name} bookmark source must be one of {expected}; found {kind!r}")
+    url = source.get("url")
+    if not isinstance(url, str) or not url.startswith("https://"):
+        errors.append(f"{name} bookmark must be fetched over https; found {url!r}")
+    sha = source.get("sha")
+    if not isinstance(sha, str) or not COMMIT_SHA.match(sha):
+        errors.append(f"{name} bookmark must pin a full commit sha; found {sha!r}")
+    if kind == "git-subdir" and not source.get("path"):
+        errors.append(f"{name} bookmark selects a subdirectory without naming one")
 
 
 def _validate_skill(skill_path: Path, errors: list[str]) -> None:

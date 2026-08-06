@@ -8,7 +8,12 @@
   },
   "plugins": [
     {
+      "name": "all",
+      "source": "./bundle"
+    },
+    {
       "name": "writing",
+      "category": "productivity",
       "source": "./plugins/writing",
       "skills": [
         "./skills/email",
@@ -17,6 +22,7 @@
     },
     {
       "name": "docs",
+      "category": "development",
       "source": "./plugins/docs",
       "skills": [
         "./skills/readme"
@@ -24,12 +30,62 @@
     },
     {
       "name": "dev",
+      "category": "development",
       "source": "./plugins/dev",
       "skills": [
         "./skills/cleanup",
         "./skills/ship",
         "./skills/sync"
       ]
+    },
+    {
+      "name": "codex",
+      "category": "development",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/openai/codex-plugin-cc.git",
+        "path": "plugins/codex",
+        "ref": "main",
+        "sha": "db52e28f4d9ded852ab3942cea316258ae4ef346"
+      }
+    },
+    {
+      "name": "everything-claude-code",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/affaan-m/everything-claude-code.git",
+        "sha": "623f2c020f052319657674e4e6c29ab5d0ad566b"
+      }
+    },
+    {
+      "name": "i-have-adhd",
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/ayghri/i-have-adhd.git",
+        "sha": "b837bf132b9d05765c5deed5b30935f562abba86"
+      }
+    },
+    {
+      "name": "obsidian",
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/kepano/obsidian-skills.git",
+        "sha": "a1dc48e68138490d522c04cbf5822214c6eb1202"
+      }
+    },
+    {
+      "name": "warp",
+      "category": "monitoring",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/warpdotdev/claude-code-warp.git",
+        "path": "plugins/warp",
+        "ref": "main",
+        "sha": "e0e18e162aa5ec97a6d4cecdf66b08b75eb1e149"
+      }
     }
   ]
 }

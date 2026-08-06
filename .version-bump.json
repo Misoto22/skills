@@ -1,6 +1,10 @@
 {
   "json": [
     {
+      "path": "bundle/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
       "path": "plugins/writing/.claude-plugin/plugin.json",
       "field": "version"
     },

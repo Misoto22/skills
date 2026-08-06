@@ -62,6 +62,7 @@ def main() -> int:
     _drop_dangling_hand_offs(args.skill, touched)
     if retires_plugin:
         _unregister_marketplace(args.plugin, touched)
+        _unregister_bundle(args.plugin, touched)
     else:
         _unregister_plugin_manifest(plugin_root, args.skill, touched)
         _unregister_plugin_readme(plugin_root / "skills" / "README.md", args.skill, touched)
@@ -158,6 +159,19 @@ def _unregister_marketplace(plugin: str, touched: list[str]) -> None:
     path = ROOT / ".claude-plugin" / "marketplace.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest["plugins"] = [entry for entry in manifest["plugins"] if entry["name"] != plugin]
+    path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    touched.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _unregister_bundle(plugin: str, touched: list[str]) -> None:
+    """A retired plugin left in the bundle makes the one-command install fail."""
+
+    path = ROOT / "bundle" / ".claude-plugin" / "plugin.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    entry = f"{plugin}@misoto22"
+    if entry not in manifest["dependencies"]:
+        return
+    manifest["dependencies"] = [name for name in manifest["dependencies"] if name != entry]
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 

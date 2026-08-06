@@ -52,23 +52,24 @@ Six skills in three plugins. The plugin name is the command prefix, and each plu
 
 ```bash
 claude plugin marketplace add Misoto22/skills
-claude plugin install writing@misoto22
-claude plugin install docs@misoto22
-claude plugin install dev@misoto22
+claude plugin install all@misoto22
 ```
+
+`all` carries no skills. It depends on the three plugins above and the five [bookmarks](#bookmarks) below, so one command installs all eight. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
-> installer actually produces rather than against this repository.
+> installer actually produces rather than against this repository. What CI does
+> not install is the bookmarks: they are other people's repositories, and a
+> forced push in one of them is not this repository's build to fail. The list
+> `all` depends on is checked against the marketplace on every run.
 
 <details>
 <summary><b>Codex</b> — reads the same marketplace manifest</summary>
 
 ```bash
 codex plugin marketplace add https://github.com/Misoto22/skills
-codex plugin add writing@misoto22
-codex plugin add docs@misoto22
-codex plugin add dev@misoto22
+codex plugin add all@misoto22
 ```
 
 </details>
@@ -127,6 +128,42 @@ The rest index Agent Skills repositories at large. None of them carry this one �
 - [Claude Skills Hub](https://claudeskills.info/) — community submissions, reviewed by hand.
 - [OpenAgentSkill](https://www.openagentskill.com/) — attaches risk signals and a fit score to each skill.
 - [SkillsMP](https://skillsmp.com/) — aggregates GitHub, and answers a public search API at `/api/v1/skills/search`.
+
+---
+
+### Bookmarks
+
+Five more plugins install from this marketplace, and none of them is mine. Nothing is vendored: each entry points at its owner's repository, pinned to one commit, and installs from there. `all@misoto22` above pulls in every one of them; these are the names to use when you want a single one.
+
+```bash
+claude plugin install obsidian@misoto22
+```
+
+The headings are the `category` each entry declares, so `/plugin` groups them the same way while browsing. The vocabulary is Anthropic's, which sorts these alongside every other marketplace rather than into a category of one.
+
+#### `development`
+
+- **[codex](https://github.com/openai/codex-plugin-cc)** (`codex@misoto22`) — hands a stuck task or a second review pass to Codex without leaving Claude Code.
+- **[everything-claude-code](https://github.com/affaan-m/everything-claude-code)** (`everything-claude-code@misoto22`) — one very large plugin: agents, skills, and legacy command shims collected in bulk.
+
+#### `productivity`
+
+- **[i-have-adhd](https://github.com/ayghri/i-have-adhd)** (`i-have-adhd@misoto22`) — shapes every reply to lead with the next action instead of the preamble.
+- **[obsidian](https://github.com/kepano/obsidian-skills)** (`obsidian@misoto22`) — an Obsidian vault from the command line, including Bases, Canvas, and plugin debugging.
+
+#### `monitoring`
+
+- **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
+
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the six skills above.
+
+> [!NOTE]
+> The pinned commit is the point. A bookmark tracking a branch would install
+> whatever its repository holds at install time, so upstream — or anyone who
+> takes it over — could change what these commands install without touching
+> this repository. Moving a bookmark forward is an edit to `sha` here, reviewed
+> like any other. Nothing in `plugins/` is affected, and neither is CI: the
+> install workflow derives its list from the tree on disk.
 
 ---
 
