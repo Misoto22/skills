@@ -54,6 +54,18 @@ Copy this, fill the placeholders, delete the sections the project has not earned
 
 ### Project Structure
 
+<!-- A diagram earns its place only where a relationship is the point — a request
+     path, a build pipeline, a dependency direction. A tree of folders is not a
+     relationship; if that is all you have, keep the tree and delete this. -->
+
+```mermaid
+flowchart LR
+  A["[thing]"] --> B["[thing it feeds]"] & C["[thing it feeds]"]
+```
+
+<details>
+<summary>The directories behind that</summary>
+
 ```
 src/
 ├── [dir]/                  [what lives here]
@@ -61,6 +73,8 @@ src/
 └── [dir]/                  [what lives here]
 [top-level dir]/            [what lives here]
 ```
+
+</details>
 
 ---
 
@@ -75,6 +89,23 @@ cp .env.example .env        # fill in credentials
 ```
 
 **Prerequisites** — [runtime version], [package manager version], [task runner]
+
+<!-- One path inline, every alternate folded. A reader takes their own and never
+     scrolls the rest. Drop this when there is only one way in. -->
+
+<details>
+<summary><b>[Other platform, package manager, or install route]</b></summary>
+
+```bash
+[commands for that route]
+```
+
+</details>
+
+> [!NOTE]
+> [The one thing a reader gets wrong if nobody tells them — a default that is not
+> what they expect, a prerequisite that is not obvious, a step that is not
+> reversible. One alert per page; a second one costs the first its weight.]
 
 **Common tasks** — `just` (or `just help`) lists everything
 

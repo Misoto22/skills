@@ -28,7 +28,9 @@ A placeholder belongs in prose, never inside an attribute that renders. `src="[h
 
 ## Canonical shape
 
-Follow this order. Sections that do not apply are dropped, never reordered or renamed.
+Follow this order. Sections that do not apply are dropped, and the order does not change.
+
+A heading may take the word the project's own readers scan for, as long as it keeps its slot and its job: a library's Features may be Skills or Commands, and Getting Started is Install for something you distribute rather than clone. Renaming to sound different is churn; renaming to match the artefact is the point.
 
 ```
 # <Project Name>
