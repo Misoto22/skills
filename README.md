@@ -96,6 +96,13 @@ Narrow it with `--skill email --agent cursor`.
 
 Marketplace sync is an organization feature, so on a personal plan these two take a file. Download the `.skill` archives from the [latest release](https://github.com/Misoto22/skills/releases/latest) and upload them in the skills UI.
 
+Every release also carries `SHA256SUMS` and a signed build attestation, since this route is a download rather than a sync:
+
+```bash
+sha256sum -c SHA256SUMS
+gh attestation verify email.skill --repo Misoto22/skills
+```
+
 </details>
 
 <details>
