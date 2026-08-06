@@ -17,6 +17,7 @@
 - Keep all code identifiers, comments, documentation, and commit messages in English.
 - Explore existing skills and tests before changing behavior.
 - Every published skill requires `SKILL.md`, `agents/openai.yaml`, a registry entry in both READMEs, tests, and matching plugin metadata.
+- A description is held to `scripts/check-descriptions.py`, not to taste: one line, 120 to 1024 characters, no scaffold placeholder, an explicit statement of what the skill is not for, and no run of more than seven consecutive words shared with another description. `--report` prints the lengths and the overlap table.
 - Cross-cutting writing rules belong in `shared/`, not in two SKILL.md files. What goes there is concrete and executable — specific rules, banned constructions, worked before/after pairs. Abstract exhortations belong nowhere.
 - Preserve organization neutrality: no personal identity, company domain, credentials, local absolute path, or provider-specific transport assumption in runtime content, including `shared/`.
 - Default ambiguous or incomplete outbound email intent to draft. Never weaken send authorization, disclosure, artifact-integrity, or readback gates — those live in the email skill and must not be relocated to `shared/`.

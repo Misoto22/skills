@@ -230,6 +230,49 @@ class RepositoryContractTests(unittest.TestCase):
         for permission in ("id-token: write", "attestations: write"):
             self.assertIn(permission, workflow)
 
+    def test_every_description_meets_the_rules_contributing_states(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "scripts/check-descriptions.py"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_description_rules_reject_what_they_are_written_to_reject(self) -> None:
+        """Each rule is checked on its own, so a passing suite means all four hold."""
+
+        skill_file = SKILLS / "email" / "SKILL.md"
+        original = skill_file.read_text(encoding="utf-8")
+        current = next(line for line in original.splitlines() if line.startswith("description:"))
+        tempering = next(
+            line
+            for line in (SKILLS / "tempering" / "SKILL.md").read_text(encoding="utf-8").splitlines()
+            if line.startswith("description:")
+        )
+        cases = {
+            "placeholder": ("description: PLACEHOLDER, " + "rewrite this line. " * 8 + "Not for anything.",),
+            "over 1024": ("description: " + "words to overflow the ceiling. " * 40 + "Not for anything.",),
+            "under 120": ("description: Short. Not for much.",),
+            "not for": (current.split(" Not for ")[0],),
+            "consecutive words": (tempering,),
+        }
+        try:
+            for expected, (replacement,) in cases.items():
+                skill_file.write_text(original.replace(current, replacement, 1), encoding="utf-8")
+                result = subprocess.run(
+                    [sys.executable, "scripts/check-descriptions.py"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, expected)
+                self.assertIn(expected, result.stderr, f"{expected} was not the rule that fired")
+        finally:
+            skill_file.write_text(original, encoding="utf-8")
+
     def test_canary_runs_the_install_routes_against_the_latest_clis(self) -> None:
         """A pinned route never fails on upstream drift, so Install alone cannot find it."""
 
@@ -499,8 +542,8 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(run("bad-version").returncode, 0)
 
-    def test_new_skill_scaffold_passes_the_validator_as_written(self) -> None:
-        """A scaffold nobody has edited must already satisfy every registry check."""
+    def test_new_skill_scaffold_leaves_only_the_description_to_write(self) -> None:
+        """The scaffold owes the registries nothing, and owes the description everything."""
 
         touched = [
             ".claude-plugin/marketplace.json",
@@ -528,7 +571,14 @@ class RepositoryContractTests(unittest.TestCase):
                 text=True,
                 check=False,
             )
-            self.assertEqual(validated.returncode, 0, validated.stderr)
+            # Every registry check passes; the placeholder description is the
+            # only thing left, which is exactly what new-skill.py tells you.
+            self.assertNotEqual(validated.returncode, 0, validated.stdout)
+            reported = [line for line in validated.stderr.splitlines() if line.startswith("error:")]
+            self.assertTrue(reported, validated.stderr)
+            for line in reported:
+                self.assertIn("scaffoldtest/skills/probe/SKILL.md", line)
+                self.assertIn("placeholder", line.lower())
             self.assertTrue((scaffolded / "skills" / "probe" / "agents" / "openai.yaml").is_file())
         finally:
             shutil.rmtree(scaffolded, ignore_errors=True)
