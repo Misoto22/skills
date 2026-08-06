@@ -2,6 +2,13 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- Added the `dev` plugin and its `ship` skill (`/dev:ship`), which lands the current changes as a merged pull request: preflight, branch, test, commit, PR, CI, merge, worktree cleanup. A clean tree on the base branch exits without doing anything, and any step that fails twice stops and asks.
+- `ship` gained three things over the version it was imported from: a secrets gate before staging, since shipping is the last step before a change becomes public and a pushed credential is compromised even after a force-push; merge-strategy detection from what the repository allows and how many commits the branch carries, rather than always squashing; and `--dry-run`, which prints the execution plan and stops.
+- `new-skill.py` now also registers the new skill in `.version-bump.json` — a new `SKILL.md` carries a version, and the scaffolder was leaving it undeclared for the audit to catch later.
+- The repository contract tests assert that the marketplace, the plugin manifests, the READMEs, and the skills on disk agree, instead of restating a frozen list of plugins that every scaffold had to edit.
+
 ## 0.5.0 — 2026-08-06
 
 - Gave the README a committed SVG hero served per theme through `<picture>`, replacing a `src="[hero image URL]"` placeholder that rendered as a broken icon. Install routes fold into `<details>`, the plugin structure is a `mermaid` graph with the directory tree behind it, and three alerts carry the constraints a reader would otherwise miss.

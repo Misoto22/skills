@@ -1,9 +1,20 @@
 {
   "json": [
-    { "path": "plugins/writing/.claude-plugin/plugin.json", "field": "version" },
-    { "path": "plugins/docs/.claude-plugin/plugin.json", "field": "version" }
+    {
+      "path": "plugins/writing/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/docs/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/dev/.claude-plugin/plugin.json",
+      "field": "version"
+    }
   ],
   "text": [
+    "plugins/dev/skills/ship/SKILL.md",
     "plugins/writing/skills/email/SKILL.md",
     "plugins/writing/skills/tempering/SKILL.md",
     "plugins/docs/skills/readme/SKILL.md",

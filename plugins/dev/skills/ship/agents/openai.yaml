@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ship"
+  short_description: "Branch, test, commit, PR, wait for CI, merge"
+  default_prompt: "Use $ship to land the current changes as a merged pull request; print the plan first, and stop rather than guess if any step fails twice."
+policy:
+  allow_implicit_invocation: true
