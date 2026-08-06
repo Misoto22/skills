@@ -125,7 +125,7 @@ not something you wrote.
 >     └── data/               Domain-split fetchers + Db→Frontend mappers
 > ```
 
-**Getting Started.** One fenced block a reader can paste end to end, in the order they would run it. Document the shortest command that works, not the one you run in CI: flags that suppress prompts (`--yes`, `-y`, `--all`) exist for automation, and pasting them into a README hands every reader a silent install instead of the tool's own interactive one. Put the scripted form after it, for the readers who want it. Then a bold **Prerequisites** line with exact minimum versions. Then the task runner's own commands, in a plain fence with aligned descriptions — not a bulleted list.
+**Getting Started.** One fenced block a reader can paste end to end, in the order they would run it. Document the shortest command that works, not the one you run in CI: flags that suppress prompts (`--yes`, `-y`, `--all`) exist for automation, and pasting them into a README hands every reader a silent install instead of the tool's own interactive one. Give the scripted form straight after, written out as its own block rather than described as a list of flags — a reader in CI needs to paste it, and a sentence naming three flags is not something anyone can paste. Then a bold **Prerequisites** line with exact minimum versions. Then the task runner's own commands, in a plain fence with aligned descriptions — not a bulleted list.
 
 **Deployment.** What triggers it, what it produces, where it lands, and a link to the full runbook. Never inline the runbook.
 

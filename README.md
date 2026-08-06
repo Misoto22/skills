@@ -85,7 +85,13 @@ npx skills add Misoto22/skills
 
 Asks which skills, which agents, project or global, and symlink or copy. Symlinked installs track this repository; copies do not, so rerun the command to update one.
 
-To skip the questions — in CI, or when you already know — name them: `--skill email --agent cursor`, or `--agent '*' --skill '*' --yes` for everything.
+To skip the questions — in CI, or when you already know — pin the version and answer them as flags:
+
+```bash
+npx --yes skills@1.5.22 add Misoto22/skills --agent '*' --skill '*'
+```
+
+That takes every skill into every agent directory on the machine, with no prompts. Narrow it with `--skill email --agent cursor`.
 
 </details>
 
