@@ -135,11 +135,11 @@ def main() -> int:
             PLUGIN_README_TEMPLATE.format(skill=args.skill),
             created,
         )
-        _register_marketplace(args.plugin, created)
     else:
         _add_to_plugin_manifest(plugin_manifest, args.skill, created)
         _add_to_plugin_readme(skill_dir.parent / "README.md", args.skill, created)
 
+    _register_marketplace(args.plugin, args.skill, created)
     _register_published(args.plugin, args.skill, created)
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
@@ -199,12 +199,19 @@ def _add_to_plugin_readme(path: Path, skill: str, created: list[str]) -> None:
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
-def _register_marketplace(plugin: str, created: list[str]) -> None:
+def _register_marketplace(plugin: str, skill: str, created: list[str]) -> None:
     path = ROOT / ".claude-plugin" / "marketplace.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    if any(entry["name"] == plugin for entry in manifest["plugins"]):
+    entry = f"./skills/{skill}"
+    registered = next((item for item in manifest["plugins"] if item["name"] == plugin), None)
+    if registered is None:
+        # Full path from the repository root: metadata carries no pluginRoot,
+        # because the two installers disagree on what it means.
+        manifest["plugins"].append({"name": plugin, "source": f"./plugins/{plugin}", "skills": [entry]})
+    elif entry in registered["skills"]:
         return
-    manifest["plugins"].append({"name": plugin, "source": f"./plugins/{plugin}"})
+    else:
+        registered["skills"] = sorted([*registered["skills"], entry])
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
