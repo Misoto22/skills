@@ -3,7 +3,7 @@ name: tempering
 description: Rewrites blunt, sarcastic, or impatient workplace messages into professional ones that retain the underlying request, offering three registers from collegial to formally documented. Use when a draft is addressed to a colleague, manager, client, vendor, or cross-team counterpart and carries visible frustration — sarcasm, blame, exasperation, ultimatums, or lines such as "are you serious", "脑子有问题", "到底做不做", "有没有一个准信". Trigger on requests to make a message professional, soften it, tone it down, check whether it is too harsh, or work out how to say something without damaging the relationship, including 润色一下, 帮我改得客气点, 这样发出去会不会太冲, 怎么说才不得罪人. Also handles the reverse direction — plain-language interpretation of corporate phrasing when asked what a message actually means, 说人话, or decode this. Not for marketing copy, resumes, blog posts, or grammar cleanup without interpersonal stakes.
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # Tempering

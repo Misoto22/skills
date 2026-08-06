@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented here.
 
+## 0.5.0 — 2026-08-06
+
+- Gave the README a committed SVG hero served per theme through `<picture>`, replacing a `src="[hero image URL]"` placeholder that rendered as a broken icon. Install routes fold into `<details>`, the plugin structure is a `mermaid` graph with the directory tree behind it, and three alerts carry the constraints a reader would otherwise miss.
+- The `readme` skill now looks at the rendered page. Audit mode opens with whether the first screen renders, and a new section covers what to check there — including that rendered length is not source length, and that a leftover `<pre lang="mermaid">` is GitHub's hidden fallback rather than a failed diagram.
+- `references/skeleton.md` ships the native components it argues for: `<details>` for alternate install routes, one alert, and a diagram slot, each with a comment saying when to delete it. The hero placeholder is gone entirely — the block is commented out with working two-theme markup inside.
+- A heading may now take the word a project's own readers scan for, as long as it keeps its slot and its job. The order still does not change.
+- The documented `npx skills` command no longer carries `--yes --agent '*' --skill '*'`. Those flags are for CI, and pasting them into a README hands every reader a silent install instead of the CLI's own interactive one; the scripted form is written out beside it. The CI pin moves to `skills@1.5.22`.
+
 ## 0.4.0 — 2026-08-06
 
 - Added linting: `ruff.toml` selects the rules that catch real defects on a standard-library-only codebase, and CI runs `ruff check`, `ruff format --check`, and `shellcheck`. The first run found 47 findings, including five `subprocess.run` calls whose exit status was inspected but never declared with `check=`.
