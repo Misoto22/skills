@@ -257,6 +257,53 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(run("bad-version").returncode, 0)
 
+    def test_new_skill_scaffold_passes_the_validator_as_written(self) -> None:
+        """A scaffold nobody has edited must already satisfy every registry check."""
+
+        touched = [
+            ".claude-plugin/marketplace.json",
+            "scripts/validate-repository.py",
+            ".github/workflows/install.yml",
+            "README.md",
+        ]
+        before = {path: (ROOT / path).read_bytes() for path in touched}
+        scaffolded = ROOT / "plugins" / "scaffoldtest"
+        try:
+            created = subprocess.run(
+                [sys.executable, "scripts/new-skill.py", "scaffoldtest", "probe"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(created.returncode, 0, created.stderr)
+
+            validated = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(validated.returncode, 0, validated.stderr)
+            self.assertTrue((scaffolded / "skills" / "probe" / "agents" / "openai.yaml").is_file())
+        finally:
+            shutil.rmtree(scaffolded, ignore_errors=True)
+            for path, content in before.items():
+                (ROOT / path).write_bytes(content)
+
+    def test_new_skill_rejects_names_the_marketplace_sync_would_reject(self) -> None:
+        for name in ("Writing", "my_skill", "1skill"):
+            result = subprocess.run(
+                [sys.executable, "scripts/new-skill.py", "writing", name],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0, name)
+            self.assertIn("kebab-case", result.stderr)
+
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(
             [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
