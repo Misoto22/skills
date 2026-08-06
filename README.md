@@ -2,11 +2,12 @@
 
 <div align="center">
 
-<img alt="skills" src="[hero image URL]" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
+</picture>
 
 <br />
-
-**Agent skills, one marketplace**
 
 Personal skills for Claude Code, Codex, and every agent that reads the Agent Skills format — self-contained once installed, on all four routes.
 
@@ -52,24 +53,20 @@ No package manager, no lockfile, no build step. `python3` and `bash` are the who
 
 ### Install
 
-Pick the row that matches your agent. CI exercises all four routes on every push, against the tree the installer actually produces.
-
-| Agent | Route |
-|:--|:--|
-| Claude Code | plugin marketplace |
-| Codex | plugin marketplace |
-| Cursor · Windsurf · opencode · Roo · Kilo Code · Qwen · iFlow · Trae · Junie · Continue · Goose · Crush · ~40 more | `npx skills` |
-| claude.ai · Cowork | `.skill` upload |
-
-**Claude Code** — install only the plugins you want; each is independent.
-
 ```bash
 claude plugin marketplace add Misoto22/skills
 claude plugin install writing@misoto22
 claude plugin install docs@misoto22
 ```
 
-**Codex** — reads the same marketplace manifest.
+Each plugin installs independently — take only the subjects you want.
+
+> [!NOTE]
+> All four routes below are exercised by CI on every push, against the tree the
+> installer actually produces rather than against this repository.
+
+<details>
+<summary><b>Codex</b> — reads the same marketplace manifest</summary>
 
 ```bash
 codex plugin marketplace add https://github.com/Misoto22/skills
@@ -77,21 +74,58 @@ codex plugin add writing@misoto22
 codex plugin add docs@misoto22
 ```
 
-**Everything else** — one command installs into all 55 agent directories present on the machine. Name one instead with `--agent cursor`, or drop the flag to be prompted.
+</details>
+
+<details>
+<summary><b>Cursor, Windsurf, opencode, and ~50 more</b> — one command for all of them</summary>
+
+Installs into every agent directory present on the machine: Cursor · Windsurf · opencode · Roo · Kilo Code · Qwen · iFlow · Trae · Junie · Continue · Goose · Crush, and about forty others.
 
 ```bash
 npx --yes skills@1.5.20 add Misoto22/skills --agent '*' --skill '*'
 ```
 
-That is a copy, not a link: rerun the command to update.
+Name one instead with `--agent cursor`, or drop the flag to be prompted. This is a copy, not a link: rerun the command to update.
 
-**claude.ai and Cowork** — marketplace sync is an organization feature, so on a personal plan these two take a file. Download the `.skill` archives from the [latest release](https://github.com/Misoto22/skills/releases/latest) and upload them.
+</details>
 
-From a local clone, substitute the path for `Misoto22/skills` in any command above. Maintainers who want editable installs rather than copies can run `bash scripts/link-skills.sh` — it links published skill directories only, never overwrites a real file or directory, and stops on conflicts.
+<details>
+<summary><b>claude.ai and Cowork</b> — upload a <code>.skill</code> file</summary>
+
+Marketplace sync is an organization feature, so on a personal plan these two take a file. Download the `.skill` archives from the [latest release](https://github.com/Misoto22/skills/releases/latest) and upload them in the skills UI.
+
+</details>
+
+<details>
+<summary><b>From a local clone</b>, or as editable links</summary>
+
+Substitute the clone's path for `Misoto22/skills` in any command above.
+
+Maintainers who want editable installs rather than copies can run `bash scripts/link-skills.sh` — it links published skill directories only, never overwrites a real file or directory, and stops on conflicts.
+
+</details>
 
 ---
 
 ### Project Structure
+
+```mermaid
+flowchart LR
+  M["misoto22<br/>marketplace"] --> W["writing<br/>plugin"] & D["docs<br/>plugin"]
+  W --> E["/writing:email"] & T["/writing:tempering"]
+  D --> R["/docs:readme"]
+  S(["shared/<br/>tone · format"]) -.vendored into.-> E & T
+
+  classDef m fill:#0969da,stroke:#0969da,color:#fff
+  classDef p fill:#1f883d,stroke:#1f883d,color:#fff
+  classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
+  class M m
+  class W,D p
+  class E,T,R,S s
+```
+
+<details>
+<summary>The directories behind that</summary>
 
 ```
 .claude-plugin/marketplace.json   Marketplace: misoto22
@@ -107,11 +141,17 @@ evals/                            Adversarial cases for the email skill's send g
 docs/                             Email configuration guide, design records
 ```
 
+</details>
+
 ---
 
 ### Self-contained after install
 
-Every installer copies a plugin — or, on most agents, a single skill directory — and nothing above it. A reference that climbs out with `../` resolves in this repository and dangles everywhere else, and only Claude Code expands `${CLAUDE_*}`. Both forms are rejected in published skill content.
+> [!IMPORTANT]
+> Every installer copies a plugin — or, on most agents, a single skill directory —
+> and nothing above it. A reference that climbs out with `../` resolves in this
+> repository and dangles everywhere else, and only Claude Code expands
+> `${CLAUDE_*}`. Both forms are rejected in published skill content.
 
 `plugins/writing/shared/` is the only copy anyone edits. `scripts/sync-shared.py` vendors it into each `skills/<skill>/shared/`, those copies are committed so a plain clone installs correctly, and the validator, the packager, and CI all fail on drift.
 
@@ -160,7 +200,12 @@ Bump the version in both `plugin.json` files, all three `SKILL.md` frontmatters,
 
 ### Documentation
 
-[docs/email.md](docs/email.md) covers configuring the email skill: copy [`policy.example.json`](plugins/writing/skills/email/policy.example.json) to `.agents/email-policy.json` and replace the reserved example identity. [CHANGELOG.md](CHANGELOG.md) records every release, and design records live in [`docs/superpowers/`](docs/superpowers/).
+[docs/email.md](docs/email.md) covers configuring the email skill: copy [`policy.example.json`](plugins/writing/skills/email/policy.example.json) to `.agents/email-policy.json` and replace the reserved example identity.
+
+> [!TIP]
+> Draft is always the default. Automated send stays off until a narrow local scope
+> is configured explicitly, and a send is only reported successful after the Sent
+> message has been read back and compared. [CHANGELOG.md](CHANGELOG.md) records every release, and design records live in [`docs/superpowers/`](docs/superpowers/).
 
 ---
 

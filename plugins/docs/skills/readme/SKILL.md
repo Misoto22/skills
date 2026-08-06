@@ -22,7 +22,9 @@ Never describe a project from its name. Every claim in the output must come from
 | Features | routes, entry points, CI workflow names — not the previous README |
 | Deployment | `.github/workflows/`, `compose.yaml`, `Dockerfile` |
 
-Where a fact is unavailable, leave a bracketed placeholder — `[hero image URL]`, `[Node.js 24+]` — for the author to complete. An invented version number is worse than a blank.
+Where a fact is unavailable, leave a bracketed placeholder — `[Node.js 24+]`, `[Module A]` — for the author to complete. An invented version number is worse than a blank.
+
+A placeholder belongs in prose, never inside an attribute that renders. `src="[hero image URL]"` does not read as a note to the author; it renders as a broken-image icon, as the first thing on the page. When an asset does not exist, drop the element.
 
 ## Canonical shape
 
@@ -69,6 +71,17 @@ Follow this order. Sections that do not apply are dropped, never reordered or re
 ```
 
 `---` separates every section. Headings are `###`, never `##` — the `#` title is the only thing above them. See [skeleton.md](references/skeleton.md) for the full copy-pasteable version.
+
+## Use what GitHub renders natively
+
+GitHub strips CSS and JavaScript, so the page has four levers and no others.
+
+- **A hero image is the only real design surface.** Commit it to the repository rather than hotlinking, and serve both themes with `<picture>` + `(prefers-color-scheme: dark)`. An SVG stays sharp and diffs as text.
+- **Alerts** — `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]` — render with an icon and a coloured rule. Use one for the constraint a reader would otherwise miss, not for emphasis; three alerts on a page means none of them signals anything.
+- **`<details>`** collapses a section that only some readers need. Install routes, one per agent, are the usual case: the reader takes their own and never scrolls the rest.
+- **`mermaid` fences** render as diagrams. Use one where a relationship is the point — a tree of directories is not; marketplace to plugin to command is. Keep node labels to `<br/>`, since GitHub disables HTML labels and anything else prints literally.
+
+Cap the page at two screens of scrolling before the first `<details>`. Long tables wrap badly at GitHub's content width — keep any row under about 90 characters, and if it will not fit, it was prose.
 
 ## Section rules
 

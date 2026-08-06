@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
@@ -325,6 +326,26 @@ class RepositoryContractTests(unittest.TestCase):
 
         dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
         self.assertIn("package-ecosystem: github-actions", dependabot)
+
+    def test_readme_renders_no_broken_images(self) -> None:
+        """A placeholder inside src= is not a note to the author; it is a broken icon."""
+
+        import re
+
+        readme = README_PATH.read_text(encoding="utf-8")
+        for attribute in re.findall(r'(?:src|srcset)="([^"]+)"', readme):
+            self.assertNotIn("[", attribute, f"placeholder left in an attribute: {attribute}")
+            if attribute.startswith("http"):
+                continue
+            self.assertTrue((ROOT / attribute).is_file(), f"{attribute} is not committed")
+
+    def test_hero_serves_both_themes(self) -> None:
+        readme = README_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("(prefers-color-scheme: dark)", readme)
+        for variant in ("assets/hero-dark.svg", "assets/hero-light.svg"):
+            self.assertTrue((ROOT / variant).is_file(), variant)
+            ET.parse(ROOT / variant)
 
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 290" width="880" height="290" role="img" aria-label="skills — install writing@misoto22 and docs@misoto22 to get /writing:email, /writing:tempering and /docs:readme">
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 15px; }
+    .prompt { fill: #3fb950; }
+    .cmd    { fill: #e6edf3; }
+    .skill  { fill: #79c0ff; }
+    .dim    { fill: #8b949e; }
+  </style>
+
+  <rect x="0.5" y="0.5" width="879" height="289" rx="12" fill="#0d1117" stroke="#30363d"/>
+  <path d="M0.5 12.5a12 12 0 0 1 12-12h855a12 12 0 0 1 12 12V44H0.5z" fill="#161b22"/>
+  <line x1="0.5" y1="44.5" x2="879.5" y2="44.5" stroke="#30363d"/>
+
+  <circle cx="28" cy="22" r="6" fill="#ff5f57"/>
+  <circle cx="50" cy="22" r="6" fill="#febc2e"/>
+  <circle cx="72" cy="22" r="6" fill="#28c840"/>
+  <text class="mono dim" x="96" y="27">misoto22/skills</text>
+
+  <text class="mono prompt" x="36" y="92">$</text>
+  <text class="mono cmd"    x="56" y="92">claude plugin install writing@misoto22</text>
+
+  <text class="mono prompt" x="36" y="120">$</text>
+  <text class="mono cmd"    x="56" y="120">claude plugin install docs@misoto22</text>
+
+  <text class="mono skill" x="56"  y="172">/writing:email</text>
+  <text class="mono dim"   x="300" y="172">policy-aware drafts, verified sends</text>
+
+  <text class="mono skill" x="56"  y="200">/writing:tempering</text>
+  <text class="mono dim"   x="300" y="200">three registers, the request left intact</text>
+
+  <text class="mono skill" x="56"  y="228">/docs:readme</text>
+  <text class="mono dim"   x="300" y="228">a README from what the repo says</text>
+
+  <rect x="36" y="252" width="9" height="18" fill="#3fb950"/>
+</svg>
