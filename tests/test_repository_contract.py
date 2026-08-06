@@ -275,6 +275,7 @@ class RepositoryContractTests(unittest.TestCase):
             "scripts/validate-repository.py",
             ".github/workflows/install.yml",
             ".version-bump.json",
+            "skills.sh.json",
             "README.md",
         ]
         before = {path: (ROOT / path).read_bytes() for path in touched}
@@ -388,6 +389,23 @@ class RepositoryContractTests(unittest.TestCase):
         for variant in ("assets/hero-dark.svg", "assets/hero-light.svg"):
             self.assertTrue((ROOT / variant).is_file(), variant)
             ET.parse(ROOT / variant)
+
+    def test_skills_sh_groupings_match_the_published_skills(self) -> None:
+        """skills.sh renders this file, so nothing here fails until a user sees it."""
+
+        config = json.loads((ROOT / "skills.sh.json").read_text(encoding="utf-8"))
+        grouped = [skill for group in config["groupings"] for skill in group["skills"]]
+        published = {path.parent.name for path in PLUGINS.glob("*/skills/*/SKILL.md")}
+
+        self.assertEqual(sorted(grouped), sorted(published))
+        self.assertEqual(len(grouped), len(set(grouped)), "a skill appears in two groups")
+
+        titles = [group["title"] for group in config["groupings"]]
+        plugins = {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
+        self.assertEqual(set(titles), plugins, "groups should mirror the plugins")
+
+        for group in config["groupings"]:
+            self.assertTrue(group.get("description", "").strip(), group["title"])
 
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(

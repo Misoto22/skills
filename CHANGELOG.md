@@ -8,6 +8,11 @@ All notable changes to this repository are documented here.
 - Fixed fourteen stale claims that had accumulated since 0.4.0 — "three skills across two plugins", two wrong test counts, an install block missing `dev@misoto22`, and a structure diagram and directory tree with no `dev` in them.
 - `README.md` no longer declares a version, so it comes out of `.version-bump.json`. The round-trip test caught that: it asserts every declared file changes when the version moves, which is how a file that has stopped carrying one gets noticed.
 
+## Unreleased
+
+- Added `skills.sh.json`, which groups the six skills by the plugin that ships them on the [skills.sh](https://www.skills.sh/Misoto22/skills) directory page instead of listing them flat. Nothing in this repository renders that file, so a test asserts the groups mirror the plugins and cover every published skill exactly once — otherwise a drift is only visible to a user.
+- `new-skill.py` registers the new skill there too, creating the group when the plugin is new. That is the seventh registration point it covers.
+
 ## 0.7.0 — 2026-08-06
 
 - Added `/dev:sync`, which fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards: a diverged branch is reported, never rebased, because choosing between rebase, merge, and reset is the user's call and guessing it destroys work. On a feature branch it advances the base with `git fetch origin <base>:<base>`, which never touches the working tree.

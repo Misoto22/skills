@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Scaffold a skill, and register it everywhere the validator will look.
 
-Adding a skill by hand means editing six places — PUBLISHED in the validator,
+Adding a skill by hand means editing seven places — PUBLISHED in the validator,
 marketplace.json if the plugin is new, the plugin manifest, both READMEs, the
-install workflow's --expect list, and .version-bump.json. The validator catches
+install workflow's --expect list, .version-bump.json, and skills.sh.json. The validator catches
 a missed one, but catching is not the same as doing.
 
   python3 scripts/new-skill.py writing outline    Add a skill to an existing plugin
@@ -140,6 +140,7 @@ def main() -> int:
     _register_workflow(args.plugin, args.skill, new_plugin, created)
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
+    _register_skills_sh(args.plugin, args.skill, created)
 
     for path in created:
         print(f"  {path}")
@@ -227,6 +228,25 @@ def _register_root_readme(plugin: str, skill: str, created: list[str]) -> None:
     )
     lines.insert(last + 1, bullet)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _register_skills_sh(plugin: str, skill: str, created: list[str]) -> None:
+    """skills.sh renders this file, so an unlisted skill is only visible to users."""
+
+    path = ROOT / "skills.sh.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    group = next((g for g in config["groupings"] if g["title"] == plugin), None)
+    if group is None:
+        group = {
+            "title": plugin,
+            "description": f"PLACEHOLDER — what {plugin} skills are for, in one sentence.",
+            "skills": [],
+        }
+        config["groupings"].append(group)
+    if skill not in group["skills"]:
+        group["skills"].append(skill)
+    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
