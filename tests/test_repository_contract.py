@@ -12,8 +12,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLUGIN = ROOT / "plugins" / "writing"
+PLUGINS = ROOT / "plugins"
+PLUGIN = PLUGINS / "writing"
 SKILLS = PLUGIN / "skills"
+DOCS_PLUGIN = PLUGINS / "docs"
 README_PATH = ROOT / "README.md"
 SKILLS_README_PATH = SKILLS / "README.md"
 PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
@@ -34,19 +36,37 @@ class RepositoryContractTests(unittest.TestCase):
         marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
         self.assertEqual(marketplace["name"], "misoto22")
-        self.assertEqual(marketplace["plugins"][0]["name"], "writing")
-        self.assertEqual(marketplace["plugins"][0]["source"], "./plugins/writing")
         self.assertEqual(marketplace["metadata"]["pluginRoot"], "./plugins")
+        self.assertEqual(
+            {entry["name"]: entry["source"] for entry in marketplace["plugins"]},
+            {"writing": "./plugins/writing", "docs": "./plugins/docs"},
+        )
 
     def test_every_published_skill_is_registered(self) -> None:
-        names = sorted(path.parent.name for path in SKILLS.glob("*/SKILL.md"))
-        self.assertEqual(names, ["email", "tempering"])
-
+        published = {"writing": ["email", "tempering"], "docs": ["readme"]}
         root_readme = README_PATH.read_text(encoding="utf-8")
-        skills_readme = SKILLS_README_PATH.read_text(encoding="utf-8")
-        for name in names:
-            self.assertIn(f"plugins/writing/skills/{name}/SKILL.md", root_readme)
-            self.assertIn(f"{name}/SKILL.md", skills_readme)
+
+        found = sorted(path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json"))
+        self.assertEqual(found, sorted(published))
+
+        for plugin, expected in published.items():
+            skills = PLUGINS / plugin / "skills"
+            names = sorted(path.parent.name for path in skills.glob("*/SKILL.md"))
+            self.assertEqual(names, expected)
+
+            skills_readme = (skills / "README.md").read_text(encoding="utf-8")
+            for name in names:
+                self.assertIn(f"plugins/{plugin}/skills/{name}/SKILL.md", root_readme)
+                self.assertIn(f"{name}/SKILL.md", skills_readme)
+                self.assertIn(f"/{plugin}:{name}`", root_readme)
+
+    def test_docs_plugin_declares_the_readme_skill(self) -> None:
+        plugin = json.loads((DOCS_PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(plugin["name"], "docs")
+        self.assertEqual(plugin["skills"], ["./skills/readme"])
+        self.assertEqual(plugin["version"], "0.2.0")
+        self.assertFalse((DOCS_PLUGIN / "shared").exists(), "docs has one skill and needs no shared/")
 
     def test_link_script_never_recursively_deletes_targets(self) -> None:
         script = LINK_SCRIPT.read_text(encoding="utf-8")
@@ -65,6 +85,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(
             result.stdout,
+            "plugins/docs/skills/readme/SKILL.md\n"
             "plugins/writing/skills/email/SKILL.md\n"
             "plugins/writing/skills/tempering/SKILL.md\n",
         )
@@ -153,6 +174,9 @@ class RepositoryContractTests(unittest.TestCase):
         for route in (
             "claude plugin install writing@misoto22",
             "codex plugin add writing@misoto22",
+            "claude plugin install docs@misoto22",
+            "codex plugin add writing@misoto22",
+            "codex plugin add docs@misoto22",
             "npx --yes skills@1.5.20 add",
             "scripts/package-skill.py",
         ):
@@ -182,11 +206,13 @@ class RepositoryContractTests(unittest.TestCase):
             [
                 sys.executable,
                 "scripts/verify-install.py",
-                str(SKILLS),
+                str(PLUGINS),
                 "--expect",
                 "email",
                 "--expect",
                 "tempering",
+                "--expect",
+                "readme",
             ],
             cwd=ROOT,
             check=True,

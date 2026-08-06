@@ -28,19 +28,22 @@ jobs:
 
       - run: npm install --global @anthropic-ai/claude-code@2.1.220
 
-      - name: Install writing@misoto22
+      - name: Install every plugin
         run: |
           claude plugin marketplace add "$PWD"
           claude plugin install writing@misoto22
+          claude plugin install docs@misoto22
 
-      - name: Both skills are registered
-        run: claude plugin details writing@misoto22 | grep -E 'Skills \(2\).*email.*tempering'
+      - name: Every skill is registered under its own prefix
+        run: |
+          claude plugin details writing@misoto22 | grep -E 'Skills \(2\).*email.*tempering'
+          claude plugin details docs@misoto22 | grep -E 'Skills \(1\).*readme'
 
-      - name: Installed tree is complete and self-contained
+      - name: Installed trees are complete and self-contained
         run: |
           python3 scripts/verify-install.py \
-            "$HOME/.claude/plugins/cache/misoto22/writing" \
-            --expect email --expect tempering
+            "$HOME/.claude/plugins/cache/misoto22" \
+            --expect email --expect tempering --expect readme
 
   codex:
     name: Codex plugin
@@ -56,16 +59,17 @@ jobs:
 
       - run: npm install --global @openai/codex@0.145.0
 
-      - name: Install writing@misoto22
+      - name: Install every plugin
         run: |
           codex plugin marketplace add "$PWD"
           codex plugin add writing@misoto22
+          codex plugin add docs@misoto22
 
-      - name: Installed tree is complete and self-contained
+      - name: Installed trees are complete and self-contained
         run: |
           python3 scripts/verify-install.py \
-            "$HOME/.codex/plugins/cache/misoto22/writing" \
-            --expect email --expect tempering
+            "$HOME/.codex/plugins/cache/misoto22" \
+            --expect email --expect tempering --expect readme
 
   agent-skills-cli:
     name: npx skills add (all agents)
@@ -90,7 +94,8 @@ jobs:
       - name: Every installed copy is complete and self-contained
         run: |
           test "$(find "$FAKE_HOME" -name SKILL.md | wc -l)" -gt 0
-          python3 scripts/verify-install.py "$FAKE_HOME" --expect email --expect tempering
+          python3 scripts/verify-install.py "$FAKE_HOME" \
+            --expect email --expect tempering --expect readme
 
   skill-archive:
     name: .skill upload bundle
@@ -112,4 +117,6 @@ jobs:
           done
 
       - name: Unpacked archive is complete and self-contained
-        run: python3 scripts/verify-install.py unpacked --expect email --expect tempering
+        run: |
+          python3 scripts/verify-install.py unpacked \
+            --expect email --expect tempering --expect readme

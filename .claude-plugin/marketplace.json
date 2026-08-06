@@ -11,6 +11,10 @@
     {
       "name": "writing",
       "source": "./plugins/writing"
+    },
+    {
+      "name": "docs",
+      "source": "./plugins/docs"
     }
   ]
 }

@@ -21,8 +21,10 @@ from pathlib import Path
 
 
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
-REQUIRED_SHARED = ("shared/tone.md", "shared/format.md")
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+# Any shared/ file a skill names must have travelled with it. Derived from the
+# text rather than hardcoded, so a plugin without shared/ is not forced to have one.
+SHARED_REFERENCE = re.compile(r"shared/[\w./-]+\.\w+")
 NAME_LINE = re.compile(r"^name:\s*(\S+)\s*$", re.MULTILINE)
 
 # The two constructions that install cleanly and then dangle at read time.
@@ -66,11 +68,7 @@ def _verify_skill(skill: Path, errors: list[str]) -> None:
     elif match.group(1) != skill.name:
         errors.append(f"{skill}: frontmatter name {match.group(1)!r} != directory name")
 
-    for relative in REQUIRED_SHARED:
-        if not (skill / relative).is_file():
-            errors.append(f"{skill}: missing {relative} — the install dropped shared material")
-
-    for target in MARKDOWN_LINK.findall(text):
+    for target in MARKDOWN_LINK.findall(_strip_fenced_blocks(text)):
         if target.startswith(("https://", "http://", "#", "mailto:")):
             continue
         relative = target.split("#", 1)[0]
@@ -89,6 +87,30 @@ def _verify_skill(skill: Path, errors: list[str]) -> None:
         for fragment, reason in NON_PORTABLE_TEXT:
             if fragment in content:
                 errors.append(f"{path}: contains {fragment!r} — a {reason}")
+        for relative in sorted(set(SHARED_REFERENCE.findall(content))):
+            if not (skill / relative).is_file():
+                errors.append(
+                    f"{path}: names {relative}, which is not installed —"
+                    " the install dropped shared material"
+                )
+
+
+def _strip_fenced_blocks(text: str) -> str:
+    """Drop fenced code blocks so sample markup is not mistaken for a reference."""
+
+    kept: list[str] = []
+    fence: str | None = None
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        ticks = len(stripped) - len(stripped.lstrip("`"))
+        if fence is None:
+            if ticks >= 3:
+                fence = "`" * ticks
+                continue
+            kept.append(line)
+        elif ticks >= len(fence) and not stripped.strip("`"):
+            fence = None
+    return "\n".join(kept)
 
 
 def main() -> int:
