@@ -163,6 +163,39 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(all(name.startswith("email/") for name in names))
         self.assertFalse(any("__pycache__" in name or name.endswith(".pyc") for name in names))
 
+    def test_package_carries_shared_material_and_rebases_its_references(self) -> None:
+        with tempfile.TemporaryDirectory() as destination:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/package-skill.py",
+                    "plugins/writing/skills/email",
+                    destination,
+                ],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            with zipfile.ZipFile(Path(destination) / "email.skill") as archive:
+                names = archive.namelist()
+                skill = archive.read("email/SKILL.md").decode("utf-8")
+
+        for shared in ("email/shared/tone.md", "email/shared/format.md"):
+            self.assertIn(shared, names)
+        self.assertIn("${CLAUDE_SKILL_DIR}/shared/tone.md", skill)
+        self.assertNotIn("../../shared/", skill)
+
+    def test_shared_material_carries_no_original_hardcodes(self) -> None:
+        shared = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (PLUGIN / "shared").rglob("*.md")
+        )
+
+        self.assertTrue(shared.strip())
+        for forbidden in ("/Users/", "/home/", "smtp.gmail.com"):
+            self.assertNotIn(forbidden, shared)
+
 
 if __name__ == "__main__":
     unittest.main()

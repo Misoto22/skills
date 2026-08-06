@@ -53,17 +53,13 @@ Say so plainly and stop if the draft is already appropriate. Not every message n
 
 ## Constraints
 
-**Do not apologise.** The most frequent defect in automated polish is an unearned "Sorry to bother you" attached to a message where the sender has done nothing wrong. Lowering the temperature is not the same as conceding the point, and the apology quietly transfers the advantage to the recipient.
+Read `${CLAUDE_SKILL_DIR}/../../shared/tone.md` and `${CLAUDE_SKILL_DIR}/../../shared/format.md` before producing any register. They carry the apology, inflation, filler, fact-preservation, channel, and language rules for this plugin, and are deliberately not restated here.
 
-**Do not inflate.** Twenty words should not become eighty. "I hope this finds you well" and "thank you for your valuable time" carry no information. Keep the rewrite within roughly 1.5× the original unless a genuine deadline or consequence is being stated for the first time.
+Two things they do not cover:
 
-**Do not invent facts.** Never supply a reason, date, or constraint the sender did not provide. Where the message needs a deadline to function and none was given, insert a bracketed placeholder such as `[by Wednesday]` for the sender to complete.
+**Reverse mode is exempt from the filler ban.** Decoding corporate phrasing requires quoting it.
 
-**Avoid institutional filler.** Synergy, circle back, bandwidth, socialise, double-click, align on, low-hanging fruit, boil the ocean, at the end of the day, and similar terms read as evasive, and are the reason corporate writing is distrusted. Plain vocabulary is more professional, not less. The single exception is reverse mode below.
-
-**Preserve specifics verbatim.** Dates, ticket numbers, version numbers, names, and figures pass through unchanged.
-
-**Match the channel and the language.** Instant messaging takes one to three lines, no greeting ritual and no sign-off. Email takes a subject line, short paragraphs, and an explicit request in the final line. Reply in the language the sender wrote in; mixed input keeps the mix.
+**All three registers, every time.** The register is the sender's call, not yours. Do not recommend one unless asked, except in the cases below.
 
 ## When softening is the wrong response
 
