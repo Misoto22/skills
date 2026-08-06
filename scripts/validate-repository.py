@@ -60,14 +60,28 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     if marketplace.get("name") != MARKETPLACE_NAME:
         errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
     metadata = marketplace.get("metadata")
-    if not isinstance(metadata, dict) or metadata.get("pluginRoot") != "./plugins":
-        errors.append("marketplace pluginRoot must be './plugins'")
+    # pluginRoot is the one field the two installers read differently: Claude Code
+    # resolves a source against the repository root regardless, while the skills
+    # CLI prepends pluginRoot to it. No single source satisfies both while it is
+    # set, so it stays absent and every source carries the full path.
+    if not isinstance(metadata, dict) or "pluginRoot" in metadata:
+        errors.append("marketplace metadata must not set pluginRoot")
     entries = marketplace.get("plugins")
     entries = entries if isinstance(entries, list) else []
-    registered = {entry.get("name"): entry.get("source") for entry in entries if isinstance(entry, dict)}
-    expected_sources = {name: f"./plugins/{name}" for name in PUBLISHED}
-    if registered != expected_sources:
-        errors.append(f"marketplace must register exactly {expected_sources}; found {registered}")
+    # The skills CLI derives its plugin grouping from these skill paths. An entry
+    # without them groups nothing, and the install picker degrades to a flat list
+    # of skill names with no plugin to read them against.
+    registered = {
+        entry.get("name"): (entry.get("source"), entry.get("skills"))
+        for entry in entries
+        if isinstance(entry, dict)
+    }
+    expected_entries = {
+        name: (f"./plugins/{name}", [f"./skills/{skill}" for skill in skills])
+        for name, skills in PUBLISHED.items()
+    }
+    if registered != expected_entries:
+        errors.append(f"marketplace must register exactly {expected_entries}; found {registered}")
 
     for plugin_name, expected_skills in sorted(PUBLISHED.items()):
         plugin_root = PLUGINS_ROOT / plugin_name

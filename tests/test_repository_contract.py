@@ -49,12 +49,17 @@ class RepositoryContractTests(unittest.TestCase):
         marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
         self.assertEqual(marketplace["name"], "misoto22")
-        self.assertEqual(marketplace["metadata"]["pluginRoot"], "./plugins")
-        registered = {entry["name"]: entry["source"] for entry in marketplace["plugins"]}
+        # Claude Code resolves a source against the repository root and the skills
+        # CLI prepends pluginRoot to it, so setting pluginRoot breaks one of them
+        # whichever way the sources are then written.
+        self.assertNotIn("pluginRoot", marketplace["metadata"])
+        registered = {entry["name"]: entry for entry in marketplace["plugins"]}
         on_disk = {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
         self.assertEqual(set(registered), on_disk)
-        for name, source in registered.items():
-            self.assertEqual(source, f"./plugins/{name}")
+        for name, entry in registered.items():
+            self.assertEqual(entry["source"], f"./plugins/{name}")
+            skills = sorted(path.parent.name for path in (PLUGINS / name / "skills").glob("*/SKILL.md"))
+            self.assertEqual(entry["skills"], [f"./skills/{skill}" for skill in skills])
 
     def test_every_published_skill_is_registered(self) -> None:
         """Every source of truth agrees. The canonical list lives in the validator."""

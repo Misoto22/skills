@@ -1,8 +1,7 @@
 {
   "name": "misoto22",
   "metadata": {
-    "description": "Personal agent skills and plugins",
-    "pluginRoot": "./plugins"
+    "description": "Personal agent skills and plugins"
   },
   "owner": {
     "name": "Misoto22"
@@ -10,15 +9,27 @@
   "plugins": [
     {
       "name": "writing",
-      "source": "./plugins/writing"
+      "source": "./plugins/writing",
+      "skills": [
+        "./skills/email",
+        "./skills/tempering"
+      ]
     },
     {
       "name": "docs",
-      "source": "./plugins/docs"
+      "source": "./plugins/docs",
+      "skills": [
+        "./skills/readme"
+      ]
     },
     {
       "name": "dev",
-      "source": "./plugins/dev"
+      "source": "./plugins/dev",
+      "skills": [
+        "./skills/cleanup",
+        "./skills/ship",
+        "./skills/sync"
+      ]
     }
   ]
 }
