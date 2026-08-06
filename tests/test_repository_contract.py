@@ -493,6 +493,31 @@ class RepositoryContractTests(unittest.TestCase):
         )
         self.assertEqual(parsed.stdout.strip(), declared_version())
 
+    def test_release_can_be_dispatched_and_still_resolves_one_tag(self) -> None:
+        """Dispatch exists for callers that can start a workflow but not push a tag."""
+
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("inputs:", workflow)
+        self.assertIn("REQUESTED: ${{ inputs.version }}", workflow)
+        # Interpolating an input straight into a script would be injection into a
+        # job holding contents: write and a signing identity.
+        self.assertNotIn("${{ inputs.version }}\n          run:", workflow)
+        self.assertNotIn('"${{ inputs.version }}"', workflow)
+
+        # A dispatch runs from whatever ref it was started on.
+        self.assertIn("github.event.repository.default_branch", workflow)
+        self.assertIn("if: github.event_name == 'workflow_dispatch'", workflow)
+
+        # Both triggers resolve to one $TAG. $GITHUB_REF_NAME is a branch name on
+        # a dispatch, so anything downstream still reading it would publish under
+        # the wrong name.
+        after = workflow.split("echo \"TAG=v$declared\"", 1)[1]
+        self.assertNotIn("GITHUB_REF_NAME", after)
+        for command in ("gh release view", "gh release upload", "gh release create"):
+            self.assertIn(f'{command} "$TAG"', after)
+
     def test_install_workflow_covers_every_supported_route(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
 

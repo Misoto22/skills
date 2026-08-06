@@ -3,10 +3,21 @@ name: Release
 # GitHub marketplace sync is an organization feature, so claude.ai and Cowork
 # are served by manually uploaded .skill archives. This builds them once per
 # tag instead of asking every consumer to rebuild them locally.
+#
+# Two ways in, one path through. Pushing a tag is the ordinary route. Dispatch
+# exists because some callers can trigger a workflow but cannot push a tag; it
+# creates the tag itself, from the default branch only, and every step after
+# resolution works from $TAG rather than from what triggered the run.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the v — must equal what the manifests declare
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -29,19 +40,59 @@ jobs:
         with:
           python-version: "3.13"
 
-      # Nothing upstream of here compares the tag to the manifests. A mistyped
-      # tag would publish archives whose own metadata.version disagrees with the
-      # release they hang under, and the mismatch is invisible after upload.
-      - name: The tag matches the version every artifact declares
+      # A dispatch can be started from any ref. Releasing a feature branch would
+      # tag and publish work that was never reviewed.
+      - name: Release only from the default branch
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          declared=$(python3 scripts/bump-version.py --check | awk '{print $NF}')
-          if [ "v$declared" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME, but the manifests declare $declared"
+          if [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "::error::dispatched from $GITHUB_REF_NAME; release only from $DEFAULT_BRANCH"
             exit 1
           fi
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
+      # Nothing upstream of here compares the release to the manifests. A
+      # mistyped tag would publish archives whose own metadata.version disagrees
+      # with the release they hang under, and that is invisible after upload.
+      # Both triggers land on the same answer, and $TAG carries it from here on.
+      - name: Resolve the release, and refuse one the manifests do not declare
+        env:
+          # Via the environment, never interpolated into the script: this job
+          # holds contents: write and a signing identity.
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          declared=$(python3 scripts/bump-version.py --check | awk '{print $NF}')
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            asked="$REQUESTED"
+          else
+            asked="$GITHUB_REF_NAME"
+          fi
+          # Both forms mean the same release; the tag carries the v, the input
+          # is documented without it, and neither slip is worth a failed run.
+          asked="${asked#v}"
+          if [ "$declared" != "$asked" ]; then
+            echo "::error::asked for $asked, but the manifests declare $declared"
+            exit 1
+          fi
+          echo "TAG=v$declared" >> "$GITHUB_ENV"
 
       - name: Run the test suite
         run: python3 -m unittest discover -s tests -v
+
+      # A tag pushed with GITHUB_TOKEN does not start another workflow run, so
+      # this cannot hand off to the push trigger — the job finishes the release.
+      - name: Create the tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG already exists; releasing it again would rewrite history"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "skills $TAG"
+          git push origin "$TAG"
 
       - name: Package every published skill
         run: |
@@ -68,11 +119,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.skill dist/SHA256SUMS --clobber
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.skill dist/SHA256SUMS --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.skill dist/SHA256SUMS \
+            gh release create "$TAG" dist/*.skill dist/SHA256SUMS \
               --verify-tag \
               --generate-notes \
-              --title "$GITHUB_REF_NAME"
+              --title "$TAG"
           fi
