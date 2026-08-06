@@ -217,6 +217,22 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("scripts/package-skill.py", workflow)
         self.assertIn("dist/*.skill", workflow)
 
+    def test_release_workflow_refuses_a_tag_the_manifests_do_not_declare(self) -> None:
+        """The guard parses `--check`, so that command's output shape is part of the contract."""
+
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("scripts/bump-version.py --check", workflow)
+        self.assertIn("$GITHUB_REF_NAME", workflow)
+
+        parsed = subprocess.run(
+            ["bash", "-c", "python3 scripts/bump-version.py --check | awk '{print $NF}'"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertEqual(parsed.stdout.strip(), declared_version())
+
     def test_install_workflow_covers_every_supported_route(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
 

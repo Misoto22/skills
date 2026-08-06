@@ -20,6 +20,17 @@ jobs:
         with:
           python-version: "3.13"
 
+      # Nothing upstream of here compares the tag to the manifests. A mistyped
+      # tag would publish archives whose own metadata.version disagrees with the
+      # release they hang under, and the mismatch is invisible after upload.
+      - name: The tag matches the version every artifact declares
+        run: |
+          declared=$(python3 scripts/bump-version.py --check | awk '{print $NF}')
+          if [ "v$declared" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME, but the manifests declare $declared"
+            exit 1
+          fi
+
       - name: Run the test suite
         run: python3 -m unittest discover -s tests -v
 
