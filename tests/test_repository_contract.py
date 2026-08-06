@@ -339,6 +339,23 @@ class RepositoryContractTests(unittest.TestCase):
                 continue
             self.assertTrue((ROOT / attribute).is_file(), f"{attribute} is not committed")
 
+    def test_centred_lines_do_not_wrap(self) -> None:
+        """A centred sentence past ~70 characters wraps and strands its last line."""
+
+        import re
+
+        readme = README_PATH.read_text(encoding="utf-8")
+        centred = re.search(r'<div align="center">(.*?)</div>', readme, re.DOTALL)
+        self.assertIsNotNone(centred)
+        for line in centred.group(1).splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith(("<", "[![", "|")):
+                continue
+            # What wraps is the rendered text, not the source: a line of links is
+            # long in markdown and short on the page.
+            rendered = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", stripped)
+            self.assertLessEqual(len(rendered), 70, f"centred line wraps: {rendered}")
+
     def test_hero_serves_both_themes(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")
 

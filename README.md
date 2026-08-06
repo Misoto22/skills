@@ -9,7 +9,7 @@
 
 <br />
 
-Personal skills for Claude Code, Codex, and every agent that reads the Agent Skills format — self-contained once installed, on all four routes.
+Personal skills for Claude Code, Codex, and ~50 other agents.
 
 <br />
 
