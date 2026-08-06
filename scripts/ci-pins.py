@@ -45,9 +45,16 @@ def find_pin(config: dict, pin_id: str) -> dict:
 
 
 def spec(pin: dict, channel: str) -> str:
-    """Return the installable spec, or the floating one when asked for latest."""
+    """Return the installable spec, or the floating one when asked for latest.
 
-    return f"{pin['package']}@{'latest' if channel == 'latest' else pin['version']}"
+    npm and pip spell a pin differently, so a pin may carry its own template
+    rather than the npm form every other one uses.
+    """
+
+    if channel == "latest":
+        return pin.get("spec_latest", "{package}@latest").format(package=pin["package"])
+    template = pin.get("spec", "{package}@{version}")
+    return template.format(package=pin["package"], version=pin["version"])
 
 
 def _matcher(pin: dict) -> re.Pattern[str]:
