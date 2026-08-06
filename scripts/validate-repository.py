@@ -31,6 +31,11 @@ FORBIDDEN_RUNTIME_TEXT = (
     "provider-specific mail command",
 )
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+SKILL_REFERENCE = re.compile(r"[\w-]+/SKILL\.md")
+PUBLISHED_REFERENCE = re.compile(r"plugins/[\w-]+/skills/[\w-]+/SKILL\.md")
+# Retired and unfinished material lives outside plugins/, so no installer, no
+# packager, and no registry sees it. It is held to one rule: stay unlisted.
+RETIRED_ROOTS = ("drafts", "deprecated")
 
 # Only Claude Code expands ${CLAUDE_*}, and only Claude Code's plugin cache keeps
 # a directory above the skill. Anything a skill reads must resolve from the skill
@@ -93,12 +98,28 @@ def validate_repository(*, run_tests: bool) -> list[str]:
             if f"{name}/SKILL.md" not in skills_readme:
                 errors.append(f"{plugin_name} skills/README.md does not register {name}")
 
+        # The registries say every published skill is listed. This says every
+        # listing is a published skill, which is what a retirement gets wrong.
+        for reference in SKILL_REFERENCE.findall(skills_readme):
+            if not (skills_root / reference).is_file():
+                errors.append(f"{plugin_name} skills/README.md lists {reference}, which is gone")
+
         for skill_path in skill_paths:
             _validate_skill(skill_path, errors)
 
         # shared/ ships inside every published skill, so it is held to the same
         # runtime-neutrality rule as the skills that read it.
         _validate_runtime_text(plugin_root / "shared", errors)
+
+    for reference in PUBLISHED_REFERENCE.findall(root_readme):
+        if not (ROOT / reference).is_file():
+            errors.append(f"README.md links {reference}, which does not exist")
+
+    for retired_root in RETIRED_ROOTS:
+        for skill_file in sorted((ROOT / retired_root).rglob("SKILL.md")):
+            relative = skill_file.relative_to(ROOT).as_posix()
+            if relative in root_readme:
+                errors.append(f"README.md lists {relative}, which is not published")
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "sync-shared.py"), "--check"],

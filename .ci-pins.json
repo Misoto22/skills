@@ -16,17 +16,28 @@
       "id": "skills",
       "package": "skills",
       "version": "1.5.22",
-      "documented_in": ["README.md"]
+      "documented_in": [
+        "README.md"
+      ]
     },
     {
       "id": "ruff",
       "package": "ruff",
       "version": "0.14.6",
       "match": "RUFF_VERSION: \"{version}\"",
-      "documented_in": [".github/workflows/validate.yml"]
+      "documented_in": [
+        ".github/workflows/validate.yml"
+      ]
     }
   ],
   "scan": {
-    "exclude": [".git", "CHANGELOG.md", "docs/superpowers", "dist"]
+    "exclude": [
+      ".git",
+      "CHANGELOG.md",
+      "deprecated",
+      "dist",
+      "docs/superpowers",
+      "drafts"
+    ]
   }
 }

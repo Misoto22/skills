@@ -29,6 +29,16 @@ That writes the skill and registers it in all five places the validator checks, 
 
 Which plugin a skill belongs to is a judgement about subject, not convenience. `writing` is prose aimed at a person; `docs` is prose aimed at whoever opens the repository next. Two skills that would not sensibly share one `shared/` directory belong in different plugins — users install plugins independently, so a plugin spanning unrelated subjects makes them take skills they did not want.
 
+## Retiring a skill
+
+```bash
+python3 scripts/remove-skill.py <plugin> <skill>
+```
+
+The inverse of `new-skill.py`, unwinding the same registrations plus the evaluation suite, and clearing any `routes_to` in another skill's cases that named it. The material moves to `deprecated/<plugin>/<skill>/` with its cases beside it; `--delete` removes it instead. Emptying a plugin retires the plugin — manifest, marketplace entry, and directory group.
+
+Nothing published looks into `deprecated/` or `drafts/`. They are outside `plugins/`, so no installer, packager, or registry sees them, and the version audit and pin scan skip them; a test asserts all of that against a real retirement.
+
 ## The constraint that governs skill content
 
 Every installer copies a plugin — or, on most agents, a single skill directory — and nothing above it. A path that climbs out with `../` resolves in this repository and dangles everywhere else, and only Claude Code expands `${CLAUDE_*}`. Both are rejected in published skill content, and `scripts/verify-install.py` checks it against real installed trees rather than against this repository.

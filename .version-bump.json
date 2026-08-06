@@ -28,8 +28,10 @@
       ".git",
       ".version-bump.json",
       "CHANGELOG.md",
+      "deprecated",
+      "dist",
       "docs/superpowers",
-      "dist"
+      "drafts"
     ]
   }
 }
