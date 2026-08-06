@@ -222,6 +222,14 @@ class RepositoryContractTests(unittest.TestCase):
         # leaves a release with no archives on it.
         self.assertIn("cancel-in-progress: false", workflow)
 
+        # claude.ai and Cowork take the file, not the tag, so the download is
+        # the one step of the publishing path with nothing checking it.
+        self.assertIn("sha256sum", workflow)
+        self.assertIn("dist/SHA256SUMS", workflow)
+        self.assertIn("actions/attest-build-provenance", workflow)
+        for permission in ("id-token: write", "attestations: write"):
+            self.assertIn(permission, workflow)
+
     def test_canary_runs_the_install_routes_against_the_latest_clis(self) -> None:
         """A pinned route never fails on upstream drift, so Install alone cannot find it."""
 
