@@ -138,9 +138,11 @@ python3 scripts/sync-shared.py                       Vendor shared/ into each sk
 bash scripts/list-skills.sh                          Published SKILL.md paths
 python3 scripts/package-skill.py <skill> dist        Build one .skill archive
 python3 scripts/verify-install.py <dir>              Check an installed tree
+python3 scripts/new-skill.py <plugin> <skill>        Scaffold and register a skill
+python3 scripts/bump-version.py --audit              Find undeclared version strings
 ```
 
-Adding a plugin or skill means adding it to `PUBLISHED` in `scripts/validate-repository.py`, to `marketplace.json`, to both READMEs, and to the install workflow's `--expect` list. The validator fails until all of them agree. Conventions are in [AGENTS.md](AGENTS.md).
+Adding a plugin or skill means adding it to `PUBLISHED` in `scripts/validate-repository.py`, to `marketplace.json`, to both READMEs, and to the install workflow's `--expect` list. `python3 scripts/new-skill.py <plugin> <skill>` does all of that and leaves the placeholders to you. Conventions are in [AGENTS.md](AGENTS.md); the contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
