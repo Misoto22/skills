@@ -13,9 +13,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
-PLUGIN_NAME = "writing"
 MARKETPLACE_NAME = "misoto22"
 VERSION = "0.2.0"
+
+# The published surface, asserted exactly: a plugin or skill that appears on disk
+# without being added here is unregistered somewhere, and one listed here without
+# appearing on disk has been dropped.
+PUBLISHED = {
+    "docs": ["readme"],
+    "writing": ["email", "tempering"],
+}
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 FORBIDDEN_RUNTIME_TEXT = (
     "/Users/",
@@ -36,53 +43,66 @@ NON_PORTABLE_TEXT = (
 
 def validate_repository(*, run_tests: bool) -> list[str]:
     errors: list[str] = []
-    plugin_root = PLUGINS_ROOT / PLUGIN_NAME
-    skills_root = plugin_root / "skills"
-    skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
-    names = [path.name for path in skill_paths]
-    if names != ["email", "tempering"]:
-        errors.append(f"published skills must currently be ['email', 'tempering']; found {names}")
-
-    plugin = _load_json(plugin_root / ".claude-plugin" / "plugin.json", errors)
     marketplace = _load_json(ROOT / ".claude-plugin" / "marketplace.json", errors)
-    expected_plugin_paths = [f"./skills/{name}" for name in names]
-    if plugin.get("skills") != expected_plugin_paths:
-        errors.append("plugin skill paths do not match the published skills tree")
-    for field, expected in (
-        ("name", PLUGIN_NAME),
-        ("version", VERSION),
-        ("license", "MIT"),
-    ):
-        if plugin.get(field) != expected:
-            errors.append(f"plugin {field} must be {expected!r}")
-    author = plugin.get("author")
-    if not isinstance(author, dict) or author.get("name") != "skills contributors":
-        errors.append("plugin author must identify 'skills contributors'")
+    root_readme = _read_text(ROOT / "README.md", errors)
 
-    plugins = marketplace.get("plugins")
-    marketplace_plugin = plugins[0] if isinstance(plugins, list) and len(plugins) == 1 and isinstance(plugins[0], dict) else {}
+    found_plugins = sorted(
+        path.parent.parent.name for path in PLUGINS_ROOT.glob("*/.claude-plugin/plugin.json")
+    )
+    if found_plugins != sorted(PUBLISHED):
+        errors.append(f"published plugins must be {sorted(PUBLISHED)}; found {found_plugins}")
+
     if marketplace.get("name") != MARKETPLACE_NAME:
         errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
-    if marketplace_plugin.get("name") != PLUGIN_NAME or marketplace_plugin.get("source") != f"./plugins/{PLUGIN_NAME}":
-        errors.append(f"marketplace must register the {PLUGIN_NAME} plugin")
     metadata = marketplace.get("metadata")
     if not isinstance(metadata, dict) or metadata.get("pluginRoot") != "./plugins":
         errors.append("marketplace pluginRoot must be './plugins'")
+    entries = marketplace.get("plugins")
+    entries = entries if isinstance(entries, list) else []
+    registered = {
+        entry.get("name"): entry.get("source")
+        for entry in entries
+        if isinstance(entry, dict)
+    }
+    expected_sources = {name: f"./plugins/{name}" for name in PUBLISHED}
+    if registered != expected_sources:
+        errors.append(f"marketplace must register exactly {expected_sources}; found {registered}")
 
-    root_readme = _read_text(ROOT / "README.md", errors)
-    skills_readme = _read_text(skills_root / "README.md", errors)
-    for name in names:
-        if f"plugins/{PLUGIN_NAME}/skills/{name}/SKILL.md" not in root_readme:
-            errors.append(f"README.md does not register {name}")
-        if f"{name}/SKILL.md" not in skills_readme:
-            errors.append(f"skills/README.md does not register {name}")
+    for plugin_name, expected_skills in sorted(PUBLISHED.items()):
+        plugin_root = PLUGINS_ROOT / plugin_name
+        skills_root = plugin_root / "skills"
+        skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
+        names = [path.name for path in skill_paths]
+        if names != expected_skills:
+            errors.append(f"{plugin_name} skills must be {expected_skills}; found {names}")
 
-    for skill_path in skill_paths:
-        _validate_skill(skill_path, errors)
+        plugin = _load_json(plugin_root / ".claude-plugin" / "plugin.json", errors)
+        if plugin.get("skills") != [f"./skills/{name}" for name in names]:
+            errors.append(f"{plugin_name} skill paths do not match its published skills tree")
+        for field, expected in (
+            ("name", plugin_name),
+            ("version", VERSION),
+            ("license", "MIT"),
+        ):
+            if plugin.get(field) != expected:
+                errors.append(f"{plugin_name} plugin {field} must be {expected!r}")
+        author = plugin.get("author")
+        if not isinstance(author, dict) or author.get("name") != "skills contributors":
+            errors.append(f"{plugin_name} plugin author must identify 'skills contributors'")
 
-    # shared/ ships inside every published skill, so it is held to the same
-    # runtime-neutrality rule as the skills that read it.
-    _validate_runtime_text(plugin_root / "shared", errors)
+        skills_readme = _read_text(skills_root / "README.md", errors)
+        for name in names:
+            if f"plugins/{plugin_name}/skills/{name}/SKILL.md" not in root_readme:
+                errors.append(f"README.md does not register {plugin_name}/{name}")
+            if f"{name}/SKILL.md" not in skills_readme:
+                errors.append(f"{plugin_name} skills/README.md does not register {name}")
+
+        for skill_path in skill_paths:
+            _validate_skill(skill_path, errors)
+
+        # shared/ ships inside every published skill, so it is held to the same
+        # runtime-neutrality rule as the skills that read it.
+        _validate_runtime_text(plugin_root / "shared", errors)
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "sync-shared.py"), "--check"],
@@ -129,7 +149,7 @@ def _validate_skill(skill_path: Path, errors: list[str]) -> None:
         if phrase not in agent_text:
             errors.append(f"{agent_file}: missing {phrase}")
 
-    for target in MARKDOWN_LINK.findall(text):
+    for target in MARKDOWN_LINK.findall(_strip_fenced_blocks(text)):
         if target.startswith(("https://", "http://", "#")):
             continue
         relative_target = target.split("#", 1)[0]
@@ -162,6 +182,24 @@ def _validate_runtime_text(root: Path, errors: list[str]) -> None:
         for fragment, reason in NON_PORTABLE_TEXT:
             if fragment in content:
                 errors.append(f"{path}: contains {reason} {fragment!r}")
+
+
+def _strip_fenced_blocks(text: str) -> str:
+    """Drop fenced code blocks so sample markup is not mistaken for a reference."""
+
+    kept: list[str] = []
+    fence: str | None = None
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        ticks = len(stripped) - len(stripped.lstrip("`"))
+        if fence is None:
+            if ticks >= 3:
+                fence = "`" * ticks
+                continue
+            kept.append(line)
+        elif ticks >= len(fence) and not stripped.strip("`"):
+            fence = None
+    return "\n".join(kept)
 
 
 def _parse_frontmatter(

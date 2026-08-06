@@ -3,6 +3,8 @@
 ## Layout
 
 - The repository is a marketplace. Plugins live under `plugins/<plugin>/`, each with its own `.claude-plugin/plugin.json`, and publish skills from `plugins/<plugin>/skills/<skill>/`.
+- A plugin is a subject, not a bucket: `writing` is prose aimed at a person, `docs` is prose aimed at whoever opens the repository next. Two skills that would not sensibly share one `shared/` directory belong in different plugins. Users install plugins independently, so a plugin that spans unrelated subjects makes them take skills they did not want.
+- `scripts/validate-repository.py` holds the published surface in `PUBLISHED`. Adding a plugin or skill means adding it there, to `marketplace.json`, to both READMEs, and to the install workflow's `--expect` list — the validator fails until all of them agree.
 - Marketplace name, plugin name, and skill directory name are three separate things. The plugin name becomes the command prefix, so `writing` + `email` gives `/writing:email`.
 - Plugin names must be kebab-case: lowercase letters, digits, and hyphens only. Claude Code is lenient here; the claude.ai marketplace sync is not.
 - A plugin is copied to a cache directory on install, so nothing outside the plugin directory exists at runtime. Never reference `../` out of a plugin. Shared material goes in `plugins/<plugin>/shared/`, duplicated per plugin where two plugins need the same file.

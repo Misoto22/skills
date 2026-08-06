@@ -2,18 +2,24 @@
 
 Portable, configurable agent skills for reliable everyday work.
 
-The repository is a marketplace named `misoto22`. Each plugin under `plugins/` publishes its own skills, and the plugin name becomes the command prefix — the `writing` plugin gives you `/writing:email` and `/writing:tempering`.
+The repository is a marketplace named `misoto22`. Each plugin under `plugins/` publishes its own skills, and the plugin name becomes the command prefix — the `writing` plugin gives you `/writing:email`, the `docs` plugin gives you `/docs:readme`.
 
 ```
 .claude-plugin/marketplace.json   # marketplace: misoto22
 plugins/
-  writing/                        # plugin: writing
+  writing/                        # plugin: writing  -> /writing:*
     .claude-plugin/plugin.json
-    shared/                       # reference material both skills read on demand
+    shared/                       # reference material its skills read on demand
     skills/
       email/
       tempering/
+  docs/                           # plugin: docs     -> /docs:*
+    .claude-plugin/plugin.json
+    skills/
+      readme/
 ```
+
+A plugin is a subject, not a bucket. `writing` covers prose aimed at a person; `docs` covers prose aimed at whoever opens the repository next. Skills that would not share a `shared/` directory belong in different plugins.
 
 Shared material lives inside the plugin that uses it. Installers copy a plugin — or, for most agents, a single skill directory — and nothing above it, so a reference that climbs out with `../` resolves in the repository and dangles after install. `plugins/writing/shared/` is the only copy anyone edits; `scripts/sync-shared.py` vendors it into each `skills/<skill>/shared/`, and CI fails on drift.
 
@@ -23,6 +29,7 @@ Shared material lives inside the plugin that uses it. Installers copy a plugin �
 | --- | --- | --- | ---: |
 | [email](plugins/writing/skills/email/SKILL.md) | `/writing:email` | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.2.0 |
 | [tempering](plugins/writing/skills/tempering/SKILL.md) | `/writing:tempering` | Rewrite a blunt or frustrated workplace message into three registers without losing the request. | 0.2.0 |
+| [readme](plugins/docs/skills/readme/SKILL.md) | `/docs:readme` | Write, restructure, or audit a repository README from what its own files say. | 0.2.0 |
 
 ## Install
 
@@ -45,7 +52,11 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install writing@misoto22
 ```
 
-Gives you `/writing:email` and `/writing:tempering`.
+```bash
+claude plugin install docs@misoto22
+```
+
+Gives you `/writing:email`, `/writing:tempering`, and `/docs:readme`. Install only the plugins you want — each is independent.
 
 ### Codex
 
@@ -56,7 +67,7 @@ codex plugin marketplace add https://github.com/Misoto22/skills
 ```
 
 ```bash
-codex plugin add writing@misoto22
+codex plugin add writing@misoto22 && codex plugin add docs@misoto22
 ```
 
 ### Everything else — `npx skills`

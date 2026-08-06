@@ -1,0 +1,12 @@
+{
+  "name": "docs",
+  "version": "0.2.0",
+  "description": "Project documentation skills.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "skills": [
+    "./skills/readme"
+  ]
+}
