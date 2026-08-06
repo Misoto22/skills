@@ -20,10 +20,9 @@ Follow the upstream repository's current installation instructions for a global 
 
 Fallback checklist when optional Humanizer is unavailable:
 
+- apply `${CLAUDE_SKILL_DIR}/../../shared/tone.md`, which carries the filler, inflation, and unearned-warmth rules;
 - prefer direct, specific sentences;
-- remove generic filler and repeated conclusions;
 - vary sentence length only when it improves natural flow;
-- preserve the user's register and avoid invented warmth, claims, or commitments;
 - keep every protected string unchanged.
 
 Humanizer version differences must never weaken the email policy or validation pipeline.

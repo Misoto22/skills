@@ -72,6 +72,10 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     for skill_path in skill_paths:
         _validate_skill(skill_path, errors)
 
+    # shared/ ships inside every packaged skill, so it is held to the same
+    # runtime-neutrality rule as the skills that read it.
+    _validate_runtime_text(plugin_root / "shared", errors)
+
     if run_tests and not errors:
         result = subprocess.run(
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
@@ -127,7 +131,11 @@ def _validate_skill(skill_path: Path, errors: list[str]) -> None:
     if nested_skill_files:
         errors.append(f"{skill_path}: nested SKILL.md files are not publishable")
 
-    for path in skill_path.rglob("*"):
+    _validate_runtime_text(skill_path, errors)
+
+
+def _validate_runtime_text(root: Path, errors: list[str]) -> None:
+    for path in root.rglob("*"):
         if not path.is_file() or path.suffix not in TEXT_SUFFIXES:
             continue
         content = _read_text(path, errors)
