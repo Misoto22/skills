@@ -199,8 +199,10 @@ def _drop_dangling_hand_offs(skill: str, touched: list[str]) -> None:
 def _unregister_skills_sh(plugin: str, skill: str, touched: list[str]) -> None:
     path = ROOT / "skills.sh.json"
     config = json.loads(path.read_text(encoding="utf-8"))
+    # Titles are title-cased for the directory page; see new-skill.py.
+    title = plugin.replace("-", " ").title()
     for group in config["groupings"]:
-        if group["title"] == plugin:
+        if group["title"] == title:
             group["skills"] = [name for name in group["skills"] if name != skill]
     config["groupings"] = [group for group in config["groupings"] if group["skills"]]
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
