@@ -181,6 +181,7 @@ class RepositoryContractTests(unittest.TestCase):
             "claude plugin install writing@misoto22",
             "codex plugin add writing@misoto22",
             "claude plugin install docs@misoto22",
+            "bash scripts/list-skills.sh",
             "codex plugin add writing@misoto22",
             "codex plugin add docs@misoto22",
             "npx --yes skills@1.5.22 add",

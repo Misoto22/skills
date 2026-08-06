@@ -35,11 +35,15 @@ jobs:
           claude plugin install docs@misoto22
           claude plugin install dev@misoto22
 
+      # Derived from the tree, so adding a skill never edits this step.
       - name: Every skill is registered under its own prefix
         run: |
-          claude plugin details writing@misoto22 | grep -E 'Skills \(2\).*email.*tempering'
-          claude plugin details docs@misoto22 | grep -E 'Skills \(1\).*readme'
-          claude plugin details dev@misoto22 | grep -E 'Skills \(1\).*ship'
+          for skill_file in $(bash scripts/list-skills.sh); do
+            plugin=$(echo "$skill_file" | cut -d/ -f2)
+            skill=$(basename "$(dirname "$skill_file")")
+            claude plugin details "$plugin@misoto22" | grep -qE "Skills \(.*\b$skill\b" \
+              || { echo "::error::$plugin@misoto22 does not list $skill"; exit 1; }
+          done
 
       - name: Installed trees are complete and self-contained
         run: |
