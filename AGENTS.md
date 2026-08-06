@@ -22,4 +22,6 @@
 - Default ambiguous or incomplete outbound email intent to draft. Never weaken send authorization, disclosure, artifact-integrity, or readback gates — those live in the email skill and must not be relocated to `shared/`.
 - Use dependency-free Python for portable runtime validation unless a reviewed design explicitly justifies a dependency.
 - Add tests before implementation and run `python3 scripts/validate-repository.py` before release.
+- Scaffold a skill with `python3 scripts/new-skill.py <plugin> <skill>` rather than registering it by hand, and move a release with `python3 scripts/bump-version.py <version>` rather than editing eight files.
+- Run `uvx ruff check .`, `uvx ruff format .`, and `shellcheck scripts/*.sh` before committing; CI enforces all three.
 - Do not force-push `main` or `master`.

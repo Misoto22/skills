@@ -304,6 +304,28 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, name)
             self.assertIn("kebab-case", result.stderr)
 
+    def test_contributor_guardrails_exist(self) -> None:
+        for relative in (
+            "CONTRIBUTING.md",
+            ".github/PULL_REQUEST_TEMPLATE.md",
+            ".github/dependabot.yml",
+            ".github/ISSUE_TEMPLATE/skill-misfires.md",
+            ".github/ISSUE_TEMPLATE/install-broken.md",
+        ):
+            self.assertTrue((ROOT / relative).is_file(), relative)
+
+        contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+        for command in (
+            "scripts/new-skill.py",
+            "scripts/bump-version.py",
+            "scripts/validate-repository.py",
+            "shellcheck scripts/*.sh",
+        ):
+            self.assertIn(command, contributing)
+
+        dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+        self.assertIn("package-ecosystem: github-actions", dependabot)
+
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(
             [sys.executable, "scripts/validate-repository.py", "--skip-tests"],

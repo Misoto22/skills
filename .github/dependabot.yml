@@ -1,0 +1,19 @@
+version: 2
+
+# Pinning is what makes a CI result reproducible; it is also how a pin silently
+# goes two years stale. This covers the `uses:` actions only.
+#
+# The CLI pins inside `run:` steps — @anthropic-ai/claude-code, @openai/codex,
+# skills, and ruff — are not a manifest dependabot can read, so they stay manual.
+# They are checked when an install route starts failing, which is what the
+# Install workflow is for.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]

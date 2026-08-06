@@ -2,6 +2,13 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- Added linting: `ruff.toml` selects the rules that catch real defects on a standard-library-only codebase, and CI runs `ruff check`, `ruff format --check`, and `shellcheck`. The first run found 47 findings, including five `subprocess.run` calls whose exit status was inspected but never declared with `check=`.
+- Added `scripts/bump-version.py` and `.version-bump.json`. The version lives in eight files; `--audit` greps for occurrences the declared list does not cover and fails, so a tag cannot ship artefacts that disagree with it. CI runs the audit on every push.
+- Added `scripts/new-skill.py`, which scaffolds a skill and registers it in all five places the validator checks, creating the plugin when it does not exist. A test scaffolds, validates, and rolls back, so the tool cannot drift from the checks it satisfies.
+- Added `CONTRIBUTING.md`, a pull request template, two issue templates, and dependabot for the pinned GitHub Actions.
+
 ## 0.3.0 — 2026-08-06
 
 - Added the `docs` plugin and its `readme` skill (`/docs:readme`), which writes, restructures, and audits a repository README from what the repository's own files say, against the house style. Reads the manifest, task runner, and tree before writing, and leaves a bracketed placeholder wherever a fact is unavailable rather than inventing a version number.
