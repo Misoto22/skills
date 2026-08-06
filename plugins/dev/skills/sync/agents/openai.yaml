@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sync"
+  short_description: "Fetch, prune, and fast-forward the base branch"
+  default_prompt: "Use $sync to bring this repository in line with its remote; fast-forward only, and report anything diverged rather than rebasing it."
+policy:
+  allow_implicit_invocation: true

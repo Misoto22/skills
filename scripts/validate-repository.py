@@ -19,7 +19,7 @@ VERSION = "0.6.0"
 # without being added here is unregistered somewhere, and one listed here without
 # appearing on disk has been dropped.
 PUBLISHED = {
-    "dev": ["ship"],
+    "dev": ["cleanup", "ship", "sync"],
     "docs": ["readme"],
     "writing": ["email", "tempering"],
 }
