@@ -60,7 +60,7 @@ jobs:
           (cd dist && sha256sum ./*.skill | sed 's#\./##' > SHA256SUMS)
           cat dist/SHA256SUMS
 
-      - uses: actions/attest-build-provenance@v3
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/*.skill
 
