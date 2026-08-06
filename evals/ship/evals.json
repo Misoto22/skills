@@ -1,0 +1,39 @@
+{
+  "skill": "ship",
+  "triggers": [
+    {
+      "id": "ship-it",
+      "prompt": "Ship it.",
+      "expected": "Fires, runs the preflight, and marks each step RUN or SKIP before doing anything."
+    },
+    {
+      "id": "chinese-merge",
+      "prompt": "开个 PR 合了",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "get-merged",
+      "prompt": "Get this merged once CI is green.",
+      "expected": "Fires and waits on CI rather than merging ahead of it."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "tag-release",
+      "prompt": "Tag a release and publish the package.",
+      "expected": "Does not fire. Releasing is not landing a change."
+    },
+    {
+      "id": "commit-message-only",
+      "prompt": "Write me a commit message for this diff. Do not push anything.",
+      "expected": "Does not fire. The request explicitly stops before pushing."
+    },
+    {
+      "id": "just-pull",
+      "prompt": "Just pull the latest main.",
+      "expected": "Does not fire; bringing the base level is a different step.",
+      "routes_to": "sync"
+    }
+  ],
+  "behaviors": []
+}

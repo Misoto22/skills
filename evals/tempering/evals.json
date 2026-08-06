@@ -1,0 +1,44 @@
+{
+  "skill": "tempering",
+  "triggers": [
+    {
+      "id": "chinese-soften",
+      "prompt": "帮我改得客气点：这个需求你们到底做不做，给个准信。",
+      "expected": "Fires and returns registers that keep the request and the demand for a date."
+    },
+    {
+      "id": "too-harsh-check",
+      "prompt": "Is this too harsh to send to the client? 'You clearly did not read the spec.'",
+      "expected": "Fires, judges the tone, and offers alternatives rather than only answering yes."
+    },
+    {
+      "id": "keep-the-consequence",
+      "prompt": "Make this professional without losing that the deadline is Friday and we escalate after that.",
+      "expected": "Fires and preserves the date and the consequence the raw tone was carrying."
+    },
+    {
+      "id": "decode-corporate",
+      "prompt": "说人话：we should circle back and align on the deliverable cadence.",
+      "expected": "Fires in the reverse direction and gives the plain reading."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "compose-outbound",
+      "prompt": "Draft an email to the client with the new schedule.",
+      "expected": "Does not fire; there is no existing message whose tone is the problem.",
+      "routes_to": "email"
+    },
+    {
+      "id": "grammar-only",
+      "prompt": "Fix the grammar in this blog post.",
+      "expected": "Does not fire. No interpersonal stakes, so there is nothing to temper."
+    },
+    {
+      "id": "resume",
+      "prompt": "Rewrite my resume summary to sound stronger.",
+      "expected": "Does not fire. Not a message to a counterpart."
+    }
+  ],
+  "behaviors": []
+}

@@ -230,6 +230,55 @@ class RepositoryContractTests(unittest.TestCase):
         for permission in ("id-token: write", "attestations: write"):
             self.assertIn(permission, workflow)
 
+    def test_every_published_skill_has_trigger_and_non_trigger_cases(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "scripts/run-evals.py", "--check"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_eval_check_rejects_a_missing_suite_and_a_dangling_hand_off(self) -> None:
+        """A suite for a skill nobody publishes, or a hand-off to one, is drift."""
+
+        def run() -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [sys.executable, "scripts/run-evals.py", "--check"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        suite = ROOT / "evals" / "sync" / "evals.json"
+        original = suite.read_text(encoding="utf-8")
+        moved = suite.with_suffix(".json.moved")
+        try:
+            suite.rename(moved)
+            self.assertIn("missing", run().stderr)
+            moved.rename(suite)
+
+            document = json.loads(original)
+            document["non_triggers"][0]["routes_to"] = "no-such-skill"
+            suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            self.assertIn("not published", run().stderr)
+
+            document["non_triggers"][0]["routes_to"] = "sync"
+            suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            self.assertIn("its own skill", run().stderr)
+
+            suite.write_text(original, encoding="utf-8")
+            document = json.loads(original)
+            document["triggers"] = document["triggers"][:1]
+            suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            self.assertIn("needs at least", run().stderr)
+        finally:
+            if moved.exists():
+                moved.rename(suite)
+            suite.write_text(original, encoding="utf-8")
+
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/check-descriptions.py"],

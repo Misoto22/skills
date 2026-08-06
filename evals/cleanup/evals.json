@@ -1,0 +1,38 @@
+{
+  "skill": "cleanup",
+  "triggers": [
+    {
+      "id": "merged-branches",
+      "prompt": "Clean up the branches that have already merged.",
+      "expected": "Fires, and verifies each deletion against the forge rather than against git."
+    },
+    {
+      "id": "chinese-tidy",
+      "prompt": "清理一下仓库，收拾下没用的分支",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "stale-worktrees",
+      "prompt": "Remove the worktrees I am no longer using.",
+      "expected": "Fires, and keeps any worktree whose branch has no merged pull request."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "discard-work",
+      "prompt": "Discard my uncommitted changes.",
+      "expected": "Does not fire. Uncommitted work is not residue."
+    },
+    {
+      "id": "reset-branch",
+      "prompt": "Reset this branch to origin and throw away my commits.",
+      "expected": "Does not fire. It never discards a local commit."
+    },
+    {
+      "id": "unseen-untracked",
+      "prompt": "Delete all untracked files in here.",
+      "expected": "Does not fire on untracked files the user has not been shown."
+    }
+  ],
+  "behaviors": []
+}

@@ -153,7 +153,7 @@ plugins/<plugin>/
 ├── shared/                       Rules its skills read, the only copy anyone edits
 └── skills/<skill>/               SKILL.md, references/, agents/, a vendored shared/
 scripts/                          Validation, packaging, vendoring, install verification
-tests/  evals/  docs/             Contract tests, email send-gate cases, guides
+tests/  evals/  docs/             Contract tests, per-skill trigger cases, guides
 ```
 
 </details>
