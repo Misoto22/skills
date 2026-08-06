@@ -937,7 +937,13 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(len(grouped), len(set(grouped)), "a skill appears in two groups")
 
         titles = [group["title"] for group in config["groupings"]]
-        plugins = {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
+        # The skills CLI title-cases a plugin name for its own group headings. This
+        # page renders the string as written, so it carries the same casing rather
+        # than the raw kebab-case name.
+        plugins = {
+            path.parent.parent.name.replace("-", " ").title()
+            for path in PLUGINS.glob("*/.claude-plugin/plugin.json")
+        }
         self.assertEqual(set(titles), plugins, "groups should mirror the plugins")
 
         for group in config["groupings"]:

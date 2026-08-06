@@ -3,7 +3,7 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "writing",
+      "title": "Writing",
       "description": "Prose aimed at a person \u2014 drafting outbound email under policy, and rewriting a message that carries more frustration than its author wants to send.",
       "skills": [
         "email",
@@ -11,14 +11,14 @@
       ]
     },
     {
-      "title": "docs",
+      "title": "Docs",
       "description": "Prose aimed at whoever opens the repository next, written from what the repository's own files say rather than from its name.",
       "skills": [
         "readme"
       ]
     },
     {
-      "title": "dev",
+      "title": "Dev",
       "description": "The loop around a change \u2014 pull the base branch level, land the change as a merged pull request, then remove what shipping left behind.",
       "skills": [
         "sync",

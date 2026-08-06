@@ -249,10 +249,13 @@ def _register_skills_sh(plugin: str, skill: str, created: list[str]) -> None:
 
     path = ROOT / "skills.sh.json"
     config = json.loads(path.read_text(encoding="utf-8"))
-    group = next((g for g in config["groupings"] if g["title"] == plugin), None)
+    # The skills CLI title-cases a plugin name for its own group headings, and the
+    # directory page renders this string verbatim, so it carries the same casing.
+    title = plugin.replace("-", " ").title()
+    group = next((g for g in config["groupings"] if g["title"] == title), None)
     if group is None:
         group = {
-            "title": plugin,
+            "title": title,
             "description": f"PLACEHOLDER — what {plugin} skills are for, in one sentence.",
             "skills": [],
         }
