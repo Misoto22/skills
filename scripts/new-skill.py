@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Scaffold a skill, and register it everywhere the validator will look.
 
-Adding a skill by hand means editing five places — PUBLISHED in the validator,
-marketplace.json if the plugin is new, the plugin manifest, both READMEs, and
-the install workflow's --expect list. The validator catches a missed one, but
-catching is not the same as doing.
+Adding a skill by hand means editing six places — PUBLISHED in the validator,
+marketplace.json if the plugin is new, the plugin manifest, both READMEs, the
+install workflow's --expect list, and .version-bump.json. The validator catches
+a missed one, but catching is not the same as doing.
 
   python3 scripts/new-skill.py writing outline    Add a skill to an existing plugin
   python3 scripts/new-skill.py notes capture      Create the plugin too, if it is new
@@ -139,6 +139,7 @@ def main() -> int:
     _register_published(args.plugin, args.skill, created)
     _register_workflow(args.skill, created)
     _register_root_readme(args.plugin, args.skill, created)
+    _register_version_bump(args.plugin, args.skill, new_plugin, created)
 
     for path in created:
         print(f"  {path}")
@@ -226,6 +227,21 @@ def _register_root_readme(plugin: str, skill: str, created: list[str]) -> None:
     )
     lines.insert(last + 1, bullet)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
+    """A new SKILL.md carries a version, so the bumper has to know about it."""
+
+    path = ROOT / ".version-bump.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    skill_file = f"plugins/{plugin}/skills/{skill}/SKILL.md"
+    if skill_file not in config["text"]:
+        config["text"].insert(0, skill_file)
+    manifest = f"plugins/{plugin}/.claude-plugin/plugin.json"
+    if new_plugin and all(entry["path"] != manifest for entry in config["json"]):
+        config["json"].append({"path": manifest, "field": "version"})
+    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 

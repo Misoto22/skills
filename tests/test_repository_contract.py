@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -37,13 +38,22 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(marketplace["name"], "misoto22")
         self.assertEqual(marketplace["metadata"]["pluginRoot"], "./plugins")
-        self.assertEqual(
-            {entry["name"]: entry["source"] for entry in marketplace["plugins"]},
-            {"writing": "./plugins/writing", "docs": "./plugins/docs"},
-        )
+        registered = {entry["name"]: entry["source"] for entry in marketplace["plugins"]}
+        on_disk = {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
+        self.assertEqual(set(registered), on_disk)
+        for name, source in registered.items():
+            self.assertEqual(source, f"./plugins/{name}")
 
     def test_every_published_skill_is_registered(self) -> None:
-        published = {"writing": ["email", "tempering"], "docs": ["readme"]}
+        """Every source of truth agrees. The canonical list lives in the validator."""
+
+        validator = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+        block = re.search(r"PUBLISHED = \{(.*?)\n\}", validator, re.DOTALL).group(1)
+        published = {
+            name: re.findall(r'"([^"]+)"', skills)
+            for name, skills in re.findall(r'"([^"]+)": \[([^\]]*)\]', block)
+        }
+        self.assertTrue(published)
         root_readme = README_PATH.read_text(encoding="utf-8")
 
         found = sorted(path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json"))
@@ -83,12 +93,10 @@ class RepositoryContractTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertEqual(
-            result.stdout,
-            "plugins/docs/skills/readme/SKILL.md\n"
-            "plugins/writing/skills/email/SKILL.md\n"
-            "plugins/writing/skills/tempering/SKILL.md\n",
+        expected = sorted(
+            f"{path.relative_to(ROOT).as_posix()}\n" for path in PLUGINS.glob("*/skills/*/SKILL.md")
         )
+        self.assertEqual(result.stdout, "".join(expected))
 
     def test_link_script_creates_editable_links_in_isolated_destinations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -265,6 +273,7 @@ class RepositoryContractTests(unittest.TestCase):
             ".claude-plugin/marketplace.json",
             "scripts/validate-repository.py",
             ".github/workflows/install.yml",
+            ".version-bump.json",
             "README.md",
         ]
         before = {path: (ROOT / path).read_bytes() for path in touched}
