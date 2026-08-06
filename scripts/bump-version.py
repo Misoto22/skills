@@ -7,7 +7,7 @@ how a tag ends up describing artefacts that disagree with it.
 
   python3 scripts/bump-version.py --check      Report the current version, and any drift
   python3 scripts/bump-version.py --audit      Also grep the repository for stragglers
-  python3 scripts/bump-version.py 0.4.0        Rewrite every declared occurrence
+  python3 scripts/bump-version.py <version>    Rewrite every declared occurrence
 
 `--audit` is the half that matters: declaring a file is easy to forget, so the
 grep runs over everything not explicitly excluded and reports what the declared
@@ -103,7 +103,7 @@ def audit(config: dict, current: str) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("version", nargs="?", help="the new version, e.g. 0.4.0")
+    group.add_argument("version", nargs="?", help="the new version, e.g. 1.4.0")
     group.add_argument("--check", action="store_true", help="report the current version and any drift")
     group.add_argument("--audit", action="store_true", help="--check, plus grep for undeclared occurrences")
     args = parser.parse_args()
