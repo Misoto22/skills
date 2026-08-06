@@ -21,8 +21,8 @@ Shared material lives inside the plugin that uses it. Installers copy a plugin â
 
 | Skill | Command | Purpose | Version |
 | --- | --- | --- | ---: |
-| [email](plugins/writing/skills/email/SKILL.md) | `/writing:email` | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.1.0 |
-| [tempering](plugins/writing/skills/tempering/SKILL.md) | `/writing:tempering` | Rewrite a blunt or frustrated workplace message into three registers without losing the request. | 0.1.0 |
+| [email](plugins/writing/skills/email/SKILL.md) | `/writing:email` | Draft policy-aware email or send exact validated artifacts with Sent-message readback verification. | 0.2.0 |
+| [tempering](plugins/writing/skills/tempering/SKILL.md) | `/writing:tempering` | Rewrite a blunt or frustrated workplace message into three registers without losing the request. | 0.2.0 |
 
 ## Install
 

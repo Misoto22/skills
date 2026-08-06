@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.2.0 — 2026-08-06
 
 - **Breaking:** restructured the repository into a multi-plugin marketplace. The marketplace is now `misoto22` and the email skill is published by a `writing` plugin, so the install string is `writing@misoto22` and the command is `/writing:email`. The previous `skills@skills` install no longer resolves; reinstall from the new marketplace.
 - Moved published skills from `skills/<name>/` to `plugins/writing/skills/<name>/`, and the plugin manifest from the repository root to `plugins/writing/.claude-plugin/`.
