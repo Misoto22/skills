@@ -6,7 +6,8 @@
 - Marketplace name, plugin name, and skill directory name are three separate things. The plugin name becomes the command prefix, so `writing` + `email` gives `/writing:email`.
 - Plugin names must be kebab-case: lowercase letters, digits, and hyphens only. Claude Code is lenient here; the claude.ai marketplace sync is not.
 - A plugin is copied to a cache directory on install, so nothing outside the plugin directory exists at runtime. Never reference `../` out of a plugin. Shared material goes in `plugins/<plugin>/shared/`, duplicated per plugin where two plugins need the same file.
-- Skills reach shared material as `${CLAUDE_SKILL_DIR}/../../shared/<file>`, written as a code span rather than a markdown link so the validator's escape check still holds. `package-skill.py` copies `shared/` into each `.skill` and rebases the reference.
+- Every path a skill references must resolve from the skill root on every installer. `${CLAUDE_*}` variables and `../` are rejected in published skill content: only Claude Code expands the former, and only its plugin cache keeps a directory above the skill.
+- `plugins/<plugin>/shared/` is the only copy anyone edits. `scripts/sync-shared.py` vendors it into `skills/<skill>/shared/`, and those copies are committed so a plain clone installs correctly. The validator, `package-skill.py`, and CI all fail on drift.
 - Only release-ready skills may live under a plugin's `skills/`; use a top-level `drafts/` for unfinished work and `deprecated/` for retired material.
 
 ## Content

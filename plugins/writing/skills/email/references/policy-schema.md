@@ -44,7 +44,7 @@ The loader checks an explicit task path, `EMAIL_SKILL_POLICY`, `.agents/email-po
 
 Every token is shape-checked because it is interpolated into an inline `style` attribute. Message content is never a source of style: cells recognize only the closed `[!ok]`, `[!warn]`, and `[!bad]` markers, and any other bracketed text stays literal.
 
-Start from `../policy.example.json`. The shipped example uses reserved `.test` domains, automated send remains disabled, and no style profile is configured.
+Start from `policy.example.json` at the skill root. The shipped example uses reserved `.test` domains, automated send remains disabled, and no style profile is configured.
 
 ## Message bundle
 

@@ -20,7 +20,7 @@ Follow the upstream repository's current installation instructions for a global 
 
 Fallback checklist when optional Humanizer is unavailable:
 
-- apply `${CLAUDE_SKILL_DIR}/../../shared/tone.md`, which carries the filler, inflation, and unearned-warmth rules;
+- apply `shared/tone.md` at the skill root, which carries the filler, inflation, and unearned-warmth rules;
 - prefer direct, specific sentences;
 - vary sentence length only when it improves natural flow;
 - keep every protected string unchanged.

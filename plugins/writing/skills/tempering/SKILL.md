@@ -53,7 +53,7 @@ Say so plainly and stop if the draft is already appropriate. Not every message n
 
 ## Constraints
 
-Read `${CLAUDE_SKILL_DIR}/../../shared/tone.md` and `${CLAUDE_SKILL_DIR}/../../shared/format.md` before producing any register. They carry the apology, inflation, filler, fact-preservation, channel, and language rules for this plugin, and are deliberately not restated here.
+Read [shared/tone.md](shared/tone.md) and [shared/format.md](shared/format.md) before producing any register. They carry the apology, inflation, filler, fact-preservation, channel, and language rules for this plugin, and are deliberately not restated here.
 
 Two things they do not cover:
 

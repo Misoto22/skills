@@ -25,6 +25,14 @@ FORBIDDEN_RUNTIME_TEXT = (
 )
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
+# Only Claude Code expands ${CLAUDE_*}, and only Claude Code's plugin cache keeps
+# a directory above the skill. Anything a skill reads must resolve from the skill
+# root on every installer, so both forms are rejected in published content.
+NON_PORTABLE_TEXT = (
+    ("${CLAUDE_", "host-specific variable"),
+    ("../", "path escaping the skill"),
+)
+
 
 def validate_repository(*, run_tests: bool) -> list[str]:
     errors: list[str] = []
@@ -72,9 +80,18 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     for skill_path in skill_paths:
         _validate_skill(skill_path, errors)
 
-    # shared/ ships inside every packaged skill, so it is held to the same
+    # shared/ ships inside every published skill, so it is held to the same
     # runtime-neutrality rule as the skills that read it.
     _validate_runtime_text(plugin_root / "shared", errors)
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "sync-shared.py"), "--check"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        errors.append("vendored shared/ copies are stale; run scripts/sync-shared.py")
 
     if run_tests and not errors:
         result = subprocess.run(
@@ -142,6 +159,9 @@ def _validate_runtime_text(root: Path, errors: list[str]) -> None:
         for forbidden in FORBIDDEN_RUNTIME_TEXT:
             if forbidden in content:
                 errors.append(f"{path}: contains forbidden hardcode {forbidden!r}")
+        for fragment, reason in NON_PORTABLE_TEXT:
+            if fragment in content:
+                errors.append(f"{path}: contains {reason} {fragment!r}")
 
 
 def _parse_frontmatter(
