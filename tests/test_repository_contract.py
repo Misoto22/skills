@@ -777,6 +777,20 @@ class RepositoryContractTests(unittest.TestCase):
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
 
+        for relative in ("SECURITY.md", ".github/CODEOWNERS"):
+            self.assertTrue((ROOT / relative).is_file(), relative)
+
+        # The email skill is the one carrying send authority, so a reviewer has
+        # to be named for it explicitly rather than by the catch-all.
+        codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+        for path in ("*", "/plugins/writing/skills/email/", "/.github/workflows/", "/.ci-pins.json"):
+            self.assertIn(path, codeowners)
+
+        security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+        self.assertIn("security/advisories/new", security)
+        self.assertIn("references/security-model.md", security)
+        self.assertIn("gh attestation verify", security)
+
         contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
         for command in (
             "scripts/new-skill.py",

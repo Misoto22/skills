@@ -1,0 +1,15 @@
+# Review is requested automatically from the owner listed for a path. The last
+# matching pattern wins, so the specific entries below override the catch-all.
+
+* @Misoto22
+
+# The send-authorization, disclosure, artifact-integrity, and readback gates.
+# AGENTS.md forbids weakening them, and forbids relocating them to shared/.
+/plugins/writing/skills/email/ @Misoto22
+
+# What a release publishes, what CI proves before it does, and the pins that
+# decide which CLIs those proofs ran against.
+/.github/workflows/ @Misoto22
+/.ci-pins.json @Misoto22
+/scripts/ @Misoto22
+/SECURITY.md @Misoto22
