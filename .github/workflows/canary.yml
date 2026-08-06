@@ -1,0 +1,61 @@
+name: Canary
+
+# A pin is what makes a CI result reproducible, and it is also why nothing here
+# ever fails on an upstream change: the Install workflow keeps testing the same
+# four routes at the same four versions. This runs them at @latest on a schedule,
+# so a CLI that breaks an install is found by this repository rather than
+# reported by whoever installed it next.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  latest:
+    uses: ./.github/workflows/install.yml
+    with:
+      channel: latest
+
+  report:
+    name: Report the breakage
+    needs: latest
+    # Only on the schedule. A manual run is one someone is already watching,
+    # and filing an issue at them is noise.
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # One open issue, commented on each week it stays broken. A new issue per
+      # run would bury the first report, which is the one holding the context.
+      - name: Open or update the breakage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create canary --color FBCA04 \
+            --description "An install route broke against the latest CLIs" 2>/dev/null || true
+
+          body=$(printf 'The weekly run against the latest CLIs failed: %s\n\n%s\n\n%s\n' \
+            "$RUN_URL" \
+            "Pinned CI is still green, so this is upstream drift rather than a change here. The pins that route installs:" \
+            "$(python3 scripts/ci-pins.py check || true)")
+
+          existing=$(gh issue list --state open --label canary --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --label canary --title "Canary: an install route broke against the latest CLIs" --body "$body"
+          fi

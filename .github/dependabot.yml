@@ -3,10 +3,12 @@ version: 2
 # Pinning is what makes a CI result reproducible; it is also how a pin silently
 # goes two years stale. This covers the `uses:` actions only.
 #
-# The CLI pins inside `run:` steps — @anthropic-ai/claude-code, @openai/codex,
-# skills, and ruff — are not a manifest dependabot can read, so they stay manual.
-# They are checked when an install route starts failing, which is what the
-# Install workflow is for.
+# The CLI pins — @anthropic-ai/claude-code, @openai/codex, skills, and ruff —
+# are declared in .ci-pins.json, which is not a manifest dependabot can read, so
+# they move by hand with `scripts/ci-pins.py bump`. What tells you to move one is
+# the Canary workflow: it runs the same four install routes at @latest every
+# week and opens an issue when one breaks. Install alone cannot, because a
+# pinned route never fails on an upstream change.
 updates:
   - package-ecosystem: github-actions
     directory: /
