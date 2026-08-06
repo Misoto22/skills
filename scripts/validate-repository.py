@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 PLUGIN_NAME = "writing"
 MARKETPLACE_NAME = "misoto22"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 TEXT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh"}
 FORBIDDEN_RUNTIME_TEXT = (
     "/Users/",

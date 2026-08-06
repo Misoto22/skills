@@ -122,8 +122,8 @@ class RepositoryContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertEqual(plugin["version"], "0.1.0")
-        self.assertIn('version: "0.1.0"', skill)
+        self.assertEqual(plugin["version"], "0.2.0")
+        self.assertIn('version: "0.2.0"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("actions/checkout@v7", workflow)
         self.assertIn("actions/setup-python@v7", workflow)
