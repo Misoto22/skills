@@ -513,7 +513,7 @@ class RepositoryContractTests(unittest.TestCase):
         # Both triggers resolve to one $TAG. $GITHUB_REF_NAME is a branch name on
         # a dispatch, so anything downstream still reading it would publish under
         # the wrong name.
-        after = workflow.split("echo \"TAG=v$declared\"", 1)[1]
+        after = workflow.split('echo "TAG=v$declared"', 1)[1]
         self.assertNotIn("GITHUB_REF_NAME", after)
         for command in ("gh release view", "gh release upload", "gh release create"):
             self.assertIn(f'{command} "$TAG"', after)
