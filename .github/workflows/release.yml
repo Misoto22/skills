@@ -1,0 +1,45 @@
+name: Release
+
+# GitHub marketplace sync is an organization feature, so claude.ai and Cowork
+# are served by manually uploaded .skill archives. This builds them once per
+# tag instead of asking every consumer to rebuild them locally.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Run the test suite
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Package every published skill
+        run: |
+          mkdir -p dist
+          for skill_file in $(bash scripts/list-skills.sh); do
+            python3 scripts/package-skill.py "${skill_file%/SKILL.md}" dist
+          done
+          ls -l dist
+
+      - name: Attach the archives to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.skill --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.skill \
+              --verify-tag \
+              --generate-notes \
+              --title "$GITHUB_REF_NAME"
+          fi

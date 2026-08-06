@@ -131,6 +131,19 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("@anthropic-ai/claude-code@2.1.220", workflow)
         self.assertIn('python-version: ["3.11", "3.13"]', workflow)
 
+    def test_release_workflow_packages_every_skill_on_tag_push(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('tags: ["v*"]', workflow)
+        self.assertIn("permissions:\n  contents: write", workflow)
+        self.assertIn("actions/checkout@v7", workflow)
+        self.assertIn("actions/setup-python@v7", workflow)
+        self.assertIn("scripts/list-skills.sh", workflow)
+        self.assertIn("scripts/package-skill.py", workflow)
+        self.assertIn("dist/*.skill", workflow)
+
     def test_repository_validator_accepts_the_checkout(self) -> None:
         subprocess.run(
             [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
