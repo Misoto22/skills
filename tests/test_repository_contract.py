@@ -22,6 +22,17 @@ SKILLS_README_PATH = SKILLS / "README.md"
 PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 LINK_SCRIPT = ROOT / "scripts" / "link-skills.sh"
+CHANGELOG_PATH = ROOT / "CHANGELOG.md"
+RELEASE_HEADING = re.compile(r"^## (\d+\.\d+\.\d+) — \d{4}-\d{2}-\d{2}$")
+
+
+def declared_version() -> str:
+    """Read the version the validator gates every manifest against."""
+
+    text = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+    match = re.search(r'^VERSION = "([^"]+)"', text, re.MULTILINE)
+    assert match, "validate-repository.py declares no VERSION"
+    return match.group(1)
 
 
 class RepositoryContractTests(unittest.TestCase):
@@ -162,6 +173,38 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("astral-sh/ruff-action@v3", workflow)
         self.assertIn('version: "0.14.6"', workflow)
         self.assertIn("shellcheck scripts/*.sh", workflow)
+
+    def test_changelog_keeps_one_unreleased_section_and_descending_releases(self) -> None:
+        """Two `## Unreleased` sections merge on sight, and the second one's entries vanish."""
+
+        headings = [
+            line for line in CHANGELOG_PATH.read_text(encoding="utf-8").splitlines() if line.startswith("## ")
+        ]
+        self.assertLessEqual(headings.count("## Unreleased"), 1, headings)
+        if "## Unreleased" in headings:
+            self.assertEqual(headings[0], "## Unreleased", "Unreleased belongs above every release")
+
+        releases = []
+        for heading in headings:
+            if heading == "## Unreleased":
+                continue
+            match = RELEASE_HEADING.match(heading)
+            self.assertIsNotNone(match, f"malformed release heading: {heading!r}")
+            releases.append(tuple(int(part) for part in match.group(1).split(".")))
+
+        self.assertEqual(releases, sorted(releases, reverse=True), "releases must run newest first")
+        self.assertEqual(len(releases), len(set(releases)), "a version is documented twice")
+
+    def test_changelog_documents_the_declared_version(self) -> None:
+        """A bump that never closed `## Unreleased` tags a release nothing describes."""
+
+        version = declared_version()
+        changelog = CHANGELOG_PATH.read_text(encoding="utf-8")
+        self.assertRegex(
+            changelog,
+            rf"(?m)^## {re.escape(version)} — \d{{4}}-\d{{2}}-\d{{2}}$",
+            f"CHANGELOG.md has no section for the declared version {version}",
+        )
 
     def test_release_workflow_packages_every_skill_on_tag_push(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
