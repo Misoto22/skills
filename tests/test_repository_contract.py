@@ -218,6 +218,57 @@ class RepositoryContractTests(unittest.TestCase):
         finally:
             translation.write_bytes(original)
 
+    def test_every_plugin_ships_both_manifests_and_they_agree(self) -> None:
+        """Claude Code reads one file, every Agent Plugins client reads the other."""
+
+        schema = re.compile(r"\Ahttps://agent-plugins\.org/schemas/\d+\.\d+\.\d+/plugin\.schema\.json\Z")
+        claude = sorted(path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json"))
+        portable = sorted(path.parent.name for path in PLUGINS.glob("*/plugin.json"))
+        self.assertEqual(claude, portable, "a plugin carries one manifest and not the other")
+        self.assertTrue(portable)
+
+        declared = set()
+        for name in portable:
+            manifest = json.loads((PLUGINS / name / "plugin.json").read_text(encoding="utf-8"))
+            beside = json.loads(
+                (PLUGINS / name / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+
+            self.assertRegex(manifest["$schema"], schema, name)
+            declared.add(manifest["$schema"])
+            for field in ("name", "version", "description", "license", "author"):
+                self.assertEqual(manifest[field], beside[field], f"{name}: {field}")
+            # The schema is closed, and both of these are outside it: the skills
+            # tree is discovered from skills/, and dependencies have no spec.
+            self.assertNotIn("skills", manifest, name)
+            self.assertNotIn("dependencies", manifest, name)
+        self.assertEqual(len(declared), 1, f"plugins target more than one schema: {sorted(declared)}")
+
+    def test_the_validator_rejects_a_portable_manifest_that_drifted(self) -> None:
+        """The agreement above only means something if disagreeing fails the build."""
+
+        manifest = PLUGINS / "docs" / "plugin.json"
+        original = manifest.read_bytes()
+        document = json.loads(original)
+        try:
+            for field, value, expected in (
+                ("description", "Something else entirely.", "description disagrees"),
+                ("skills", ["./skills/readme"], "outside the Agent Plugins schema"),
+                ("$schema", "https://example.com/plugin.schema.json", "$schema must name"),
+            ):
+                manifest.write_text(json.dumps({**document, field: value}, indent=2) + "\n")
+                result = subprocess.run(
+                    [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, field)
+                self.assertIn(expected, result.stderr, f"{field} was not the rule that fired")
+        finally:
+            manifest.write_bytes(original)
+
     def test_docs_plugin_declares_the_readme_skill(self) -> None:
         plugin = json.loads((DOCS_PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 

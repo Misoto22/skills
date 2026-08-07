@@ -12,8 +12,8 @@ cost of leaving it in, which is how a catalogue fills with things nobody uses.
 The default keeps the material. A retired skill moves to
 `deprecated/<plugin>/<skill>/` with its evaluation cases beside it, so what it
 said and what it was tested against survive the decision to stop shipping it.
-Emptying a plugin retires the plugin too — its manifest, its marketplace entry,
-and its group on the directory page.
+Emptying a plugin retires the plugin too — both its manifests, its marketplace
+entry, and its group on the directory page.
 """
 
 from __future__ import annotations
@@ -185,8 +185,13 @@ def _unregister_version_bump(plugin: str, skill: str, retires_plugin: bool, touc
         entry for entry in config["text"] if entry != f"plugins/{plugin}/skills/{skill}/SKILL.md"
     ]
     if retires_plugin:
-        manifest = f"plugins/{plugin}/.claude-plugin/plugin.json"
-        config["json"] = [entry for entry in config["json"] if entry["path"] != manifest]
+        # Both manifests go with the plugin directory, so both declarations go
+        # with them — a path left here reads as a file the bumper can open.
+        retired = {
+            f"plugins/{plugin}/.claude-plugin/plugin.json",
+            f"plugins/{plugin}/plugin.json",
+        }
+        config["json"] = [entry for entry in config["json"] if entry["path"] not in retired]
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "astrology",
+  "version": "0.8.1",
+  "description": "Positional astrology computed from birth data, reported as data rather than as a reading.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}
