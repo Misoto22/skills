@@ -35,22 +35,22 @@
 
 #### `writing` —— 写给人看的文字
 
-- **[email](plugins/writing/skills/email/SKILL.md)**（`/writing:email`）—— 按策略起草邮件，或发送带哈希的确切内容并与已发送邮件逐项核对。默认只起草；自动发送在配置出一个足够窄的本地授权范围之前始终关闭。
-- **[tempering](plugins/writing/skills/tempering/SKILL.md)**（`/writing:tempering`）—— 把生硬或带火气的职场消息改写成三种语域，保留原话里的诉求、日期和后果。
+- **[email](plugins/writing/skills/email/SKILL.md)**（`/writing:email`）—— 按预设的策略起草邮件；也能发送，发完再拿哈希逐字比对已发送的那封，确认内容没被中途改动。默认只起草，自动发送要先配好一个足够窄的授权范围才会打开。
+- **[tempering](plugins/writing/skills/tempering/SKILL.md)**（`/writing:tempering`）—— 把生硬或带火气的职场消息改写成三种轻重不同的说法，原话里的诉求、日期和后果一个都不丢。
 
 #### `docs` —— 写给下一个打开这个仓库的人
 
-- **[readme](plugins/docs/skills/readme/SKILL.md)**（`/docs:readme`）—— 依据仓库自己的文件写、重构或审查 README，凡是文件里查不到的事实，留一个方括号占位符而不是编。
+- **[readme](plugins/docs/skills/readme/SKILL.md)**（`/docs:readme`）—— 依据仓库自己的文件写、重构或审查 README，凡是文件里查不到的，留一个方括号占位符，不猜。
 
 #### `dev` —— 一次改动的完整闭环
 
-- **[sync](plugins/dev/skills/sync/SKILL.md)**（`/dev:sync`）—— fetch、prune、把基准分支快进，然后报告哪里分叉了。只做快进；分叉的分支只报告，绝不 rebase。
-- **[ship](plugins/dev/skills/ship/SKILL.md)**（`/dev:ship`）—— 把当前改动作为一个合并的 PR 落地。预检会把每一步标成 RUN 或 SKIP，所以干净的工作区什么都不做就退出；任何一步失败两次就停下来问。
-- **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都向 forge 求证，而不是信 git。
+- **[sync](plugins/dev/skills/sync/SKILL.md)**（`/dev:sync`）—— 拉取远端、清掉已删除的远端分支引用、把基准分支快进到最新，然后报告哪里对不上。它只做快进：分叉了就如实报告，绝不替你 rebase。
+- **[ship](plugins/dev/skills/ship/SKILL.md)**（`/dev:ship`）—— 把当前改动开成 PR，等 CI 绿了合掉。开跑前先预检，每一步标成 RUN 或 SKIP，所以工作区本来就干净时它什么都不做就退出；哪一步连失败两次就停下来问。
+- **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都拿 GitHub 上的状态核对过，而不是听 git 的。
 
-#### `astrology` —— 由出生数据算出的位置
+#### `astrology` —— 按出生时间和地点排盘
 
-- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 计算两张本命盘、它们之间的全部相位，以及双向的宫位互入。出生时间不精确到分钟就拒绝计算；只出数据，解读是下一轮的事。
+- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 排出两个人的本命盘，算出彼此之间的全部相位，以及各自落进对方的哪些宫位。出生时间不精确到分钟就拒绝计算。它只出数据，怎么解读是另一回事。
 
 ---
 
@@ -61,7 +61,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` 自己不带任何 skill。它依赖上面四个 plugin 和下面五个[书签](#书签)，所以一条命令装齐九个。只要其中一个主题就直接点名 —— `claude plugin install writing@misoto22`。
+`all` 自己不带任何 skill。它依赖上面四个 plugin 和下面五个[书签](#书签)，所以一条命令装齐九个。只想要其中一类就单独装 —— `claude plugin install writing@misoto22`。
 
 > [!NOTE]
 > 下面四条安装路径每次 push 都跑 CI，验的是安装器真正产出的目录树，而不是这个仓库本身。
@@ -159,7 +159,7 @@ claude plugin install obsidian@misoto22
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
 
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而住在别人仓库里的 plugin 不归它们提供。所以那两条路径始终只有上面七个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面七个 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，
@@ -169,14 +169,14 @@ Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则
 
 ---
 
-### 安装之后必须自洽
+### 装完之后要能独立跑起来
 
 > [!IMPORTANT]
 > 每个安装器拷的都是一个 plugin —— 在大多数 agent 上甚至只是单个 skill 目录 ——
 > 它上面的东西一概不拷。用 `../` 爬出去的引用只在这个仓库里解析得开，到别处就是断的；
 > 而 `${CLAUDE_*}` 只有 Claude Code 会展开。这两种写法在已发布的 skill 内容里都会被拒绝。
 
-两个 skill 共用的规则放在 `plugins/<plugin>/shared/`，那是唯一一份人手编辑的副本。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 针对真实安装出来的目录树验证这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 拷贝，或者解包后的 `.skill` 都行。
+两个 skill 共用的规则放在 `plugins/<plugin>/shared/`，只有这一份是手写的。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 拿真正装出来的目录验一遍这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 里的拷贝，或者解包后的 `.skill`，都行。
 
 ```mermaid
 flowchart LR
@@ -203,7 +203,7 @@ flowchart LR
 .claude-plugin/marketplace.json   Marketplace：misoto22
 plugins/<plugin>/
 ├── .claude-plugin/plugin.json    Plugin 清单 → /<plugin>:*
-├── shared/                       它的 skill 会读的规则，唯一一份人手编辑的副本
+├── shared/                       skill 会读的共用规则，只有这一份是手写的
 └── skills/<skill>/               SKILL.md、references/、agents/，以及 vendor 进来的 shared/
 scripts/                          校验、打包、vendor、安装验证
 tests/  evals/  docs/             契约测试、每个 skill 的触发用例、说明文档
@@ -211,7 +211,7 @@ tests/  evals/  docs/             契约测试、每个 skill 的触发用例、
 
 </details>
 
-这个仓库不持有任何传输凭证，也没有实现 SMTP。email skill 只负责校验和哈希内容；把它发出去是调用方的传输层的事。
+这个仓库不持有任何传输凭证，也没有实现 SMTP。email skill 只负责校验内容、算哈希；至于怎么把它发出去，那是调用方自己的事。
 
 ---
 
