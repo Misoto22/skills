@@ -1,8 +1,8 @@
-# skills
+<div align="right"><a href="README.md">English</a> · <b>简体中文</b></div>
 
 <div align="center">
 
-[English](README.md) · **简体中文**
+<h1>skills</h1>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
