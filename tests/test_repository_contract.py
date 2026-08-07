@@ -19,6 +19,10 @@ PLUGIN = PLUGINS / "writing"
 SKILLS = PLUGIN / "skills"
 DOCS_PLUGIN = PLUGINS / "docs"
 README_PATH = ROOT / "README.md"
+# Every root README is a registry the scaffold writes to, so every one of them has
+# to be snapshotted and restored by the round-trip tests below. Naming only the
+# English one leaves a translation holding a scaffolded PLACEHOLDER afterwards.
+ROOT_READMES = [path.name for path in sorted(ROOT.glob("README*.md"))]
 SKILLS_README_PATH = SKILLS / "README.md"
 PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
@@ -173,6 +177,46 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn(f"plugins/{plugin}/skills/{name}/SKILL.md", root_readme)
                 self.assertIn(f"{name}/SKILL.md", skills_readme)
                 self.assertIn(f"/{plugin}:{name}`", root_readme)
+
+    def test_every_translated_readme_registers_every_skill(self) -> None:
+        """A translation nothing checks goes stale on the next skill added, silently."""
+
+        translations = sorted(path for path in ROOT.glob("README*.md") if path.name != "README.md")
+        self.assertTrue(translations, "no translated README to hold to the registry")
+
+        for path in translations:
+            text = path.read_text(encoding="utf-8")
+            for skill_file in PLUGINS.glob("*/skills/*/SKILL.md"):
+                skill = skill_file.parent.name
+                plugin = skill_file.parent.parent.parent.name
+                self.assertIn(f"plugins/{plugin}/skills/{skill}/SKILL.md", text, path.name)
+                self.assertIn(f"/{plugin}:{skill}`", text, path.name)
+
+    def test_the_validator_rejects_a_translation_that_dropped_a_skill(self) -> None:
+        """The check above only means something if the validator fails without it."""
+
+        translation = next(path for path in sorted(ROOT.glob("README*.md")) if path.name != "README.md")
+        original = translation.read_bytes()
+        skill_file = sorted(PLUGINS.glob("*/skills/*/SKILL.md"))[0]
+        registered = (
+            f"plugins/{skill_file.parent.parent.parent.name}/skills/{skill_file.parent.name}/SKILL.md"
+        )
+        try:
+            # Drop one skill's registration, exactly as forgetting to translate it would.
+            edited = original.decode("utf-8").replace(registered, "", 1)
+            translation.write_bytes(edited.encode("utf-8"))
+            result = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0, "a translation missing a skill validated")
+            self.assertIn(translation.name, result.stderr)
+            self.assertIn("does not register", result.stderr)
+        finally:
+            translation.write_bytes(original)
 
     def test_docs_plugin_declares_the_readme_skill(self) -> None:
         plugin = json.loads((DOCS_PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -758,7 +802,7 @@ class RepositoryContractTests(unittest.TestCase):
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
-            "README.md",
+            *ROOT_READMES,
         ]
         before = {path: (ROOT / path).read_bytes() for path in touched}
         scaffolded = ROOT / "plugins" / "scaffoldtest"
@@ -802,7 +846,7 @@ class RepositoryContractTests(unittest.TestCase):
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
-            "README.md",
+            *ROOT_READMES,
         ]
         before = {path: (ROOT / path).read_bytes() for path in registries}
         scaffolded = ROOT / "plugins" / "roundtrip"
@@ -832,7 +876,7 @@ class RepositoryContractTests(unittest.TestCase):
             "scripts/validate-repository.py",
             ".version-bump.json",
             "skills.sh.json",
-            "README.md",
+            *ROOT_READMES,
         ]
         before = {path: (ROOT / path).read_bytes() for path in registries}
         scaffolded = ROOT / "plugins" / "roundtrip"
@@ -875,7 +919,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         edited = [
             "scripts/validate-repository.py",
-            "README.md",
+            *ROOT_READMES,
             ".version-bump.json",
             "skills.sh.json",
             "evals/email/evals.json",

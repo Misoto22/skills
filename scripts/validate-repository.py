@@ -93,7 +93,13 @@ NON_PORTABLE_TEXT = (
 def validate_repository(*, run_tests: bool) -> list[str]:
     errors: list[str] = []
     marketplace = _load_json(ROOT / ".claude-plugin" / "marketplace.json", errors)
-    root_readme = _read_text(ROOT / "README.md", errors)
+    # Every root README, not only the English one. A translation becomes a second
+    # registry the moment it lists skills, and one nothing checks goes stale on the
+    # next skill added — silently, because the file it was translated from is the
+    # only one CI was reading.
+    root_readmes = {path.name: _read_text(path, errors) for path in sorted(ROOT.glob("README*.md"))}
+    if "README.md" not in root_readmes:
+        errors.append("README.md is missing")
 
     found_plugins = sorted(
         path.parent.parent.name for path in PLUGINS_ROOT.glob("*/.claude-plugin/plugin.json")
@@ -168,8 +174,9 @@ def validate_repository(*, run_tests: bool) -> list[str]:
 
         skills_readme = _read_text(skills_root / "README.md", errors)
         for name in names:
-            if f"plugins/{plugin_name}/skills/{name}/SKILL.md" not in root_readme:
-                errors.append(f"README.md does not register {plugin_name}/{name}")
+            for readme_name, readme in root_readmes.items():
+                if f"plugins/{plugin_name}/skills/{name}/SKILL.md" not in readme:
+                    errors.append(f"{readme_name} does not register {plugin_name}/{name}")
             if f"{name}/SKILL.md" not in skills_readme:
                 errors.append(f"{plugin_name} skills/README.md does not register {name}")
 
@@ -186,15 +193,16 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         # runtime-neutrality rule as the skills that read it.
         _validate_runtime_text(plugin_root / "shared", errors)
 
-    for reference in PUBLISHED_REFERENCE.findall(root_readme):
-        if not (ROOT / reference).is_file():
-            errors.append(f"README.md links {reference}, which does not exist")
+    for readme_name, readme in root_readmes.items():
+        for reference in PUBLISHED_REFERENCE.findall(readme):
+            if not (ROOT / reference).is_file():
+                errors.append(f"{readme_name} links {reference}, which does not exist")
 
-    for retired_root in RETIRED_ROOTS:
-        for skill_file in sorted((ROOT / retired_root).rglob("SKILL.md")):
-            relative = skill_file.relative_to(ROOT).as_posix()
-            if relative in root_readme:
-                errors.append(f"README.md lists {relative}, which is not published")
+        for retired_root in RETIRED_ROOTS:
+            for skill_file in sorted((ROOT / retired_root).rglob("SKILL.md")):
+                relative = skill_file.relative_to(ROOT).as_posix()
+                if relative in readme:
+                    errors.append(f"{readme_name} lists {relative}, which is not published")
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "sync-shared.py"), "--check"],
