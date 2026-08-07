@@ -79,6 +79,17 @@ codex plugin add all@misoto22
 </details>
 
 <details>
+<summary><b>ChatGPT、Cursor、GitHub Copilot、Kiro、VS Code</b> —— Agent Plugins 格式</summary>
+
+这里每个 plugin 都额外带一份清单 `plugins/<name>/plugin.json`，用的是 Amazon、Cursor、Microsoft、OpenAI 和 Vercel 在 2026 年 8 月发布的 [Agent Plugins](https://agent-plugins.org/) 格式。让实现了这个格式的客户端指向 plugin 目录即可；旁边的 `skills/` 目录树和 Claude Code 读的是同一份。
+
+之所以是两份清单而不是一份：两边互相看不见对方的字段。Claude Code 需要一个 `skills` 数组，而 Agent Plugins 的 schema 是封闭的，会拒绝这个字段。校验器会断言两份共有的字段一致，一次 bump 同时改动两份。
+
+`all` 在这里没有对应物。它除了一份依赖清单什么都不是，而这个格式不定义依赖 —— 一条命令装齐仍然只是 Claude Code 和 Codex 的路径。
+
+</details>
+
+<details>
 <summary><b>Cursor、Windsurf、opencode 等约 70 个</b> —— 一条命令，然后自己挑</summary>
 
 ```bash

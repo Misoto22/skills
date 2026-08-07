@@ -43,6 +43,38 @@ BOOKMARKED = {
 COMMIT_SHA = re.compile(r"\A[0-9a-f]{40}\Z")
 REMOTE_SOURCE_KINDS = {"git-subdir", "url"}
 
+# The second manifest, for the readers Claude Code is not. Claude Code reads
+# .claude-plugin/plugin.json; ChatGPT, Codex, Cursor, Copilot, Kiro and VS Code
+# read Agent Plugins' plugin.json at the plugin root. Neither file is derived
+# from the other, so the fields they share are asserted equal here and the
+# bumper moves both — a plugin described two ways drifts otherwise.
+#
+# The spec version is deliberately not written down in this file. It appears
+# inside the $schema URL as a semver, and every declared version here is moved
+# by a plain string replace: a release that reached that same number would
+# rewrite the URL with it. The URL is held to its shape instead, and the four
+# manifests are held to declaring one identical schema.
+AGENT_PLUGIN_SCHEMA = re.compile(r"\Ahttps://agent-plugins\.org/schemas/\d+\.\d+\.\d+/plugin\.schema\.json\Z")
+# The schema is closed: a field outside this set does not conform, and clients
+# are required to report it. `skills` is absent because the skills tree is found
+# by reading skills/ rather than by declaring it, and `dependencies` is absent
+# because the spec has no such concept — which is why the bundle, whose whole
+# content is a dependency list, ships no portable manifest.
+AGENT_PLUGIN_FIELDS = {
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+}
+AGENT_PLUGIN_SHARED = ("name", "version", "description", "license", "author")
+REPOSITORY_URL = "https://github.com/Misoto22/skills"
+
 # One entry installs the rest, by depending on every plugin above. It carries no
 # skills, so it sits outside plugins/ where the packager, list-skills.sh, and the
 # per-skill install routes cannot mistake it for one. Its dependency list is
@@ -107,6 +139,13 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     if found_plugins != sorted(PUBLISHED):
         errors.append(f"published plugins must be {sorted(PUBLISHED)}; found {found_plugins}")
 
+    # Both manifests, over the same set. A plugin carrying one and not the other
+    # installs on half the clients this repository claims to support, and which
+    # half is invisible from either file on its own.
+    found_portable = sorted(path.parent.name for path in PLUGINS_ROOT.glob("*/plugin.json"))
+    if found_portable != sorted(PUBLISHED):
+        errors.append(f"Agent Plugins manifests must be {sorted(PUBLISHED)}; found {found_portable}")
+
     if marketplace.get("name") != MARKETPLACE_NAME:
         errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
     metadata = marketplace.get("metadata")
@@ -150,6 +189,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     for name in bookmarked:
         _validate_bookmark(name, registered[name], errors)
 
+    declared_schemas: set[str] = set()
     for plugin_name, expected_skills in sorted(PUBLISHED.items()):
         plugin_root = PLUGINS_ROOT / plugin_name
         skills_root = plugin_root / "skills"
@@ -172,6 +212,8 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         if not isinstance(author, dict) or author.get("name") != "skills contributors":
             errors.append(f"{plugin_name} plugin author must identify 'skills contributors'")
 
+        _validate_agent_plugin(plugin_root, plugin, declared_schemas, errors)
+
         skills_readme = _read_text(skills_root / "README.md", errors)
         for name in names:
             for readme_name, readme in root_readmes.items():
@@ -192,6 +234,11 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         # shared/ ships inside every published skill, so it is held to the same
         # runtime-neutrality rule as the skills that read it.
         _validate_runtime_text(plugin_root / "shared", errors)
+
+    # One spec version across the repository. Half the plugins targeting an older
+    # schema is a release nobody meant to make, and each manifest reads correct.
+    if len(declared_schemas) > 1:
+        errors.append(f"plugins target more than one Agent Plugins schema: {sorted(declared_schemas)}")
 
     for readme_name, readme in root_readmes.items():
         for reference in PUBLISHED_REFERENCE.findall(readme):
@@ -270,6 +317,46 @@ def _validate_bundle(entry: tuple[object, object] | None, errors: list[str]) -> 
     dependencies = manifest.get("dependencies")
     if not isinstance(dependencies, list) or sorted(dependencies) != expected_dependencies:
         errors.append(f"{BUNDLE} bundle must depend on exactly {expected_dependencies}")
+
+
+def _validate_agent_plugin(
+    plugin_root: Path,
+    claude_manifest: dict[str, object],
+    declared_schemas: set[str],
+    errors: list[str],
+) -> None:
+    """Hold the portable manifest to the closed schema, and to the Claude one.
+
+    Nothing generates one file from the other, so the only thing keeping a plugin
+    from describing itself two ways is this comparison. `skills` is the field to
+    watch: Claude Code requires it and the Agent Plugins schema rejects it, so it
+    belongs in exactly one of the two files and the closed-field check says which.
+    """
+
+    path = plugin_root / "plugin.json"
+    manifest = _load_json(path, errors)
+    if not manifest:
+        return
+
+    unknown = sorted(set(manifest) - AGENT_PLUGIN_FIELDS)
+    if unknown:
+        errors.append(f"{path}: fields outside the Agent Plugins schema: {unknown}")
+
+    schema = manifest.get("$schema")
+    if not isinstance(schema, str) or not AGENT_PLUGIN_SCHEMA.match(schema):
+        errors.append(f"{path}: $schema must name an Agent Plugins manifest schema; found {schema!r}")
+    else:
+        declared_schemas.add(schema)
+
+    for field in AGENT_PLUGIN_SHARED:
+        if manifest.get(field) != claude_manifest.get(field):
+            errors.append(f"{path}: {field} disagrees with .claude-plugin/plugin.json")
+
+    # Clients installing from a directory show these, and a plugin whose only
+    # trace of provenance is the marketplace it came from cannot be reported on.
+    for field in ("homepage", "repository"):
+        if manifest.get(field) != REPOSITORY_URL:
+            errors.append(f"{path}: {field} must be {REPOSITORY_URL}")
 
 
 def _validate_bookmark(name: str, entry: tuple[object, object], errors: list[str]) -> None:

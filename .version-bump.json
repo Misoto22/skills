@@ -9,7 +9,15 @@
       "field": "version"
     },
     {
+      "path": "plugins/writing/plugin.json",
+      "field": "version"
+    },
+    {
       "path": "plugins/docs/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/docs/plugin.json",
       "field": "version"
     },
     {
@@ -17,7 +25,15 @@
       "field": "version"
     },
     {
+      "path": "plugins/dev/plugin.json",
+      "field": "version"
+    },
+    {
       "path": "plugins/astrology/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/astrology/plugin.json",
       "field": "version"
     }
   ],

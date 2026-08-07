@@ -2,9 +2,13 @@
 """Scaffold a skill, and register it everywhere the validator will look.
 
 Adding a skill by hand means editing seven places — PUBLISHED in the validator,
-marketplace.json if the plugin is new, the plugin manifest, both READMEs,
+marketplace.json if the plugin is new, both plugin manifests, both READMEs,
 .version-bump.json, and skills.sh.json. The validator catches a missed one, but
 catching is not the same as doing.
+
+Two manifests, because two families of client read one: Claude Code reads
+.claude-plugin/plugin.json, and everything implementing Agent Plugins reads
+plugin.json at the plugin root.
 
 The install workflow is not one of them. It derives both the plugin list and the
 expected skill names from the tree, so nothing there is written down twice.
@@ -118,6 +122,7 @@ def main() -> int:
     )
 
     if new_plugin:
+        description = f"PLACEHOLDER — what {args.plugin} skills are for."
         plugin_manifest.parent.mkdir(parents=True, exist_ok=True)
         _write(
             plugin_manifest,
@@ -125,7 +130,7 @@ def main() -> int:
                 {
                     "name": args.plugin,
                     "version": version,
-                    "description": f"PLACEHOLDER — what {args.plugin} skills are for.",
+                    "description": description,
                     "author": {"name": "skills contributors"},
                     "license": "MIT",
                     "skills": [f"./skills/{args.skill}"],
@@ -135,6 +140,7 @@ def main() -> int:
             + "\n",
             created,
         )
+        _write_agent_plugin(args.plugin, version, description, created)
         _write(
             skill_dir.parent / "README.md",
             PLUGIN_README_TEMPLATE.format(skill=args.skill),
@@ -194,6 +200,47 @@ def _add_to_plugin_manifest(path: Path, skill: str, created: list[str]) -> None:
     manifest["skills"] = sorted([*manifest["skills"], entry])
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _write_agent_plugin(plugin: str, version: str, description: str, created: list[str]) -> None:
+    """The manifest every client that is not Claude Code reads, at the plugin root.
+
+    Its $schema and repository are copied from a sibling rather than written here,
+    for one reason: the schema URL carries a semver, this repository's own version
+    is moved by a plain string replace, and a release reaching that same number
+    would rewrite one with the other. The value lives only in files the bumper
+    edits by field, where a version inside a URL cannot be mistaken for the field.
+    """
+
+    sibling = next(
+        (path for path in sorted(PLUGINS_ROOT.glob("*/plugin.json")) if path.parent.name != plugin),
+        None,
+    )
+    if sibling is None:
+        raise SystemExit(
+            "error: no existing plugins/*/plugin.json to copy the Agent Plugins schema from."
+            " Write the first one by hand, from https://agent-plugins.org/specification."
+        )
+    template = json.loads(sibling.read_text(encoding="utf-8"))
+    _write(
+        PLUGINS_ROOT / plugin / "plugin.json",
+        json.dumps(
+            {
+                "$schema": template["$schema"],
+                "name": plugin,
+                "version": version,
+                "description": description,
+                "author": {"name": "skills contributors"},
+                "license": "MIT",
+                "homepage": template["homepage"],
+                "repository": template["repository"],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        created,
+    )
 
 
 def _add_to_plugin_readme(path: Path, skill: str, created: list[str]) -> None:
@@ -304,9 +351,15 @@ def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: l
     skill_file = f"plugins/{plugin}/skills/{skill}/SKILL.md"
     if skill_file not in config["text"]:
         config["text"].insert(0, skill_file)
-    manifest = f"plugins/{plugin}/.claude-plugin/plugin.json"
-    if new_plugin and all(entry["path"] != manifest for entry in config["json"]):
-        config["json"].append({"path": manifest, "field": "version"})
+    # Both manifests: Claude Code's, and the Agent Plugins one beside it. A
+    # version declared in one and left behind in the other is drift the validator
+    # reports but nothing repairs.
+    for manifest in (
+        f"plugins/{plugin}/.claude-plugin/plugin.json",
+        f"plugins/{plugin}/plugin.json",
+    ):
+        if new_plugin and all(entry["path"] != manifest for entry in config["json"]):
+            config["json"].append({"path": manifest, "field": "version"})
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 

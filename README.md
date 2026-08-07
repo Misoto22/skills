@@ -81,6 +81,17 @@ codex plugin add all@misoto22
 </details>
 
 <details>
+<summary><b>ChatGPT, Cursor, GitHub Copilot, Kiro, VS Code</b> — the Agent Plugins format</summary>
+
+Every plugin here ships a second manifest, `plugins/<name>/plugin.json`, in the [Agent Plugins](https://agent-plugins.org/) format Amazon, Cursor, Microsoft, OpenAI and Vercel published in August 2026. Point a client that implements it at the plugin directory; the `skills/` tree beside it is the same one Claude Code reads.
+
+Two manifests rather than one because neither reader sees the other's: Claude Code requires a `skills` array that the Agent Plugins schema rejects, and that schema is closed. The validator asserts the fields they share agree, and one bump moves both.
+
+`all` has no equivalent here. It is nothing but a dependency list, and the format defines no dependencies — the one-command install stays a Claude Code and Codex route.
+
+</details>
+
+<details>
 <summary><b>Cursor, Windsurf, opencode, and ~70 more</b> — one command, then pick</summary>
 
 ```bash

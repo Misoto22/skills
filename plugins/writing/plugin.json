@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "writing",
+  "version": "0.8.1",
+  "description": "Portable agent skills for reliable everyday writing.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}
