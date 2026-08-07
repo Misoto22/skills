@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"
@@ -393,6 +395,200 @@ class ValidateMessageTests(unittest.TestCase):
 
         with self.assertRaisesRegex(BundleError, "raw_html"):
             load_bundle(directory)
+
+
+class AutomationScopeTests(ValidateMessageTests):
+    """The scope is the only gate between a policy file and mail leaving unattended.
+
+    Every other authorization source ends with a human deciding. `policy` does
+    not, so each bound it declares — recipient count, recipient domains,
+    attachments, sensitivity — has to be shown to actually stop a bundle that
+    exceeds it, not merely to be written down.
+    """
+
+    SCOPE: ClassVar[dict] = {
+        "name": "ops-alerts",
+        "recipient_domains": ["example.test"],
+        "max_recipients": 2,
+        "allow_attachments": False,
+        "allowed_sensitivity": ["normal"],
+    }
+
+    def scoped_policy(self, **scope_overrides: object) -> dict[str, object]:
+        scope = {**self.SCOPE, **scope_overrides}
+        return self.policy(
+            allow_automated_send=True,
+            automated_send_scopes=[scope],
+            allowed_external_domains=["partner.test"],
+        )
+
+    def attachment(self) -> dict[str, object]:
+        """A manifest entry for a file the bundle builder already writes."""
+
+        payload = b"Project update\n"
+        return {
+            "path": "subject.txt",
+            "name": "subject.txt",
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+
+    def scoped_bundle(self, *, name: str, **bundle_overrides: object) -> Path:
+        return self.bundle(
+            name=name,
+            mode="send",
+            authorization={"source": "policy", "scope": "ops-alerts"},
+            **bundle_overrides,
+        )
+
+    def test_a_bundle_inside_every_bound_passes(self) -> None:
+        """The baseline. Without it, a later block could be any bound failing."""
+
+        result = validate_bundle(self.scoped_bundle(name="ok"), self.scoped_policy())
+
+        self.assertNotEqual(result["status"], "blocked", self.messages(result))
+
+    def test_each_declared_bound_actually_stops_a_bundle(self) -> None:
+        cases = {
+            "too-many": ({"to": ["a@example.test", "b@example.test", "c@example.test"]}, "recipient count"),
+            "wrong-domain": ({"to": ["someone@partner.test"]}, "recipient domains"),
+            "attached": ({"attachments": [self.attachment()]}, "attachments are not allowed"),
+            "too-sensitive": ({"sensitivity": "sensitive"}, "sensitivity exceeds"),
+        }
+        for name, (overrides, expected) in cases.items():
+            with self.subTest(bound=name):
+                result = validate_bundle(self.scoped_bundle(name=name, **overrides), self.scoped_policy())
+                self.assertEqual(result["status"], "blocked", self.messages(result))
+                self.assertIn(expected, self.messages(result))
+
+    def test_an_unconfigured_scope_name_is_not_a_scope(self) -> None:
+        """Naming a scope the policy does not define must fail closed, not open."""
+
+        bundle = self.bundle(
+            name="unknown-scope",
+            mode="send",
+            authorization={"source": "policy", "scope": "does-not-exist"},
+        )
+
+        result = validate_bundle(bundle, self.scoped_policy())
+
+        self.assertEqual(result["status"], "blocked", self.messages(result))
+        self.assertIn("is not configured", self.messages(result))
+
+    def test_automation_disabled_blocks_even_a_well_formed_scope(self) -> None:
+        """The master switch outranks the scope; a scope alone must not authorize."""
+
+        policy = self.policy(allow_automated_send=False, automated_send_scopes=[self.SCOPE])
+
+        result = validate_bundle(self.scoped_bundle(name="switched-off"), policy)
+
+        self.assertEqual(result["status"], "blocked", self.messages(result))
+        self.assertIn("does not allow automated send", self.messages(result))
+
+    def test_send_without_a_source_is_refused(self) -> None:
+        """Absence of authority is not a default to fall back on."""
+
+        bundle = self.bundle(
+            name="no-source",
+            mode="send",
+            authorization={"source": "none", "scope": None},
+        )
+
+        result = validate_bundle(bundle, self.scoped_policy())
+
+        self.assertEqual(result["status"], "blocked", self.messages(result))
+        self.assertIn("requires trusted authorization", self.messages(result))
+
+    def test_an_invented_source_never_reaches_the_validator(self) -> None:
+        """The loader rejects it first, so the validator's own branch is depth, not the gate.
+
+        Worth pinning: if the loader ever loosened, this test fails rather than
+        the validator quietly becoming the only thing standing between an
+        invented `source` string and a send.
+        """
+
+        with self.assertRaisesRegex(BundleError, "unsupported value"):
+            validate_bundle(
+                self.bundle(
+                    name="invented",
+                    mode="send",
+                    authorization={"source": "hand_wave", "scope": None},
+                ),
+                self.scoped_policy(),
+            )
+
+
+class CommandLineTests(ValidateMessageTests):
+    """The entry point an operator actually runs, exercised the way they run it.
+
+    `validate_bundle` returning `blocked` is only half the guarantee — the exit
+    code is what a wrapper script branches on, and it had no test at all.
+    """
+
+    SCRIPT: ClassVar[Path] = (
+        ROOT / "plugins" / "writing" / "skills" / "email" / "scripts" / "validate_message.py"
+    )
+
+    def invoke(self, bundle: Path, policy_path: Path, output: Path) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                sys.executable,
+                str(self.SCRIPT),
+                "--bundle",
+                str(bundle),
+                "--policy",
+                str(policy_path),
+                "--output",
+                str(output),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def run_cli(self, bundle: Path, policy: dict[str, object]) -> tuple[int, dict | None]:
+        policy_path = self.root / "policy.json"
+        policy_path.write_text(json.dumps(policy), encoding="utf-8")
+        output = self.root / "out" / "result.json"
+        completed = self.invoke(bundle, policy_path, output)
+        written = json.loads(output.read_text(encoding="utf-8")) if output.is_file() else None
+        return completed.returncode, written
+
+    def test_a_valid_draft_exits_zero_and_writes_its_result(self) -> None:
+        code, result = self.run_cli(self.bundle(name="draft"), self.policy())
+
+        self.assertEqual(code, 0)
+        self.assertIsNotNone(result)
+        self.assertNotEqual(result["status"], "blocked")
+
+    def test_a_blocked_bundle_exits_two_and_still_writes_its_findings(self) -> None:
+        """Exit 2 is the signal; the findings file is how the operator learns why."""
+
+        bundle = self.bundle(
+            name="blocked",
+            mode="send",
+            to=["stranger@elsewhere.test"],
+            authorization={"source": "direct_user", "scope": None},
+        )
+
+        code, result = self.run_cli(bundle, self.policy())
+
+        self.assertEqual(code, 2)
+        self.assertEqual(result["status"], "blocked")
+        self.assertTrue(result["findings"])
+
+    def test_an_unreadable_policy_exits_two_without_writing_a_result(self) -> None:
+        """A validation that could not run must not leave a file that reads as a pass."""
+
+        policy_path = self.root / "policy.json"
+        policy_path.write_text("{ not json", encoding="utf-8")
+        output = self.root / "out" / "result.json"
+
+        completed = self.invoke(self.bundle(name="unreadable"), policy_path, output)
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("email validation failed", completed.stderr)
+        self.assertFalse(output.exists(), "a failed run left a result file behind")
 
 
 if __name__ == "__main__":

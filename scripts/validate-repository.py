@@ -74,6 +74,21 @@ AGENT_PLUGIN_FIELDS = {
 }
 AGENT_PLUGIN_SHARED = ("name", "version", "description", "license", "author")
 REPOSITORY_URL = "https://github.com/Misoto22/skills"
+# What a client's plugin directory searches on. Held to one shape so a search
+# matches whatever a person typed, and held off the plugin's own name — a
+# directory already indexes that, so restating it buys no reach and crowds out
+# a term that would have.
+KEYWORD = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
+MINIMUM_KEYWORDS = 3
+# Where a client puts what only it understands. Nothing here uses it yet, and
+# the shape is guarded anyway: the one thing a namespace has to do is not
+# collide, which a bare word cannot promise and a domain someone owns can.
+#
+# `agents/openai.yaml` is not a candidate to move here. It sits inside a skill
+# and describes that skill to one client; these namespaces sit at the plugin
+# root and describe the plugin. Different scopes, and the `npx skills add`
+# route reads the file where it is.
+EXTENSION_NAMESPACE = re.compile(r"\A[a-z0-9-]+(?:\.[a-z0-9-]+)+\Z")
 
 # One entry installs the rest, by depending on every plugin above. It carries no
 # skills, so it sits outside plugins/ where the packager, list-skills.sh, and the
@@ -245,6 +260,17 @@ def validate_repository(*, run_tests: bool) -> list[str]:
             if not (ROOT / reference).is_file():
                 errors.append(f"{readme_name} links {reference}, which does not exist")
 
+        # Every other relative link too. The skill links above are held to the
+        # registry, and links inside a skill are resolved by _validate_skill —
+        # between them sat CONTRIBUTING.md, AGENTS.md, docs/email.md and
+        # skills.sh.json, which a rename breaks with the build still green.
+        for target in MARKDOWN_LINK.findall(_strip_fenced_blocks(readme)):
+            if target.startswith(("https://", "http://", "#", "mailto:")):
+                continue
+            relative = target.split("#", 1)[0]
+            if not relative or not (ROOT / relative).is_file():
+                errors.append(f"{readme_name} links {target}, which does not resolve")
+
         for retired_root in RETIRED_ROOTS:
             for skill_file in sorted((ROOT / retired_root).rglob("SKILL.md")):
                 relative = skill_file.relative_to(ROOT).as_posix()
@@ -357,6 +383,42 @@ def _validate_agent_plugin(
     for field in ("homepage", "repository"):
         if manifest.get(field) != REPOSITORY_URL:
             errors.append(f"{path}: {field} must be {REPOSITORY_URL}")
+
+    _validate_keywords(path, manifest, errors)
+
+    extensions = manifest.get("extensions")
+    if extensions is not None:
+        if not isinstance(extensions, dict):
+            errors.append(f"{path}: extensions must be an object keyed by namespace")
+        else:
+            for namespace, value in sorted(extensions.items()):
+                if not EXTENSION_NAMESPACE.match(namespace):
+                    errors.append(f"{path}: extension namespace {namespace!r} must be reverse-domain")
+                if not isinstance(value, dict):
+                    errors.append(f"{path}: extension {namespace!r} must hold an object")
+
+
+def _validate_keywords(path: Path, manifest: dict[str, object], errors: list[str]) -> None:
+    """The only field here nobody in this repository reads, and the one users search.
+
+    Nothing installs differently for a missing `keywords`, which is exactly why
+    it goes unwritten: the cost of omitting it lands on a stranger typing a term
+    into a plugin directory, not on the build.
+    """
+
+    keywords = manifest.get("keywords")
+    if not isinstance(keywords, list) or len(keywords) < MINIMUM_KEYWORDS:
+        errors.append(f"{path}: keywords must list at least {MINIMUM_KEYWORDS} search terms")
+        return
+
+    name = manifest.get("name")
+    for keyword in keywords:
+        if not isinstance(keyword, str) or not KEYWORD.match(keyword):
+            errors.append(f"{path}: keyword {keyword!r} must be lowercase kebab-case")
+        elif keyword == name:
+            errors.append(f"{path}: keyword {keyword!r} restates the plugin name")
+    if len(set(keywords)) != len(keywords):
+        errors.append(f"{path}: keywords repeat a term")
 
 
 def _validate_bookmark(name: str, entry: tuple[object, object], errors: list[str]) -> None:
