@@ -15,6 +15,11 @@
       "id": "get-merged",
       "prompt": "Get this merged once CI is green.",
       "expected": "Fires and waits on CI rather than merging ahead of it."
+    },
+    {
+      "id": "chinese-push-and-merge",
+      "prompt": "把这些改动推上去合并",
+      "expected": "Fires on a second Chinese phrasing rather than only on 开个 PR 合了."
     }
   ],
   "non_triggers": [
@@ -35,5 +40,15 @@
       "routes_to": "sync"
     }
   ],
-  "behaviors": []
+  "behaviors": [
+    {
+      "id": "chinese-conversation-english-commit",
+      "prompt": "帮我把这个 bug fix 发出去，改的是登录超时",
+      "expectations": [
+        "Reports progress in Chinese, matching the user.",
+        "Writes the commit subject, branch name, and pull request body in English anyway.",
+        "Does not translate the conversation's Chinese into the commit message."
+      ]
+    }
+  ]
 }

@@ -1,0 +1,12 @@
+{
+  "name": "astrology",
+  "version": "0.8.1",
+  "description": "Positional astrology computed from birth data, reported as data rather than as a reading.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "skills": [
+    "./skills/synastry"
+  ]
+}

@@ -15,6 +15,11 @@
       "id": "catch-up",
       "prompt": "Get me up to date with the remote.",
       "expected": "Fires, and reports a diverged branch rather than rebasing it."
+    },
+    {
+      "id": "chinese-pull-latest",
+      "prompt": "同步一下，拉最新的",
+      "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
     }
   ],
   "non_triggers": [
@@ -34,6 +39,12 @@
       "prompt": "Delete the branches that already merged.",
       "expected": "Does not fire; removing merged branches belongs elsewhere.",
       "routes_to": "cleanup"
+    },
+    {
+      "id": "chinese-push-up",
+      "prompt": "把这些改动提上去合了",
+      "expected": "Does not fire. That is shipping, and Chinese phrasing must not blur the boundary English phrasing keeps.",
+      "routes_to": "ship"
     }
   ],
   "behaviors": []

@@ -38,6 +38,12 @@
       "id": "wiki-post",
       "prompt": "Write the release announcement for the team wiki.",
       "expected": "Does not fire. Nothing is being sent to a recipient."
+    },
+    {
+      "id": "chinese-tone-only",
+      "prompt": "这句话发出去会不会太冲，帮我改客气点",
+      "expected": "Does not fire. Rewriting tone is not composing an outbound message.",
+      "routes_to": "tempering"
     }
   ],
   "behaviors": [

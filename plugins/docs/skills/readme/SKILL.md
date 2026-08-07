@@ -168,6 +168,8 @@ That last move is the one most READMEs miss. A reader who knows where the bounda
 
 **Every command must run as written.** Copy it from the task runner or the scripts block; do not paraphrase it.
 
+**The README's language is the repository's, not the conversation's.** Report back to the user in whatever language they are writing in, but write the file in the language its existing prose, code comments, and commit history already use. Ask only when the repository has no prose to read. A README rewritten into the language of whoever happened to request it is a README the next contributor cannot maintain.
+
 ## What to cut
 
 Read the existing README and delete before adding. Most stale READMEs are long, not wrong.

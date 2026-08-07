@@ -39,5 +39,15 @@
       "expected": "Does not fire."
     }
   ],
-  "behaviors": []
+  "behaviors": [
+    {
+      "id": "chinese-request-english-repository",
+      "prompt": "帮我把这个仓库的 readme 重写一下",
+      "expectations": [
+        "Replies in Chinese, matching the user.",
+        "Writes the README in English when the repository's existing prose, comments, and history are English.",
+        "Does not switch the file's language to match the language of the request."
+      ]
+    }
+  ]
 }
