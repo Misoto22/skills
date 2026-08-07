@@ -1,0 +1,62 @@
+{
+  "skill": "synastry",
+  "triggers": [
+    {
+      "id": "two-charts-explicit",
+      "prompt": "Run a synastry between me (1990-03-14 07:42, Shanghai) and my partner (1988-11-02 21:05, New York).",
+      "expected": "Fires, resolves both places to coordinates and zones, and writes the data file."
+    },
+    {
+      "id": "chinese-hepan",
+      "prompt": "帮我和她合个盘，我 1990-03-14 07:42 上海出生，她 1992-06-08 14:20 深圳出生",
+      "expected": "Fires on the Chinese phrasing and treats neither person as a fixed reference."
+    },
+    {
+      "id": "informal-second-person",
+      "prompt": "她的生日是 1992 年 6 月 8 号 14:20，深圳。我的你已经知道了。",
+      "expected": "Fires, taking the first person's details from earlier in the conversation."
+    },
+    {
+      "id": "hour-only-time",
+      "prompt": "Compare our charts — I was born 1990-03-14 around 7am in Shanghai, he was born 1988-11-02 at 21:05 in New York.",
+      "expected": "Fires, then stops and asks for the first person's birth minute rather than assuming one."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "single-natal-chart",
+      "prompt": "What's my rising sign? Born 1990-03-14 07:42 in Shanghai.",
+      "expected": "Does not fire. One person's chart is not a synastry."
+    },
+    {
+      "id": "horoscope",
+      "prompt": "What does this week look like for a Pisces?",
+      "expected": "Does not fire. Transits and forecasts are outside this skill."
+    },
+    {
+      "id": "reading-an-existing-file",
+      "prompt": "Look at the synastry file we generated yesterday and tell me what the Venus square means.",
+      "expected": "Does not fire. The file exists; answer from it rather than recomputing."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "refuses-imprecise-time",
+      "prompt": "合盘：我 1990-03-14 早上七点多上海，她 1992-06-08 14:20 深圳",
+      "expectations": [
+        "States that the first birth time is needed to the minute before anything is computed.",
+        "Does not substitute noon, and does not offer an early and a late version.",
+        "Does not run the script."
+      ]
+    },
+    {
+      "id": "stops-at-the-data",
+      "prompt": "Synastry for A (1990-03-14 07:42 Shanghai) and B (1988-11-02 21:05 New York).",
+      "expectations": [
+        "Names the file it wrote.",
+        "Lists two or three tightest aspects with orbs and houses, with no good-or-bad framing.",
+        "Does not volunteer a compatibility verdict or relationship advice."
+      ]
+    }
+  ]
+}

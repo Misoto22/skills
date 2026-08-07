@@ -1,0 +1,24 @@
+{
+  "people": [
+    {
+      "name": "Person A",
+      "date": "1990-03-14",
+      "time": "07:42",
+      "timezone": "Asia/Shanghai",
+      "latitude": 31.23,
+      "longitude": 121.47,
+      "birth_place": "Shanghai",
+      "residence": "Shanghai"
+    },
+    {
+      "name": "Person B",
+      "date": "1988-11-02",
+      "time": "21:05",
+      "timezone": "America/New_York",
+      "latitude": 40.71,
+      "longitude": -74.01,
+      "birth_place": "New York",
+      "residence": "Shanghai"
+    }
+  ]
+}

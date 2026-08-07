@@ -1,0 +1,6 @@
+interface:
+  display_name: "Synastry"
+  short_description: "Chart two people and the aspects between them"
+  default_prompt: "Use $synastry to compute a synastry data file for two people from their birth details; refuse any birth time that is not given to the minute, and leave the interpretation for a later turn."
+policy:
+  allow_implicit_invocation: true

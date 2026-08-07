@@ -20,6 +20,11 @@
       "id": "decode-corporate",
       "prompt": "说人话：we should circle back and align on the deliverable cadence.",
       "expected": "Fires in the reverse direction and gives the plain reading."
+    },
+    {
+      "id": "chinese-decode",
+      "prompt": "他这句「我们再对齐一下节奏」到底什么意思，说人话",
+      "expected": "Fires in reverse mode on Chinese input, interpreting rather than rewriting."
     }
   ],
   "non_triggers": [
@@ -38,6 +43,12 @@
       "id": "resume",
       "prompt": "Rewrite my resume summary to sound stronger.",
       "expected": "Does not fire. Not a message to a counterpart."
+    },
+    {
+      "id": "chinese-compose-new",
+      "prompt": "写封邮件给客户，说排期推迟到下周三",
+      "expected": "Does not fire. There is no draft to temper; this is composing a new message.",
+      "routes_to": "email"
     }
   ],
   "behaviors": []

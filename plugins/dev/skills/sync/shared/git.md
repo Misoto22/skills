@@ -2,6 +2,14 @@
 
 Read this before any command that writes to a branch, a remote, or the working tree.
 
+## What language a git artifact is written in
+
+Report to the user in the language they are writing in. Everything git keeps — commit subject and body, branch name, tag, pull request title and body — is written in **English**, whatever language the conversation is in.
+
+The two have different readers. A report is read once, by the person who asked; a commit message is read years later by whoever runs `git log`, and by tooling that greps it. A history that switches language depending on who was at the keyboard is a history nobody can bisect.
+
+The exception is a repository whose existing history is not in English. Match what is already there — `git log --oneline -20` settles it, and consistency with the project beats consistency with this rule.
+
 ## Resolving the base branch
 
 Never assume `main`. Take the first that succeeds:

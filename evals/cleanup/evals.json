@@ -15,6 +15,11 @@
       "id": "stale-worktrees",
       "prompt": "Remove the worktrees I am no longer using.",
       "expected": "Fires, and keeps any worktree whose branch has no merged pull request."
+    },
+    {
+      "id": "chinese-delete-merged",
+      "prompt": "清掉已经合并过的分支",
+      "expected": "Fires on a second Chinese phrasing rather than only on 清理一下."
     }
   ],
   "non_triggers": [
@@ -32,6 +37,11 @@
       "id": "unseen-untracked",
       "prompt": "Delete all untracked files in here.",
       "expected": "Does not fire on untracked files the user has not been shown."
+    },
+    {
+      "id": "chinese-discard-work",
+      "prompt": "把我没提交的改动都扔掉",
+      "expected": "Does not fire. Discarding uncommitted work is destructive and outside this skill, in either language."
     }
   ],
   "behaviors": []

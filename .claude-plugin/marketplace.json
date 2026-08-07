@@ -86,6 +86,14 @@
         "ref": "main",
         "sha": "e0e18e162aa5ec97a6d4cecdf66b08b75eb1e149"
       }
+    },
+    {
+      "name": "astrology",
+      "category": "learning",
+      "source": "./plugins/astrology",
+      "skills": [
+        "./skills/synastry"
+      ]
     }
   ]
 }
