@@ -128,9 +128,11 @@ def _unregister_published(plugin: str, skill: str, retires_plugin: bool, touched
 
 
 def _unregister_root_readme(plugin: str, skill: str, touched: list[str]) -> None:
-    path = ROOT / "README.md"
+    """Every root README, translations included — the scaffold registered them all."""
+
     marker = f"plugins/{plugin}/skills/{skill}/SKILL.md"
-    _drop_lines(path, lambda line: marker in line, touched)
+    for path in sorted(ROOT.glob("README*.md")):
+        _drop_lines(path, lambda line: marker in line, touched)
 
 
 def _unregister_plugin_readme(path: Path, skill: str, touched: list[str]) -> None:

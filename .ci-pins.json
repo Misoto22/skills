@@ -17,7 +17,8 @@
       "package": "skills",
       "version": "1.5.22",
       "documented_in": [
-        "README.md"
+        "README.md",
+        "README.zh-CN.md"
       ]
     },
     {

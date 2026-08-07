@@ -2,6 +2,9 @@
 
 <div align="center">
 
+**English** · [简体中文](README.zh-CN.md)
+
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
   <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
@@ -223,7 +226,7 @@ This repository holds no transport credential and implements no SMTP. The email 
 ```bash
 git clone https://github.com/Misoto22/skills.git
 cd skills
-python3 scripts/validate-repository.py    # metadata, registries, skills, then 119 tests
+python3 scripts/validate-repository.py    # metadata, registries, skills, then 214 tests
 ```
 
 Python 3.11+ and Bash are the whole toolchain — no package manager, no lockfile, no build step. `python3 scripts/new-skill.py <plugin> <skill>` scaffolds a skill and registers it everywhere the validator looks.

@@ -255,19 +255,23 @@ def _register_published(plugin: str, skill: str, created: list[str]) -> None:
 
 
 def _register_root_readme(plugin: str, skill: str, created: list[str]) -> None:
-    """Add the bullet the validator looks for, with the source link it checks."""
+    """Add the bullet the validator looks for, with the source link it checks.
 
-    path = ROOT / "README.md"
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    last = max(index for index, line in enumerate(lines) if line.startswith("- **["))
+    Every root README, translations included. The validator holds each of them to
+    the same registry, so a translation the scaffold skipped would fail the build
+    of whoever adds the next skill rather than of whoever left it behind.
+    """
+
     bullet = (
         f"- **[{skill}](plugins/{plugin}/skills/{skill}/SKILL.md)**"
         f" (`/{plugin}:{skill}`) — PLACEHOLDER, one line."
     )
-    lines.insert(last + 1, bullet)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    created.append(f"{path.relative_to(ROOT)} (updated)")
+    for path in sorted(ROOT.glob("README*.md")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        last = max(index for index, line in enumerate(lines) if line.startswith("- **["))
+        lines.insert(last + 1, bullet)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
 def _register_skills_sh(plugin: str, skill: str, created: list[str]) -> None:
