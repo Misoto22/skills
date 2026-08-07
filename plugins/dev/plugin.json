@@ -7,6 +7,13 @@
     "name": "skills contributors"
   },
   "license": "MIT",
+  "keywords": [
+    "git",
+    "pull-request",
+    "release",
+    "worktree",
+    "branch-cleanup"
+  ],
   "homepage": "https://github.com/Misoto22/skills",
   "repository": "https://github.com/Misoto22/skills"
 }

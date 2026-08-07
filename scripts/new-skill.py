@@ -165,6 +165,9 @@ def main() -> int:
     print("     — it is the only field that decides whether the skill ever fires,")
     print("       and the validator fails on the placeholder until you do.")
     print("  2. Write the body, and replace the README and plugin-registry placeholders.")
+    if new_plugin:
+        print(f"     Including `keywords` in plugins/{args.plugin}/plugin.json — the terms a")
+        print("     plugin directory searches on, and the only field nothing here reads.")
     print(f"  3. Write evals/{args.skill}/evals.json — at least three prompts it must fire")
     print("     on and two it must stay out of. run-evals.py --check fails until it exists.")
     print("  4. python3 scripts/validate-repository.py")
@@ -232,6 +235,10 @@ def _write_agent_plugin(plugin: str, version: str, description: str, created: li
                 "description": description,
                 "author": {"name": "skills contributors"},
                 "license": "MIT",
+                # Three placeholders rather than none: the validator floors the
+                # count, so an empty list would fail with a rule the author has
+                # no reason to have read yet. These say what to replace.
+                "keywords": [f"{plugin}-term-1", f"{plugin}-term-2", f"{plugin}-term-3"],
                 "homepage": template["homepage"],
                 "repository": template["repository"],
             },

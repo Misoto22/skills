@@ -7,6 +7,12 @@
     "name": "skills contributors"
   },
   "license": "MIT",
+  "keywords": [
+    "readme",
+    "documentation",
+    "repository",
+    "technical-writing"
+  ],
   "homepage": "https://github.com/Misoto22/skills",
   "repository": "https://github.com/Misoto22/skills"
 }

@@ -12,6 +12,7 @@ import unittest
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
+from typing import ClassVar
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = ROOT / "plugins"
@@ -236,6 +237,12 @@ class RepositoryContractTests(unittest.TestCase):
 
             self.assertRegex(manifest["$schema"], schema, name)
             declared.add(manifest["$schema"])
+            # Nothing here reads keywords, so nothing but this notices them going
+            # missing — and the cost lands on a stranger searching a directory.
+            self.assertGreaterEqual(len(manifest["keywords"]), 3, name)
+            self.assertNotIn(name, manifest["keywords"], f"{name}: keyword restates the plugin name")
+            for keyword in manifest["keywords"]:
+                self.assertRegex(keyword, r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z", f"{name}: {keyword}")
             for field in ("name", "version", "description", "license", "author"):
                 self.assertEqual(manifest[field], beside[field], f"{name}: {field}")
             # The schema is closed, and both of these are outside it: the skills
@@ -255,6 +262,13 @@ class RepositoryContractTests(unittest.TestCase):
                 ("description", "Something else entirely.", "description disagrees"),
                 ("skills", ["./skills/readme"], "outside the Agent Plugins schema"),
                 ("$schema", "https://example.com/plugin.schema.json", "$schema must name"),
+                ("keywords", ["only-one"], "at least 3 search terms"),
+                ("keywords", ["Readme", "docs", "writing"], "must be lowercase kebab-case"),
+                ("keywords", ["docs", "readme", "writing"], "restates the plugin name"),
+                ("keywords", ["readme", "readme", "writing"], "keywords repeat a term"),
+                ("extensions", {"codex": {}}, "must be reverse-domain"),
+                ("extensions", {"com.openai.codex": []}, "must hold an object"),
+                ("extensions", ["com.openai.codex"], "extensions must be an object"),
             ):
                 manifest.write_text(json.dumps({**document, field: value}, indent=2) + "\n")
                 result = subprocess.run(
@@ -268,6 +282,65 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn(expected, result.stderr, f"{field} was not the rule that fired")
         finally:
             manifest.write_bytes(original)
+
+    def test_verify_install_rejects_a_half_installed_plugin(self) -> None:
+        """A plugin root carrying one manifest and not the other is half a plugin."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dropped = root / "dropped"
+            shutil.copytree(DOCS_PLUGIN, dropped)
+            (dropped / "plugin.json").unlink()
+
+            drifted = root / "drifted"
+            shutil.copytree(DOCS_PLUGIN, drifted)
+            manifest = drifted / "plugin.json"
+            document = json.loads(manifest.read_text(encoding="utf-8"))
+            manifest.write_text(json.dumps({**document, "version": "9.9.9"}, indent=2) + "\n")
+
+            # Two of the four routes ship bare skills and no plugin root at all.
+            bare = root / "bare"
+            shutil.copytree(DOCS_PLUGIN / "skills" / "readme", bare / "readme")
+
+            for target, expected in (
+                (dropped, "dropped the Agent Plugins manifest"),
+                (drifted, "disagree on name or version"),
+            ):
+                result = subprocess.run(
+                    [sys.executable, "scripts/verify-install.py", str(target)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, str(target))
+                self.assertIn(expected, result.stderr)
+
+            subprocess.run(
+                [sys.executable, "scripts/verify-install.py", str(bare)],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+            )
+
+    def test_the_validator_resolves_every_relative_readme_link(self) -> None:
+        """Links between the registry links and the skill links had no owner."""
+
+        readme = README_PATH
+        original = readme.read_bytes()
+        try:
+            readme.write_bytes(original + b"\nSee [the handbook](docs/no-such-file.md).\n")
+            result = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("docs/no-such-file.md, which does not resolve", result.stderr)
+        finally:
+            readme.write_bytes(original)
 
     def test_docs_plugin_declares_the_readme_skill(self) -> None:
         plugin = json.loads((DOCS_PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -525,6 +598,134 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("CI_CHANNEL: ${{ inputs.channel || 'pinned' }}", install)
         for duplicated in ("verify-install.py", "list-skills.sh", "npx --yes"):
             self.assertNotIn(duplicated, canary, "canary must call Install, not restate it")
+
+    def test_evals_are_scored_against_a_model_off_the_pull_request_gate(self) -> None:
+        """`--check` proves a suite exists; only `--run` proves a description still routes."""
+
+        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+        validate = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+
+        for required in ("schedule:", "workflow_dispatch:", "issues: write", "run-evals.py --run"):
+            self.assertIn(required, workflow)
+        # The key is the reason this job is not in the gate. Interpolating a
+        # dispatch input into its shell would be injection into a job holding it.
+        self.assertIn("ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}", workflow)
+        self.assertNotIn('"${{ inputs.skill }}"', workflow)
+        self.assertIn("ci-pins.py spec anthropic", workflow)
+
+        # Scoring costs money and minutes; the free structural half stays on
+        # every push, and only that half is allowed in the gate.
+        self.assertIn("run-evals.py --check", validate)
+        self.assertNotIn("--run", validate)
+
+    def test_the_scoring_mode_stays_out_of_the_standard_library_path(self) -> None:
+        """--check and --report run everywhere; only --run may need a dependency."""
+
+        source = (ROOT / "scripts" / "run-evals.py").read_text(encoding="utf-8")
+        top_level = source.split("def ", 1)[0]
+
+        self.assertNotIn("import anthropic", top_level, "the SDK import must be lazy")
+        self.assertIn("import anthropic", source)
+        # Named once, where the pin lives — a literal here could not be bumped
+        # by ci-pins.py and would drift silently.
+        self.assertIn("ci-pins.py spec anthropic", source)
+
+        pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        self.assertIn("anthropic", {pin["id"] for pin in pins})
+
+    def test_the_router_request_is_shaped_the_way_the_api_expects(self) -> None:
+        """This request runs unattended at 4am on a Monday. Pin its shape here.
+
+        Every assertion below is a parameter the current API rejects outright or
+        silently ignores if it is wrong — a 400 nobody sees for a week, or a run
+        that scores the wrong thing and reports success.
+        """
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        sent = {}
+
+        block = type("Block", (), {"type": "text", "text": '{"skill": "ship", "reason": "x"}'})()
+
+        class Response:
+            stop_reason = "end_turn"
+            content: ClassVar[list] = [block]
+
+        class Client:
+            class messages:
+                @staticmethod
+                def create(**kwargs):
+                    sent.update(kwargs)
+                    return Response()
+
+        answer, reason = module.route(Client(), "<skills/>", "ship it")
+        self.assertEqual((answer, reason), ("ship", "x"))
+
+        # Sampling parameters are rejected on this model, and thinking is on by
+        # default — disabling it is what leaks `<thinking>` tags into the answer.
+        for rejected in ("temperature", "top_p", "top_k", "thinking"):
+            self.assertNotIn(rejected, sent, f"{rejected} must not be sent")
+        # effort and format share one object; a top-level `effort` is ignored.
+        self.assertEqual(sent["output_config"]["effort"], "low")
+        self.assertEqual(sent["output_config"]["format"]["type"], "json_schema")
+        self.assertEqual(sent["output_config"]["format"]["schema"]["additionalProperties"], False)
+        # The catalogue is byte-identical across every case in a run, and the
+        # prompt after it is the only variable — so it is the breakpoint.
+        self.assertEqual(sent["system"][0]["cache_control"], {"type": "ephemeral"})
+        # Adaptive thinking and the answer share this ceiling.
+        self.assertGreaterEqual(sent["max_tokens"], 1024)
+        self.assertEqual(sent["messages"], [{"role": "user", "content": "ship it"}])
+
+    def test_a_non_trigger_is_satisfied_by_no_skill_firing(self) -> None:
+        """`none` is the right answer for most non-triggers, and must score as a pass."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        known = {"ship", "cleanup", "sync"}
+        cases = [
+            # (section, case, answer, expected pass?)
+            ("triggers", {"id": "a"}, "ship", True),
+            ("triggers", {"id": "a"}, "none", False),
+            ("non_triggers", {"id": "b"}, "none", True),
+            ("non_triggers", {"id": "b"}, "ship", False),
+            ("non_triggers", {"id": "c", "routes_to": "cleanup"}, "cleanup", True),
+            ("non_triggers", {"id": "c", "routes_to": "cleanup"}, "sync", False),
+            ("non_triggers", {"id": "d"}, "invented", False),
+        ]
+        for section, case, answer, passes in cases:
+            verdict = module._judge("ship", section, case, answer, known)
+            self.assertEqual(verdict is None, passes, f"{section} {case['id']} → {answer}: {verdict}")
+
+    def test_a_declined_request_is_read_before_its_content(self) -> None:
+        """A refusal returns 200 with empty content; indexing it first crashes the run."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Refused:
+            stop_reason = "refusal"
+            content: ClassVar[list] = []
+
+        class Client:
+            class messages:
+                @staticmethod
+                def create(**kwargs):
+                    return Refused()
+
+        answer, reason = module.route(Client(), "<skills/>", "anything")
+        self.assertEqual(answer, "refused")
+        self.assertIn("declined", reason)
 
     def test_ci_pins_are_the_only_place_a_cli_version_is_written(self) -> None:
         """A literal pin cannot be overridden by a channel, so the canary would miss it."""
@@ -817,6 +1018,39 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
+
+    def test_neither_scanner_walks_into_a_worktree(self) -> None:
+        """A worktree under .claude/ is a second copy of this repository, not drift.
+
+        Both scanners recurse from the repository root, and a `git worktree` placed
+        inside it holds every manifest, README and CHANGELOG again. CI never sees
+        this — a checkout has no worktrees — so the failure lands only on whoever
+        has one open, reporting files they did not write as undeclared.
+        """
+
+        probe = ROOT / ".claude" / "worktrees" / "scanner-probe" / "CHANGELOG.md"
+        probe.parent.mkdir(parents=True, exist_ok=True)
+        pin = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"][0]
+        probe.write_text(
+            f"version {declared_version()}\n{pin['package']}@{pin['version']}\n",
+            encoding="utf-8",
+        )
+        try:
+            for command in (
+                ("scripts/bump-version.py", "--audit"),
+                ("scripts/ci-pins.py", "check"),
+            ):
+                result = subprocess.run(
+                    [sys.executable, *command],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, f"{command}: {result.stderr}")
+                self.assertNotIn("scanner-probe", result.stderr, str(command))
+        finally:
+            shutil.rmtree(probe.parent, ignore_errors=True)
 
     def test_version_bump_round_trips_without_drift(self) -> None:
         config = json.loads((ROOT / ".version-bump.json").read_text(encoding="utf-8"))

@@ -15,6 +15,7 @@ search for them. Every skill found must satisfy the same contract.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -38,7 +39,47 @@ def verify(roots: list[Path]) -> list[str]:
     skills = _discover(roots, errors)
     for skill in skills:
         _verify_skill(skill, errors)
+    _verify_plugin_roots(skills, errors)
     return errors
+
+
+def _verify_plugin_roots(skills: list[Path], errors: list[str]) -> None:
+    """A plugin root that carries one manifest has to carry both.
+
+    Two of the four install routes ship bare skills with no plugin root at all —
+    an unpacked `.skill`, an `~/.agents/skills` copy — so neither manifest is
+    required outright. What is required is that a route producing a plugin root
+    produces the whole plugin: dropping `plugin.json` leaves an install Claude
+    Code reads and every Agent Plugins client sees as unversioned, and the two
+    look identical from inside the skill directory.
+    """
+
+    plugin_roots = {skill.parent.parent for skill in skills if skill.parent.name == "skills"}
+    for root in sorted(plugin_roots):
+        manifests = {
+            "Claude Code": root / ".claude-plugin" / "plugin.json",
+            "Agent Plugins": root / "plugin.json",
+        }
+        present = {label: path for label, path in manifests.items() if path.is_file()}
+        if not present:
+            continue
+        for label, path in manifests.items():
+            if label not in present:
+                errors.append(f"{root}: the install dropped the {label} manifest at {path.name}")
+
+        declared: dict[str, tuple[object, object]] = {}
+        for label, path in present.items():
+            try:
+                manifest = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError) as error:
+                errors.append(f"{path}: cannot read JSON: {error}")
+                continue
+            if not isinstance(manifest, dict):
+                errors.append(f"{path}: JSON root must be an object")
+                continue
+            declared[label] = (manifest.get("name"), manifest.get("version"))
+        if len(set(declared.values())) > 1:
+            errors.append(f"{root}: the two manifests disagree on name or version: {declared}")
 
 
 def _discover(roots: list[Path], errors: list[str]) -> list[Path]:

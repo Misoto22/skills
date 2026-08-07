@@ -10,5 +10,5 @@ branch = true
 # The floor is a ratchet, not a target: it sits just under what the suite
 # already reaches, so a large untested addition fails and small movement does
 # not. Raise it when the real number rises; never lower it to make a run pass.
-fail_under = 75
+fail_under = 82
 show_missing = true

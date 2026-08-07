@@ -7,6 +7,12 @@
     "name": "skills contributors"
   },
   "license": "MIT",
+  "keywords": [
+    "email",
+    "drafting",
+    "tone",
+    "professional-communication"
+  ],
   "homepage": "https://github.com/Misoto22/skills",
   "repository": "https://github.com/Misoto22/skills"
 }

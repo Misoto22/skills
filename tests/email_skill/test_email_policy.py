@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "plugins" / "writing" / "skills" / "email" / "scripts"))
@@ -307,6 +308,143 @@ class StylePolicyTests(unittest.TestCase):
     def test_style_must_be_object_or_null(self) -> None:
         with self.assertRaisesRegex(PolicyError, "style"):
             load_policy(self.write_policy(self.policy_with_style("house")))
+
+
+class PolicyRejectionTests(unittest.TestCase):
+    """The policy is the gate on an outward side effect, so its rejections are the product.
+
+    A malformed policy that loads is worse than one that fails: it produces a
+    sender identity, a domain allowlist, or a send authorization nobody wrote.
+    These assert the file is rejected, and that the message names the field — an
+    operator editing a policy at speed is the audience.
+    """
+
+    EXAMPLE = ROOT / "plugins" / "writing" / "skills" / "email" / "policy.example.json"
+    # One value of the wrong type per JSON type. `load_policy` is a type gate
+    # before it is anything else, and this is what the `_require_*` helpers
+    # exist to catch.
+    WRONG_TYPE: ClassVar[dict] = {str: 17, int: "seventeen", bool: "yes", list: {}, dict: []}
+
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name)
+        self.document = json.loads(self.EXAMPLE.read_text(encoding="utf-8"))
+        # signature_file resolves against the policy file's own directory, so
+        # the example's relative path has to exist beside the copy under test —
+        # otherwise every case here fails on a missing signature instead of on
+        # the rule it was written for.
+        signature = self.root / self.document["composition"]["signature_file"]
+        signature.parent.mkdir(parents=True, exist_ok=True)
+        signature.write_text("-- \nExample Sender\n", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def write(self, value: object) -> Path:
+        path = self.root / "policy.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        return path
+
+    def leaves(self, node: object, trail: tuple[str, ...] = ()) -> list[tuple[tuple[str, ...], object]]:
+        """Every addressable position in the document."""
+
+        if isinstance(node, dict):
+            return [item for key, value in node.items() for item in self.leaves(value, (*trail, key))]
+        return [(trail, node)] if trail else []
+
+    def substitute(self, document: dict, trail: tuple[str, ...], value: object) -> dict:
+        edited = json.loads(json.dumps(document))
+        target = edited
+        for key in trail[:-1]:
+            target = target[key]
+        target[trail[-1]] = value
+        return edited
+
+    def test_every_field_is_rejected_when_its_type_is_wrong(self) -> None:
+        """A type gate nothing exercises is a type gate that quietly stopped working."""
+
+        checked = 0
+        for trail, value in self.leaves(self.document):
+            wrong = self.WRONG_TYPE.get(type(value))
+            if wrong is None:  # a null-valued optional; covered separately
+                continue
+            checked += 1
+            with self.subTest(field=".".join(trail)):
+                with self.assertRaises(PolicyError) as raised:
+                    load_policy(self.write(self.substitute(self.document, trail, wrong)))
+                # The operator is editing a file, so the message has to say which line.
+                self.assertIn(trail[-1], str(raised.exception), f"{'.'.join(trail)}: {raised.exception}")
+        self.assertGreater(checked, 8, "the example policy stopped covering the fields it used to")
+
+    def test_a_populated_send_scope_is_held_to_every_field(self) -> None:
+        """Automated send is the one authorization that acts without a human. Fence it."""
+
+        def with_scope(**overrides: object) -> dict:
+            scope = {
+                "name": "ops-alerts",
+                "recipient_domains": ["example.test"],
+                "max_recipients": 3,
+                "allow_attachments": False,
+                "allowed_sensitivity": ["normal"],
+            }
+            scope.update(overrides)
+            document = json.loads(json.dumps(self.document))
+            document["authorization"]["allow_automated_send"] = True
+            document["authorization"]["automated_send_scopes"] = [scope]
+            return document
+
+        # The happy path first, or a rejection below could be the scope shape
+        # being wrong rather than the rule under test firing.
+        loaded = load_policy(self.write(with_scope()))
+        self.assertEqual(loaded["authorization"]["automated_send_scopes"][0]["name"], "ops-alerts")
+
+        for overrides, expected in (
+            ({"name": "  "}, "nonempty and unique"),
+            ({"recipient_domains": []}, "cannot be empty"),
+            ({"max_recipients": 0}, "positive integer"),
+            ({"max_recipients": True}, "positive integer"),
+            ({"allow_attachments": "no"}, "must be boolean"),
+            ({"allowed_sensitivity": []}, "cannot be empty"),
+            ({"allowed_sensitivity": ["urgent"]}, "unsupported value"),
+        ):
+            with self.subTest(**overrides), self.assertRaisesRegex(PolicyError, expected):
+                load_policy(self.write(with_scope(**overrides)))
+
+    def test_two_scopes_cannot_share_a_name(self) -> None:
+        """Scopes are selected by name, so a duplicate silently shadows the stricter one."""
+
+        scope = {
+            "name": "ops-alerts",
+            "recipient_domains": ["example.test"],
+            "max_recipients": 3,
+            "allow_attachments": False,
+            "allowed_sensitivity": ["normal"],
+        }
+        document = json.loads(json.dumps(self.document))
+        document["authorization"]["allow_automated_send"] = True
+        document["authorization"]["automated_send_scopes"] = [scope, json.loads(json.dumps(scope))]
+
+        with self.assertRaisesRegex(PolicyError, "nonempty and unique"):
+            load_policy(self.write(document))
+
+    def test_a_scope_missing_a_field_is_named_in_the_error(self) -> None:
+        """A dropped field is the likeliest hand edit, and the laxest failure."""
+
+        document = json.loads(json.dumps(self.document))
+        document["authorization"]["allow_automated_send"] = True
+        document["authorization"]["automated_send_scopes"] = [{"name": "ops-alerts"}]
+
+        with self.assertRaisesRegex(PolicyError, "missing field"):
+            load_policy(self.write(document))
+
+    def test_an_unknown_field_is_rejected_rather_than_ignored(self) -> None:
+        """A typo that loads is a setting the operator believes is in force."""
+
+        for section, field in (("identity", "sender_adress"), ("authorization", "allow_automatic_send")):
+            document = json.loads(json.dumps(self.document))
+            document[section][field] = "value"
+            with self.subTest(field=f"{section}.{field}"), self.assertRaises(PolicyError):
+                load_policy(self.write(document))
 
 
 if __name__ == "__main__":
