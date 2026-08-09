@@ -10,12 +10,14 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
 sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
+import validate_synastry  # type: ignore[import-not-found]
 from synastry_schema import attach_integrity  # type: ignore[import-not-found]
 from validate_reading import (  # type: ignore[import-not-found]
     ReadingError,
@@ -226,6 +228,26 @@ class MarkdownValidationTests(unittest.TestCase):
         self.assertTrue(any("required universal heading" in item for item in problems))
         self.assertTrue(any("substantive paragraph" in item for item in problems))
 
+    def test_unclosed_comments_quoted_fences_and_multiline_code_spans_are_nonrendered(self) -> None:
+        citation = ledger().evidence[0].citation
+        commented = "# Synastry reading\n\n<!-- never closed\n" + valid_report()
+        quoted_code = "\n\n".join(f"## {heading}" for heading in UNIVERSAL_HEADINGS)
+        quoted_code += f"\n\n> ```text\n> {citation}\n> ```\n"
+        multiline_code = valid_report().replace(
+            f"## Requested or context-specific domains\n\n{citation}",
+            "## Requested or context-specific domains\n\n"
+            "`hidden\n### Romance and intimacy\nstill hidden`\n\n"
+            f"{citation}",
+        )
+
+        comment_problems = validate_markdown(commented, ledger(), "en", ())
+        quoted_problems = validate_markdown(quoted_code, ledger(), "en", ())
+        span_problems = validate_markdown(multiline_code, ledger(), "en", ("Romance and intimacy",))
+
+        self.assertTrue(any("required universal heading" in item for item in comment_problems))
+        self.assertTrue(any("no inline evidence" in item for item in quoted_problems))
+        self.assertTrue(any("selected module is missing" in item for item in span_problems))
+
     def test_indented_code_cannot_supply_section_evidence(self) -> None:
         citation = ledger().evidence[0].citation
         report = valid_report().replace(
@@ -258,9 +280,16 @@ class MarkdownValidationTests(unittest.TestCase):
             f"## Repeated interaction patterns\n\nThis may emphasize Venus. [{aspect.id}]\n\n{citation}",
         )
         body_problems = validate_markdown(altered_body, ledger(), "en", ())
+        ownership_variant = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nMoon of subject-a may flow from subject-a to subject-b. "
+            f"[{aspect.id}]\n\n{citation}",
+        )
+        ownership_problems = validate_markdown(ownership_variant, ledger(), "en", ())
 
         self.assertTrue(any("claim does not match paragraph evidence" in item for item in problems))
         self.assertTrue(any("claim does not match paragraph evidence" in item for item in body_problems))
+        self.assertTrue(any("claim does not match paragraph evidence" in item for item in ownership_problems))
 
     def test_modules_must_be_selected_canonical_headings_inside_the_domains_section(self) -> None:
         citation = ledger().evidence[0].citation
@@ -279,6 +308,23 @@ class MarkdownValidationTests(unittest.TestCase):
         self.assertTrue(any("outside" in item for item in misplaced_problems))
         self.assertTrue(any("canonical module" in item for item in alias_problems))
 
+    def test_sensitive_modules_at_level_two_or_four_cannot_bypass_authorization(self) -> None:
+        citation = ledger().evidence[0].citation
+        level_two = valid_report().replace(
+            "## Overall synthesis",
+            f"## Romance and intimacy\n\n{citation}\n\n## Overall synthesis",
+        )
+        level_four = valid_report().replace(
+            "## Overall synthesis",
+            f"#### Romance and intimacy\n\n{citation}\n\n## Overall synthesis",
+        )
+
+        level_two_problems = validate_markdown(level_two, ledger(), "en", ())
+        level_four_problems = validate_markdown(level_four, ledger(), "en", ())
+
+        self.assertTrue(any("module" in item for item in level_two_problems))
+        self.assertTrue(any("module" in item for item in level_four_problems))
+
     def test_precision_language_and_conditional_wording_bypasses_are_rejected(self) -> None:
         aspect = next(item for item in ledger().evidence if item.kind == "aspect")
         overlay = next(item for item in ledger().evidence if item.kind == "overlay")
@@ -291,6 +337,15 @@ class MarkdownValidationTests(unittest.TestCase):
         unconditional = base.replace(
             f"## Repeated interaction patterns\n\n{citation}",
             f"## Repeated interaction patterns\n\nThis creates emotional ease. [{aspect.id}]\n\n{citation}",
+        )
+        score_word = base + f"\nThis may rate compatibility at 92 percent. [{aspect.id}]\n"
+        shall_predict = base + f"\nThey shall marry. [{aspect.id}]\n"
+        short_degree = base + f"\nThis may be exact at 9.99 deg. [{aspect.id}]\n"
+        word_house = base + f"\nThis may activate the twelfth house. [{overlay.id}]\n"
+        incidental_may = base.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis proves compatibility and communication may improve. "
+            f"[{aspect.id}]\n\n{citation}",
         )
 
         self.assertTrue(
@@ -315,6 +370,33 @@ class MarkdownValidationTests(unittest.TestCase):
             any(
                 "conditional language" in item
                 for item in validate_markdown(unconditional, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any("compatibility score" in item for item in validate_markdown(score_word, ledger(), "en", ()))
+        )
+        self.assertTrue(
+            any(
+                "deterministic prediction" in item
+                for item in validate_markdown(shall_predict, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any(
+                "measurement does not match" in item
+                for item in validate_markdown(short_degree, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any(
+                "measurement does not match" in item
+                for item in validate_markdown(word_house, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any(
+                "conditional language" in item
+                for item in validate_markdown(incidental_may, ledger(), "en", ())
             )
         )
 
@@ -404,6 +486,34 @@ class ValidatedWriteTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "source JSON"):
             write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
+
+    def test_atomic_install_restores_source_alias_swapped_after_the_last_precheck(self) -> None:
+        source = self.directory / "source.json"
+        source.write_bytes((FIXTURES / "neutral.json").read_bytes())
+        selected = load_ledger(source)
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        original_identity = validate_synastry._path_identity
+        destination_checks = 0
+
+        def swap_after_check(path: Path) -> tuple[int, int] | None:
+            nonlocal destination_checks
+            result = original_identity(path)
+            if Path(path) == destination:
+                destination_checks += 1
+                if destination_checks == 2:
+                    destination.unlink()
+                    destination.hardlink_to(source)
+            return result
+
+        with (
+            patch("validate_synastry._path_identity", side_effect=swap_after_check),
+            self.assertRaisesRegex(ValueError, "source JSON"),
+        ):
+            write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
+
+        self.assertTrue(destination.samefile(source))
+        self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
 
     def test_output_collision_cli_error_does_not_echo_destination(self) -> None:
         destination = self.directory / "secret-reading-name.md"

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import ctypes
 import errno
 import hashlib
 import json
@@ -220,12 +221,30 @@ def _write_atomic_bytes(
         os.close(descriptor)
         descriptor = None
 
-        if forbidden_identity is not None and _path_identity(destination) == forbidden_identity:
+        existing_identity = _path_identity(destination)
+        if forbidden_identity is not None and existing_identity == forbidden_identity:
             raise SourceIdentityError("output must not replace the source JSON")
 
         if overwrite:
-            os.replace(temporary, destination)
-            temporary = None
+            if existing_identity is None:
+                try:
+                    os.link(temporary, destination)
+                except FileExistsError as error:
+                    raise OSError(errno.EBUSY, "output changed during installation") from error
+                temporary.unlink()
+                temporary = None
+            else:
+                _exchange_paths(temporary, destination)
+                displaced_identity = _path_identity(temporary)
+                if displaced_identity != existing_identity or (
+                    forbidden_identity is not None and displaced_identity == forbidden_identity
+                ):
+                    _exchange_paths(temporary, destination)
+                    if displaced_identity == forbidden_identity:
+                        raise SourceIdentityError("output must not replace the source JSON")
+                    raise OSError(errno.EBUSY, "output changed during installation")
+                temporary.unlink()
+                temporary = None
         else:
             try:
                 os.link(temporary, destination)
@@ -244,6 +263,33 @@ def _write_atomic_bytes(
         if temporary is not None:
             with suppress(FileNotFoundError):
                 temporary.unlink()
+
+
+def _exchange_paths(first: Path, second: Path) -> None:
+    """Atomically exchange two directory entries or fail closed."""
+
+    library = ctypes.CDLL(None, use_errno=True)
+    encoded_first = os.fsencode(first)
+    encoded_second = os.fsencode(second)
+    if sys.platform == "darwin":
+        operation = getattr(library, "renameatx_np", None)
+        if operation is None:
+            raise OSError(errno.ENOTSUP, "atomic path exchange is unavailable")
+        operation.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        operation.restype = ctypes.c_int
+        result = operation(-2, encoded_first, -2, encoded_second, 0x00000002)
+    elif sys.platform.startswith("linux"):
+        operation = getattr(library, "renameat2", None)
+        if operation is None:
+            raise OSError(errno.ENOTSUP, "atomic path exchange is unavailable")
+        operation.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+        operation.restype = ctypes.c_int
+        result = operation(-100, encoded_first, -100, encoded_second, 0x00000002)
+    else:
+        raise OSError(errno.ENOTSUP, "atomic path exchange is unavailable")
+    if result != 0:
+        error_number = ctypes.get_errno()
+        raise OSError(error_number, os.strerror(error_number))
 
 
 def _path_identity(path: Path) -> tuple[int, int] | None:
@@ -303,8 +349,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     payload = _ledger_bytes(ledger)
     if arguments.out is None:
-        sys.stdout.write(payload.decode("utf-8"))
-        return 0
+        try:
+            sys.stdout.write(payload.decode("utf-8"))
+            return 0
+        except OSError:
+            print("error: could not write ledger output", file=sys.stderr)
+            return 2
     try:
         if arguments.out.suffix != ".json":
             raise ValueError("ledger output must end in .json")

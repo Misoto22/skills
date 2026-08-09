@@ -28,18 +28,18 @@ _EVIDENCE_TOKEN = re.compile(r"\[E-(?:ASPECT|OVERLAY)-[0-9A-F]{4}\]")
 _EVIDENCE_LIKE = re.compile(r"\[E-(?:ASPECT|OVERLAY)-[^\]\s]+\]", re.IGNORECASE)
 _PLACEHOLDER = re.compile(r"<[^<>\n]+>")
 _DEGREE_CLAIM = re.compile(
-    r"(?P<first>\d+(?:\.\d+)?)[ \t]*(?:°|degrees?)"
+    r"(?P<first>\d+(?:\.\d+)?)[ \t]*(?:°|deg(?:ree)?s?)"
     r"(?:[ \t]*(?:-|\N{EN DASH}|\N{EM DASH}|to)[ \t]*"
-    r"(?P<second>\d+(?:\.\d+)?)[ \t]*(?:°|degrees?))?",
+    r"(?P<second>\d+(?:\.\d+)?)[ \t]*(?:°|deg(?:ree)?s?))?",
     re.IGNORECASE,
 )
 _SCORE = re.compile(
     r"compatibility[ \t]+(?:score|rating)|(?:score|rating)[ \t]*[:=][ \t]*\d|"
-    r"\b\d+(?:\.\d+)?[ \t]*(?:%|points?\b|/[ \t]*(?:5|10|100))|[★⭐]{2,}",
+    r"\b\d+(?:\.\d+)?[ \t]*(?:%|percent\b|points?\b|/[ \t]*(?:5|10|100))|[★⭐]{2,}",
     re.IGNORECASE,
 )
 _PREDICTION = re.compile(
-    r"\b(?:will|guarantees?|guaranteed|destined|definitely|inevitably|certain to|must happen)\b|"
+    r"\b(?:will|shall|guarantees?|guaranteed|destined|definitely|inevitably|certain to|must happen)\b|"
     r"\bgoing[ \t]+to(?:[ \t]+\w+){1,4}\b|"
     r"必然|注定|保证|一定会|肯定会|必定",
     re.IGNORECASE,
@@ -53,10 +53,28 @@ _CONDITIONAL = {
 }
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 _ATX_HEADING = re.compile(r"^[ \t]{0,3}(?P<marker>#{1,6})[ \t]+(?P<title>.*?)[ \t]*#*[ \t]*$")
-_INLINE_CODE = re.compile(r"(`+).*?\1")
-_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 _LIST_PREFIX = re.compile(r"^[ \t]{0,3}(?:(?:>[ \t]*)+)?(?:[-+*]|\d+[.)])[ \t]+")
 _QUOTE_PREFIX = re.compile(r"^[ \t]{0,3}(?:>[ \t]*)+")
+_CLAIM_BOUNDARY = re.compile(
+    r"[.!?;\N{IDEOGRAPHIC FULL STOP}\N{FULLWIDTH EXCLAMATION MARK}"
+    r"\N{FULLWIDTH QUESTION MARK}\N{FULLWIDTH SEMICOLON}]+|"
+    r"\b(?:and|but|while|whereas|although|however)\b",
+    re.IGNORECASE,
+)
+_WORD_HOUSES = {
+    "first": 1,
+    "second": 2,
+    "third": 3,
+    "fourth": 4,
+    "fifth": 5,
+    "sixth": 6,
+    "seventh": 7,
+    "eighth": 8,
+    "ninth": 9,
+    "tenth": 10,
+    "eleventh": 11,
+    "twelfth": 12,
+}
 _ASPECT_KINDS = frozenset(
     {
         "conjunction",
@@ -225,31 +243,28 @@ def _validate_headings(
     present: set[str] = set()
     for heading in headings:
         normalized = _normalize_heading(heading.text)
-        if heading.level == 2:
-            current_level_two = normalized
-            continue
         if normalized in _NONCANONICAL_MODULE_ALIASES:
             problems.append("noncanonical module heading is forbidden")
-        if heading.level != 3:
-            continue
-        if current_level_two == domains:
-            if normalized not in canonical or normalized not in selected:
+        if normalized in canonical:
+            if heading.level != 3 or current_level_two != domains:
+                problems.append("canonical module appears outside the domains section or at the wrong level")
+            elif normalized not in selected:
                 problems.append("unselected module is present in the domains section")
             else:
                 present.add(normalized)
-        elif normalized in canonical:
-            problems.append("selected module appears outside the domains section")
+        elif heading.level == 3 and current_level_two == domains:
+            problems.append("unselected module is present in the domains section")
+        if heading.level == 2:
+            current_level_two = normalized
 
     for module in sorted(selected - present):
         problems.append(f"selected module is missing: {canonical[module]}")
 
 
 def _rendered_blocks(markdown: str) -> list[_Block]:
-    masked = _COMMENT.sub(lambda match: re.sub(r"[^\n]", " ", match.group(0)), markdown)
+    masked = _mask_nonrendered(markdown)
     blocks: list[_Block] = []
     paragraph: list[str] = []
-    fence_character: str | None = None
-    fence_length = 0
 
     def flush() -> None:
         if paragraph:
@@ -257,24 +272,6 @@ def _rendered_blocks(markdown: str) -> list[_Block]:
             paragraph.clear()
 
     for raw_line in masked.splitlines():
-        fence = _FENCE.match(raw_line)
-        if fence_character is not None:
-            if fence is not None:
-                marker = fence.group("marker")
-                if marker[0] == fence_character and len(marker) >= fence_length:
-                    fence_character = None
-                    fence_length = 0
-            continue
-        if fence is not None:
-            flush()
-            marker = fence.group("marker")
-            fence_character = marker[0]
-            fence_length = len(marker)
-            continue
-        if raw_line.startswith("    ") or raw_line.startswith("\t"):
-            flush()
-            continue
-
         line = _strip_inline_nonrendered(raw_line)
         heading = _ATX_HEADING.match(line)
         if heading is not None:
@@ -297,9 +294,90 @@ def _rendered_blocks(markdown: str) -> list[_Block]:
 
 
 def _strip_inline_nonrendered(line: str) -> str:
-    line = _INLINE_CODE.sub(lambda match: " " * len(match.group(0)), line)
     line = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", line)
     return line
+
+
+def _mask_nonrendered(markdown: str) -> str:
+    masked = _mask_html_comments(markdown)
+    masked = _mask_code_containers(masked)
+    return _mask_code_spans(masked)
+
+
+def _blank(value: str) -> str:
+    return re.sub(r"[^\n]", " ", value)
+
+
+def _mask_html_comments(markdown: str) -> str:
+    result: list[str] = []
+    cursor = 0
+    while True:
+        start = markdown.find("<!--", cursor)
+        if start < 0:
+            result.append(markdown[cursor:])
+            return "".join(result)
+        result.append(markdown[cursor:start])
+        end = markdown.find("-->", start + 4)
+        stop = len(markdown) if end < 0 else end + 3
+        result.append(_blank(markdown[start:stop]))
+        cursor = stop
+
+
+def _mask_code_containers(markdown: str) -> str:
+    result: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+    for raw_line in markdown.splitlines(keepends=True):
+        content = raw_line.rstrip("\r\n")
+        container_content = _QUOTE_PREFIX.sub("", content, count=1)
+        fence = _FENCE.match(container_content)
+        if fence_character is not None:
+            result.append(_blank(raw_line))
+            if fence is not None:
+                marker = fence.group("marker")
+                if marker[0] == fence_character and len(marker) >= fence_length:
+                    fence_character = None
+                    fence_length = 0
+            continue
+        if fence is not None:
+            marker = fence.group("marker")
+            fence_character = marker[0]
+            fence_length = len(marker)
+            result.append(_blank(raw_line))
+            continue
+        if container_content.startswith("    ") or container_content.startswith("\t"):
+            result.append(_blank(raw_line))
+            continue
+        result.append(raw_line)
+    return "".join(result)
+
+
+def _mask_code_spans(markdown: str) -> str:
+    characters = list(markdown)
+    cursor = 0
+    while cursor < len(markdown):
+        if markdown[cursor] != "`":
+            cursor += 1
+            continue
+        end_of_opener = cursor
+        while end_of_opener < len(markdown) and markdown[end_of_opener] == "`":
+            end_of_opener += 1
+        delimiter = markdown[cursor:end_of_opener]
+        closing = markdown.find(delimiter, end_of_opener)
+        while closing >= 0 and (
+            (closing > 0 and markdown[closing - 1] == "`")
+            or (closing + len(delimiter) < len(markdown) and markdown[closing + len(delimiter)] == "`")
+        ):
+            closing = markdown.find(delimiter, closing + len(delimiter))
+        if closing < 0:
+            cursor = end_of_opener
+            continue
+        stop = closing + len(delimiter)
+        for index in range(cursor, stop):
+            if characters[index] not in "\r\n":
+                characters[index] = " "
+        cursor = stop
+    return "".join(characters)
 
 
 def _validate_evidence(
@@ -341,7 +419,7 @@ def _validate_evidence(
         substantive = _is_substantive(block.text, top_section, ledger, language)
         if substantive and not bound:
             problems.append("substantive paragraph lacks valid evidence")
-        if substantive and not _CONDITIONAL[language].search(block.text):
+        if substantive and _contains_unconditional_claim(block.text, language):
             problems.append("substantive paragraph requires conditional language")
         if bound:
             _validate_claims(block.text, bound, ledger, problems)
@@ -396,6 +474,18 @@ def _is_substantive(
     return bool(re.search(r"[A-Za-z\u3400-\u9fff]", text))
 
 
+def _contains_unconditional_claim(text: str, language: str) -> bool:
+    without_citations = _EVIDENCE_TOKEN.sub("", text)
+    for claim in _CLAIM_BOUNDARY.split(without_citations):
+        if language == "en":
+            substantive = len(re.findall(r"[A-Za-z]+", claim)) >= 3
+        else:
+            substantive = len(re.findall(r"[\u3400-\u9fff]", claim)) >= 4
+        if substantive and _CONDITIONAL[language].search(claim) is None:
+            return True
+    return False
+
+
 def _validate_claims(
     text: str,
     evidence: Sequence[EvidenceItem],
@@ -445,11 +535,23 @@ def _validate_claims(
                 for owner, known_body in allowed_pairs
             ):
                 claim_mismatch = True
+        reversed_pattern = re.compile(
+            rf"(?<![\w-])([\w-]+)[ \t]+of[ \t]+{re.escape(subject_id)}(?![\w-])",
+            re.IGNORECASE,
+        )
+        for body in reversed_pattern.findall(text):
+            if body.casefold() not in _BODY_NAMES and body.casefold() not in evidence_body_names:
+                continue
+            if not any(
+                subject_id.casefold() == owner.casefold() and body.casefold() == known_body.casefold()
+                for owner, known_body in allowed_pairs
+            ):
+                claim_mismatch = True
         for other_id in subject_ids:
             if subject_id == other_id:
                 continue
             direction = re.compile(
-                rf"(?<![\w-]){re.escape(subject_id)}[ \t]*(?:->|→)[ \t]*"
+                rf"(?<![\w-]){re.escape(subject_id)}[ \t]*(?:->|→|to)[ \t]*"
                 rf"{re.escape(other_id)}(?![\w-])",
                 re.IGNORECASE,
             )
@@ -464,6 +566,10 @@ def _validate_claims(
             measurement_mismatch = True
     for house in re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)[ \t]+house\b", text, re.IGNORECASE):
         if int(house) not in allowed_houses:
+            measurement_mismatch = True
+    word_house_pattern = r"\b(" + "|".join(_WORD_HOUSES) + r")[ \t]+house\b"
+    for house in re.findall(word_house_pattern, text, re.IGNORECASE):
+        if _WORD_HOUSES[house.casefold()] not in allowed_houses:
             measurement_mismatch = True
     for aspect in re.findall(r"\b[\w-]+\b", text.casefold()):
         if aspect in _ASPECT_KINDS and aspect not in {item.casefold() for item in allowed_aspects}:

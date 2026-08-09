@@ -125,6 +125,21 @@ class SourceValidatorCliTests(unittest.TestCase):
         self.assertEqual(collision_code, 2)
         self.assertIn("already exists", collision_error)
 
+    def test_stdout_write_failure_is_bounded(self) -> None:
+        class FailingStdout(io.StringIO):
+            def write(self, value: str) -> int:
+                del value
+                raise OSError("sensitive writer failure")
+
+        stdout = FailingStdout()
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            code = main([str(FIXTURES / "neutral.json")])
+
+        self.assertEqual(code, 2)
+        self.assertEqual(stderr.getvalue(), "error: could not write ledger output\n")
+        self.assertNotIn("sensitive", stderr.getvalue())
+
     def test_script_runs_directly_from_the_skill_directory(self) -> None:
         script = SKILL / "scripts" / "validate_synastry.py"
 
