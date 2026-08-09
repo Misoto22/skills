@@ -38,7 +38,7 @@ development-documentation path, rather than a release-versioned path.
 ## Draft edit
 
 The expectation preserves intentional wording and rhythm. Request B changes
-two words while preserving the fragment and three-sentence shape:
+two spans while preserving the fragment and three-sentence shape:
 
 > It doesn’t. Sometimes it only gives confusion a nicer coat.
 

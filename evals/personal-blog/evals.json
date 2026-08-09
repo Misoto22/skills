@@ -24,7 +24,7 @@
     {
       "id": "technical-current-research",
       "prompt": "Write a technical blog post about diagnosing PostgreSQL connection exhaustion in Django. Verify current claims and cite the primary documentation in Markdown.",
-      "expected": "Fires in technical mode, cites an official release page that establishes the current stable Django series, cites matching versioned primary documentation rather than mutable development docs, states assumptions and trade-offs, and does not claim unobserved results."
+      "expected": "Fires in technical mode, cites an official current-release or status page that establishes the stable Django series as of the stated date, cites matching versioned primary documentation rather than mutable development docs, states assumptions and trade-offs, and does not claim unobserved results."
     }
   ],
   "non_triggers": [
@@ -91,7 +91,7 @@
       "id": "sparse-personal-evidence",
       "prompt": "Write a personal essay from this note only: 'The train was late and I called my sister.'",
       "expectations": [
-        "Builds from an inventory of the supplied personal facts and checks every concrete claim about the writer or sister regardless of pronoun; it does not invent a relationship history, time marker, routine, work detail, emotion, quotation, outcome, or additional event.",
+        "Builds from an inventory of the supplied personal facts and, for every concrete sentence about the writer or anyone in the writer's life regardless of pronoun, maps only the fields actually asserted to exact supplied fragments; this includes third-person claims about the sister.",
         "Keeps the result impersonal where the supplied material is insufficient or uses a visible Markdown placeholder for the missing personal material.",
         "Does not present an inference as a supplied fact."
       ]
@@ -111,7 +111,7 @@
       "expectations": [
         "Researches claims needing external support and prefers primary documentation for technical and current claims.",
         "Verifies citations before using them and preserves disagreement if authoritative sources conflict.",
-        "For current released behavior, names an as-of date, cites the official release page that establishes the stable series, and cites documentation under that same version segment rather than a mutable development branch.",
+        "For current released behavior, names an as-of date, cites an official current-release or status page establishing the stable series on that date, and cites documentation under that same version segment rather than historical release notes or a mutable development branch.",
         "States versions and assumptions where they matter, and never reports tests or command results that were not observed."
       ]
     },
@@ -119,7 +119,7 @@
       "id": "edit-preserves-intentional-style",
       "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending.",
       "expectations": [
-        "Changes only spans needed for clarity and leaves already-clear protected fragments, repetition, roughness, and ambiguity verbatim.",
+        "Each change fixes a specific grammar, ambiguity, needless-indirection, or sentence-structure defect while preserving the prompt's deliberate repetition, roughness, and open ending.",
         "Preserves the writer's supplied facts, position, and uncertainty.",
         "Does not add ceremonial transitions, inflated stakes, or a conclusion that merely restates the opening."
       ]

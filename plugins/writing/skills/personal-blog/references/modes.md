@@ -43,8 +43,9 @@ Choose the primary mode from the article's job, not merely its topic.
   and outcomes supplied by the writer. External context may be researched, but
   it cannot fill a personal gap. Before drafting, extract a personal fact
   inventory. For every concrete sentence about the writer or anyone in the
-  writer's life, regardless of pronoun, confirm its actor, action, time, place,
-  feeling, and outcome against that inventory; rewrite unsupported fields
+  writer's life, regardless of pronoun, map only the fields it actually
+  asserts—actor, action, time, place, feeling, outcome, or another claimed
+  detail—to exact supplied fragments. Rewrite any field without a match
   impersonally or leave a visible gap.
 - **Structure:** Arrange supplied scenes and reflection by emotional or conceptual
   movement. Use chronology only when chronology carries the meaning. When the
@@ -57,11 +58,11 @@ Choose the primary mode from the article's job, not merely its topic.
 
   Close restatement of a supplied reflection.
   ```
-- **Integrity check:** Make a sentence audit before delivery: pair every sentence
-  about the writer or their relationships with the exact note fragment that
-  supports it. Rewrite every unmatched sentence as a non-personal possibility
-  or a visible bracketed Markdown gap; plausibility and thematic fit are not
-  evidence.
+- **Integrity check:** Make a sentence audit before delivery. For every concrete
+  sentence about the writer or anyone in the writer's life, regardless of
+  pronoun, map only the fields it actually asserts to exact supplied fragments.
+  Rewrite any unmatched asserted field as a non-personal possibility or a visible
+  bracketed Markdown gap; plausibility and thematic fit are not evidence.
 - **Avoid:** A complete chronological memoir arc, invented scene-setting, or a
   manufactured epiphany that makes sparse notes look finished.
 
@@ -83,18 +84,20 @@ Choose the primary mode from the article's job, not merely its topic.
   observed tool output. State versions, environment assumptions, and the boundary
   between documented behavior and inference. When current released behavior is
   requested without a version, put the as-of date, stable release series, and a
-  citation to the official page that establishes that release in the article's
-  assumptions. Cite documentation under the same version segment; a versioned
-  documentation URL alone does not establish stable status. Use development-
-  branch documentation only when the article explicitly covers unreleased
-  behavior.
+  citation to an official current-release or status page that establishes that
+  stable series as of the stated date in the article's assumptions. Cite
+  documentation under the same version segment; historical release notes or a
+  versioned documentation URL alone do not establish current stable status. Use
+  development-branch documentation only when the article explicitly covers
+  unreleased behavior.
 - **Structure:** Frame the concrete problem and system boundary, build the causal
   model, then present diagnosis or implementation choices with trade-offs,
   failure modes, and verification steps.
-- **Integrity check:** For current release claims, does the article cite the
-  official release page, state an as-of date, and keep framework-documentation
-  links on the stable series that page establishes? Check commands and code when
-  tools permit. Never report a test, benchmark, deployment, or command result
-  that was not observed; label unrun steps as instructions or expected results.
+- **Integrity check:** For current release claims, does the article state an
+  as-of date, cite an official current-release or status page establishing the
+  stable series on that date, and keep framework-documentation links on that
+  series? Check commands and code when tools permit. Never report a test,
+  benchmark, deployment, or command result that was not observed; label unrun
+  steps as instructions or expected results.
 - **Avoid:** A context-free install-and-happy-path tutorial, or a universal best
   practice that hides version, workload, and operational trade-offs.
