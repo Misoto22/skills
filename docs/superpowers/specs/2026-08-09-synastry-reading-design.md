@@ -48,54 +48,60 @@ Every interpretive claim must cite one or more measured facts from the source fi
 
 Each cited aspect includes both bodies, aspect type, and orb. Each cited overlay names whose body falls into whose house. Missing asteroid data and coordinate or time limitations are repeated in the Markdown report. The reading uses conditional language, does not predict events, does not assign compatibility scores, and does not frame any placement as proof of a person's character or fate.
 
-## Fixed Markdown output
+## Hybrid Markdown output
 
-The report uses the source language when it is clear, otherwise the language of the request. It always follows this structure:
+The report uses the source language when it is clear, otherwise the language of the request. It uses a fixed relationship-mechanism core followed by evidence-selected real-life domains. This keeps reports comparable without forcing every relationship into four example categories.
+
+The fixed core follows this structure:
 
 ```markdown
 # Synastry Reading: <Name A> × <Name B>
 
 ## Basis and limitations
 
-## Relationship overview
+## Relationship signature
 
-## Love
-### Core dynamic
-### Supportive patterns
-### Friction and risks
-### Chart evidence
-### Practical guidance
+## Reciprocity and asymmetry
 
-## Friendship
-### Core dynamic
-### Supportive patterns
-### Boundaries and risks
-### Chart evidence
-### Practical guidance
+## Emotional bond and security
 
-## Business partnership
-### Roles and complementary strengths
-### Communication and decision-making
-### Power and conflict risks
-### Chart evidence
-### Collaboration guidance
+## Attraction, romance, and intimacy
 
-## Money
-### Money attitudes and security
-### Shared-resource patterns
-### Financial risks
-### Chart evidence
-### Financial boundaries
+## Communication and mental rhythm
+
+## Conflict, power, and repair
+
+## Trust, boundaries, and commitment
+
+## Growth, values, and shared direction
+
+## Applied life domains
+### <Selected domain>
 
 ## Overall synthesis
 ### Strongest connection
 ### Primary challenge
-### Three practical actions
+### What each person should watch
+### Practical actions
 
 ## Evidence index
 ```
 
-For Chinese output the headings are translated consistently to `分析基础与限制`, `关系总览`, `爱情`, `友情`, `事业合作`, `金钱`, `综合结论`, and `证据索引`. The section order and subsection responsibilities do not change between languages.
+For Chinese output the fixed headings are translated consistently to `分析基础与限制`, `关系主轴`, `双向影响与不对称性`, `情绪连接与安全感`, `吸引力、浪漫与亲密关系`, `沟通与思维节奏`, `冲突、权力与修复能力`, `信任、边界与承诺`, `共同成长、价值观与人生方向`, `现实领域`, `综合结论`, and `证据索引`. The section order and responsibilities do not change between languages.
+
+The applied-domain section is adaptive. Available modules include:
+
+- friendship, community, and social networks
+- daily life, home, family, and care patterns
+- career, business, and creative collaboration
+- money, shared resources, and risk tolerance
+- another topic explicitly requested by the user or strongly activated by the chart
+
+Include every domain the user explicitly requests. If its evidence is weak, say that the source does not support a confident domain-specific reading instead of filling the section with generic astrology. Include an unrequested domain only when it has either two independent major indicators or one tight personal/angle contact plus a directly relevant house overlay. Do not infer that the two people are lovers, friends, colleagues, family, or financial partners unless the request states it.
+
+Each core section and included domain ends with a compact `Evidence`/`星盘证据` list and practical guidance when the cited pattern supports one. Avoid repeating one interpretation across multiple sections; cross-reference the earlier mechanism and explain only its new real-life implication.
+
+Keep every fixed core heading even when the file has little relevant evidence. In that case, state the evidence limit briefly, omit unsupported practical guidance, and do not substitute generic sign descriptions.
 
 ## Failure handling
 
@@ -119,7 +125,9 @@ For Chinese output the headings are translated consistently to `分析基础与�
 - A completed synastry file plus an interpretation request routes to `synastry-reading`.
 - A successful calculation automatically continues into the reading skill.
 - The raw `.txt` file contains measurements only.
-- The Markdown report contains all four relationship dimensions and the fixed headings.
+- The Markdown report contains every fixed relationship-mechanism section in the defined order.
+- The applied-domain section includes requested topics and only evidence-qualified additional topics; weak evidence is disclosed rather than padded with generic claims.
+- The report distinguishes what each person activates or experiences instead of flattening both overlay directions into one shared effect.
 - Every substantive conclusion is traceable to aspects, orbs, or directional house overlays in the source.
 - The reading never recomputes the chart, invents missing evidence, predicts events, or assigns a compatibility score.
 - Repository validation, formatting, linting, and shell checks pass before publication.
