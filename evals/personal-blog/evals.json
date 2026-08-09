@@ -47,6 +47,21 @@
       "routes_to": "readme"
     },
     {
+      "id": "newsletter-from-notes",
+      "prompt": "Turn these product-update notes into a publishable newsletter in Markdown.",
+      "expected": "Does not fire. A newsletter is not a personal blog artefact."
+    },
+    {
+      "id": "magazine-profile-voice-edit",
+      "prompt": "Edit this magazine profile while preserving the author's voice and narrative rhythm.",
+      "expected": "Does not fire. A magazine profile is outside this skill's personal-blog scope."
+    },
+    {
+      "id": "manuscript-line-edit",
+      "prompt": "Line-edit this nonfiction manuscript chapter and preserve the author's voice.",
+      "expected": "Does not fire. Manuscript editing is outside this skill's personal-blog scope."
+    },
+    {
       "id": "marketing-landing-page",
       "prompt": "Write conversion-focused copy for the pricing page, with a headline and three calls to action.",
       "expected": "Does not fire. Marketing copy is outside this skill."

@@ -1216,6 +1216,9 @@ class RepositoryContractTests(unittest.TestCase):
             "plugins/writing/skills/README.md",
         ]
         before = {path: (ROOT / path).read_bytes() for path in edited}
+        routed_case_ids = {
+            path: {case["id"] for case in json.loads(before[path])["non_triggers"]} for path in routed_evals
+        }
         for path in routed_evals:
             self.assertIn(b'"routes_to": "tempering"', before[path], path)
         retired = ROOT / "deprecated" / "writing" / "tempering"
@@ -1224,11 +1227,12 @@ class RepositoryContractTests(unittest.TestCase):
             self._run("scripts/remove-skill.py", "writing", "tempering")
             for path in routed_evals:
                 self.assertNotIn(b'"routes_to": "tempering"', (ROOT / path).read_bytes(), path)
-            # The case itself survives: that prompt still must not fire email.
-            suite = json.loads((ROOT / "evals/email/evals.json").read_text(encoding="utf-8"))
-            self.assertEqual(
-                len(suite["non_triggers"]), len(json.loads(before["evals/email/evals.json"])["non_triggers"])
-            )
+                suite = json.loads((ROOT / path).read_text(encoding="utf-8"))
+                self.assertEqual(
+                    {case["id"] for case in suite["non_triggers"]},
+                    routed_case_ids[path],
+                    path,
+                )
             self._run("scripts/run-evals.py", "--check")
         finally:
             if (retired / "evals").is_dir():

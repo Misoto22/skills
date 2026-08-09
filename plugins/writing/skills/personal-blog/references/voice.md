@@ -9,7 +9,7 @@ Use the strongest available basis, in this order:
 
 1. The writer's explicit constraints and style directions.
 2. The passage or draft being edited.
-3. Five to ten representative samples supplied for this piece.
+3. Representative samples supplied for this piece, ideally five to ten when available.
 4. The writer's notes.
 5. A neutral provisional voice when none of the above exists.
 
