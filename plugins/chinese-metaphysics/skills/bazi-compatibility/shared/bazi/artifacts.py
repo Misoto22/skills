@@ -1,0 +1,232 @@
+"""Canonical checksums, safe names, and atomic artifact pairs."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import os
+import re
+import tempfile
+import unicodedata
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+SCHEMAS = {
+    "chinese-metaphysics.bazi-chart": 1,
+    "chinese-metaphysics.bazi-compatibility": 1,
+}
+
+
+class ArtifactError(ValueError):
+    """An artifact is invalid or cannot be written safely."""
+
+
+def slugify(value: str) -> str:
+    """Return a portable Unicode filename component with no path semantics."""
+
+    normalized = unicodedata.normalize("NFKC", value).strip()
+    normalized = re.sub(r"[\\/]+", "-", normalized)
+    normalized = re.sub(r"[^\w\-\u3400-\u9fff]+", "-", normalized, flags=re.UNICODE)
+    normalized = re.sub(r"[-_]{2,}", "-", normalized).strip(" .-_")
+    return normalized or "unnamed"
+
+
+def add_checksum(envelope: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a detached JSON-compatible envelope with its canonical SHA-256."""
+
+    result = copy.deepcopy(dict(envelope))
+    result.pop("checksum", None)
+    result["checksum"] = _checksum(result)
+    return result
+
+
+def validate_envelope(envelope: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate schema identity, version, and canonical content checksum."""
+
+    result = copy.deepcopy(dict(envelope))
+    schema = result.get("schema")
+    if schema not in SCHEMAS:
+        raise ArtifactError(f"unsupported artifact schema {schema!r}")
+    if result.get("schema_version") != SCHEMAS[schema]:
+        raise ArtifactError(
+            f"unsupported {schema} version {result.get('schema_version')!r}; expected {SCHEMAS[schema]}"
+        )
+    supplied = result.get("checksum")
+    if not isinstance(supplied, str) or supplied != _checksum(result):
+        raise ArtifactError("artifact checksum does not match its canonical content")
+    return result
+
+
+def write_artifact_pair(
+    envelope: Mapping[str, Any],
+    output_directory: Path,
+    *,
+    kind: str,
+) -> tuple[Path, Path]:
+    """Write or reuse one collision-safe canonical JSON/Markdown pair."""
+
+    validated = validate_envelope(envelope)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    stem = _artifact_stem(validated, kind)
+    json_bytes = _pretty_json(validated)
+    markdown_bytes = _render_markdown(validated, kind).encode("utf-8")
+    checksum = validated["checksum"]
+
+    json_path = output_directory / f"{stem}.json"
+    markdown_path = output_directory / f"{stem}.md"
+    if _same_pair(json_path, markdown_path, json_bytes, markdown_bytes):
+        return json_path.resolve(), markdown_path.resolve()
+    if json_path.exists() or markdown_path.exists():
+        stem = f"{stem}-{checksum[:8]}"
+        json_path = output_directory / f"{stem}.json"
+        markdown_path = output_directory / f"{stem}.md"
+        if _same_pair(json_path, markdown_path, json_bytes, markdown_bytes):
+            return json_path.resolve(), markdown_path.resolve()
+        if json_path.exists() or markdown_path.exists():
+            raise ArtifactError(f"artifact collision at {json_path.name}")
+
+    temporary: list[Path] = []
+    try:
+        json_temp = _write_temp(output_directory, json_bytes)
+        temporary.append(json_temp)
+        markdown_temp = _write_temp(output_directory, markdown_bytes)
+        temporary.append(markdown_temp)
+        os.link(json_temp, json_path)
+        try:
+            os.link(markdown_temp, markdown_path)
+        except Exception:
+            json_path.unlink(missing_ok=True)
+            raise
+    except FileExistsError as error:
+        raise ArtifactError("artifact path changed during atomic creation; retry") from error
+    finally:
+        for path in temporary:
+            path.unlink(missing_ok=True)
+    return json_path.resolve(), markdown_path.resolve()
+
+
+def _artifact_stem(envelope: Mapping[str, Any], kind: str) -> str:
+    if kind == "chart":
+        return f"bazi_{slugify(str(envelope['input']['name']))}"
+    if kind == "compatibility":
+        left = slugify(str(envelope["people"]["left"]["name"]))
+        right = slugify(str(envelope["people"]["right"]["name"]))
+        return f"bazi_compatibility_{left}_{right}"
+    raise ArtifactError(f"unsupported artifact kind {kind!r}")
+
+
+def _checksum(envelope: Mapping[str, Any]) -> str:
+    content = dict(envelope)
+    content.pop("checksum", None)
+    encoded = json.dumps(
+        content,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _pretty_json(envelope: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(envelope, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n"
+    ).encode("utf-8")
+
+
+def _same_pair(
+    json_path: Path,
+    markdown_path: Path,
+    json_bytes: bytes,
+    markdown_bytes: bytes,
+) -> bool:
+    return (
+        json_path.is_file()
+        and markdown_path.is_file()
+        and json_path.read_bytes() == json_bytes
+        and markdown_path.read_bytes() == markdown_bytes
+    )
+
+
+def _write_temp(directory: Path, content: bytes) -> Path:
+    descriptor, name = tempfile.mkstemp(prefix=".bazi-", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except Exception:
+        Path(name).unlink(missing_ok=True)
+        raise
+    return Path(name)
+
+
+def _render_markdown(envelope: Mapping[str, Any], kind: str) -> str:
+    if kind == "chart":
+        return _render_chart_markdown(envelope)
+    if kind == "compatibility":
+        return _render_compatibility_markdown(envelope)
+    raise ArtifactError(f"unsupported artifact kind {kind!r}")
+
+
+def _render_chart_markdown(envelope: Mapping[str, Any]) -> str:
+    name = envelope["input"]["name"]
+    lines = [f"# BaZi chart data: {name}", "", f"- Checksum: `{envelope['checksum']}`"]
+    if "calendar" in envelope:
+        lines.extend(
+            [
+                f"- Gregorian date: {envelope['calendar']['resolved_gregorian_date']}",
+                f"- True solar time: {envelope['time']['true_solar']}",
+                f"- Day boundary: {envelope['pillars']['primary']['boundaries']['day_boundary']}",
+            ]
+        )
+    lines.extend(["", "| Pillar | Stem | Branch | Text |", "|---|---|---|---|"])
+    for position in ("year", "month", "day", "hour"):
+        item = envelope["pillars"]["primary"].get(position)
+        if item:
+            lines.append(
+                f"| {position} | {item.get('stem', '')} | {item.get('branch', '')} | {item.get('text', '')} |"
+            )
+    if "scores" in envelope:
+        scores = envelope["scores"]["primary"]
+        lines.extend(
+            [
+                "",
+                "## Numeric model outputs",
+                "",
+                "| Element | Base % | Adjusted % |",
+                "|---|---:|---:|",
+            ]
+        )
+        for element, value in scores["base_distribution"].items():
+            lines.append(f"| {element} | {value:.2f} | {scores['adjusted_distribution'][element]:.2f} |")
+        strength = scores["day_master_strength"]
+        lines.extend(
+            [
+                "",
+                f"- Day-master strength: {strength['score']:.2f}/100 ({strength['classification']})",
+                f"- Model: `{scores['model_version']}`",
+                "- Semantics: heuristic model output, not probability.",
+            ]
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _render_compatibility_markdown(envelope: Mapping[str, Any]) -> str:
+    left = envelope["people"]["left"]["name"]
+    right = envelope["people"]["right"]["name"]
+    lines = [
+        f"# BaZi compatibility data: {left} and {right}",
+        "",
+        f"- Checksum: `{envelope['checksum']}`",
+        f"- General score: {envelope['scores']['general']:.2f}/100",
+        "- Semantics: heuristic model output, not probability.",
+        "",
+        "| Dimension | Weight | Score |",
+        "|---|---:|---:|",
+    ]
+    for item in envelope["dimensions"]:
+        lines.append(f"| {item['name']} | {item['weight']:.2f} | {item['score']:.2f} |")
+    return "\n".join(lines) + "\n"

@@ -1,0 +1,38 @@
+{
+  "model_id": "bazi-score-v1",
+  "elements": ["木", "火", "土", "金", "水"],
+  "stem_elements": {
+    "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
+    "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"
+  },
+  "element_produces": {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"},
+  "element_controls": {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"},
+  "visible_stem_weights": {"year": 1.0, "month": 1.2, "day": 1.2, "hour": 1.0},
+  "hidden_branch_weights": {"year": 0.8, "month": 1.4, "day": 1.0, "hour": 0.8},
+  "hidden_stem_shares": {
+    "1": [1.0],
+    "2": [0.7, 0.3],
+    "3": [0.6, 0.25, 0.15]
+  },
+  "seasonal_multipliers": {"旺": 1.4, "相": 1.2, "休": 1.0, "囚": 0.8, "死": 0.6},
+  "transformation_bonus": 0.35,
+  "strength": {
+    "base": 50.0,
+    "seasonal": {"旺": 18.0, "相": 12.0, "休": 2.0, "囚": -10.0, "死": -18.0},
+    "root_position_weights": {"year": 3.0, "month": 12.0, "day": 8.0, "hour": 5.0},
+    "visible_support_same": 4.0,
+    "visible_support_resource": 5.0,
+    "control_pressure": -5.0,
+    "production_drain": -4.0,
+    "wealth_drain": -3.0,
+    "structural_support": 5.0,
+    "structural_pressure": -5.0,
+    "thresholds": {"weak_max": 35.0, "strong_min": 65.0}
+  },
+  "confidence": {
+    "high_max_unresolved_transformations": 0,
+    "medium_max_unresolved_transformations": 2
+  },
+  "rounding_digits": 2,
+  "special_structures": []
+}

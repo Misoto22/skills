@@ -1,0 +1,11 @@
+{
+  "name": "DISPLAY_NAME",
+  "birth_place": "CITY, REGION, COUNTRY",
+  "birth_date": "YYYY-MM-DD",
+  "birth_time": "HH:MM",
+  "calendar": "gregorian",
+  "timezone": "AREA/CITY",
+  "latitude": 0.0,
+  "longitude": 0.0,
+  "gender": null
+}
