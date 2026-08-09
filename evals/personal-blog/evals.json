@@ -9,12 +9,12 @@
     {
       "id": "chinese-idea-essay",
       "prompt": "写一篇博客，讨论人为什么总想给人生找到意义；不要把结尾写成鸡汤。",
-      "expected": "Fires in idea-essay mode, develops a defensible argument with counterpressure, and permits an open ending rather than imposing a call to action."
+      "expected": "Fires in idea-essay mode, develops a defensible argument with counterpressure, and ends on a narrowed claim, residual tension, or open question rather than second-person reassurance or advice."
     },
     {
       "id": "personal-essay-sparse-notes",
       "prompt": "Turn these sparse notes into a personal blog essay: I left a long-term team; freedom felt quiet; I missed being seen. Do not add events I did not give you.",
-      "expected": "Fires in personal-essay mode, uses only the supplied material, and makes an absent personal moment a visible Markdown placeholder instead of inventing it."
+      "expected": "Fires in personal-essay mode, limits every concrete detail about the writer or team to the supplied facts regardless of pronoun, and leaves any missing time, routine, work, feeling, or outcome impersonal or visibly bracketed in Markdown."
     },
     {
       "id": "review-cultural-work",
@@ -24,7 +24,7 @@
     {
       "id": "technical-current-research",
       "prompt": "Write a technical blog post about diagnosing PostgreSQL connection exhaustion in Django. Verify current claims and cite the primary documentation in Markdown.",
-      "expected": "Fires in technical mode, verifies current claims against primary sources, states assumptions and trade-offs, and does not claim unobserved results."
+      "expected": "Fires in technical mode, cites an official release page that establishes the current stable Django series, cites matching versioned primary documentation rather than mutable development docs, states assumptions and trade-offs, and does not claim unobserved results."
     }
   ],
   "non_triggers": [
@@ -83,7 +83,7 @@
       "prompt": "Create five separate blog outlines: (1) an explainer of why city trees lower surface temperature for homeowners; (2) an idea essay asking whether convenience erodes attention; (3) a personal essay from this note only: 'I left my shared apartment and missed hearing someone in the kitchen'; (4) a review of the film Past Lives; and (5) a technical article on diagnosing PostgreSQL connection exhaustion in Django.",
       "expectations": [
         "Selects a structure that serves each mode rather than a universal hook-body-recap template.",
-        "The idea essay includes serious counterpressure and may leave its conclusion open.",
+        "The idea essay includes serious counterpressure and closes on its narrowed position, residual tension, or an open question instead of switching to reader reassurance or advice.",
         "The review distinguishes description from evaluation, while the technical outline includes assumptions, trade-offs, and failure modes."
       ]
     },
@@ -91,7 +91,7 @@
       "id": "sparse-personal-evidence",
       "prompt": "Write a personal essay from this note only: 'The train was late and I called my sister.'",
       "expectations": [
-        "Does not invent a relationship history, emotion, quotation, outcome, or additional event.",
+        "Builds from an inventory of the supplied personal facts and checks every concrete claim about the writer or sister regardless of pronoun; it does not invent a relationship history, time marker, routine, work detail, emotion, quotation, outcome, or additional event.",
         "Keeps the result impersonal where the supplied material is insufficient or uses a visible Markdown placeholder for the missing personal material.",
         "Does not present an inference as a supplied fact."
       ]
@@ -111,6 +111,7 @@
       "expectations": [
         "Researches claims needing external support and prefers primary documentation for technical and current claims.",
         "Verifies citations before using them and preserves disagreement if authoritative sources conflict.",
+        "For current released behavior, names an as-of date, cites the official release page that establishes the stable series, and cites documentation under that same version segment rather than a mutable development branch.",
         "States versions and assumptions where they matter, and never reports tests or command results that were not observed."
       ]
     },
@@ -118,7 +119,7 @@
       "id": "edit-preserves-intentional-style",
       "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending.",
       "expectations": [
-        "Returns editorial changes without erasing intentional repetition, roughness, or ambiguity.",
+        "Changes only spans needed for clarity and leaves already-clear protected fragments, repetition, roughness, and ambiguity verbatim.",
         "Preserves the writer's supplied facts, position, and uncertainty.",
         "Does not add ceremonial transitions, inflated stakes, or a conclusion that merely restates the opening."
       ]

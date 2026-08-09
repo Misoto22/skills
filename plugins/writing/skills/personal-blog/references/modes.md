@@ -28,7 +28,10 @@ Choose the primary mode from the article's job, not merely its topic.
   beliefs from the draft's provisional reasoning.
 - **Structure:** Begin from a real tension or question, develop a defensible
   position, test it against serious counterpressure, and end where the inquiry
-  warrants—even if that ending remains open.
+  warrants—even if that ending remains open. Make the final move a narrowed
+  position, residual tension, or open question. When the prompt rejects a
+  motivational ending, keep the last paragraph inside the inquiry; direct
+  reassurance, permission, advice, or a suggested next step fails that request.
 - **Integrity check:** Does the strongest objection alter, narrow, or sharpen the
   argument rather than appear as a token paragraph?
 - **Avoid:** Three neat reasons followed by a motivational lesson or compulsory
@@ -38,11 +41,27 @@ Choose the primary mode from the article's job, not merely its topic.
 
 - **Evidence:** Use only events, relationships, memories, quotations, feelings,
   and outcomes supplied by the writer. External context may be researched, but
-  it cannot fill a personal gap.
+  it cannot fill a personal gap. Before drafting, extract a personal fact
+  inventory. For every concrete sentence about the writer or anyone in the
+  writer's life, regardless of pronoun, confirm its actor, action, time, place,
+  feeling, and outcome against that inventory; rewrite unsupported fields
+  impersonally or leave a visible gap.
 - **Structure:** Arrange supplied scenes and reflection by emotional or conceptual
-  movement. Use chronology only when chronology carries the meaning.
-- **Integrity check:** Trace every personal detail to the supplied material. Keep
-  an absent bridge impersonal or mark it with a visible bracketed Markdown gap.
+  movement. Use chronology only when chronology carries the meaning. When the
+  notes lack scenes or bridges, keep the result visibly partial:
+
+  ```markdown
+  Close restatement of a supplied fact.
+
+  [Add the specific missing scene or bridge.]
+
+  Close restatement of a supplied reflection.
+  ```
+- **Integrity check:** Make a sentence audit before delivery: pair every sentence
+  about the writer or their relationships with the exact note fragment that
+  supports it. Rewrite every unmatched sentence as a non-personal possibility
+  or a visible bracketed Markdown gap; plausibility and thematic fit are not
+  evidence.
 - **Avoid:** A complete chronological memoir arc, invented scene-setting, or a
   manufactured epiphany that makes sparse notes look finished.
 
@@ -62,12 +81,20 @@ Choose the primary mode from the article's job, not merely its topic.
 
 - **Evidence:** Prefer primary documentation, specifications, source code, and
   observed tool output. State versions, environment assumptions, and the boundary
-  between documented behavior and inference.
+  between documented behavior and inference. When current released behavior is
+  requested without a version, put the as-of date, stable release series, and a
+  citation to the official page that establishes that release in the article's
+  assumptions. Cite documentation under the same version segment; a versioned
+  documentation URL alone does not establish stable status. Use development-
+  branch documentation only when the article explicitly covers unreleased
+  behavior.
 - **Structure:** Frame the concrete problem and system boundary, build the causal
   model, then present diagnosis or implementation choices with trade-offs,
   failure modes, and verification steps.
-- **Integrity check:** Check commands and code when tools permit. Never report a
-  test, benchmark, deployment, or command result that was not observed; label
-  unrun steps as instructions or expected results.
+- **Integrity check:** For current release claims, does the article cite the
+  official release page, state an as-of date, and keep framework-documentation
+  links on the stable series that page establishes? Check commands and code when
+  tools permit. Never report a test, benchmark, deployment, or command result
+  that was not observed; label unrun steps as instructions or expected results.
 - **Avoid:** A context-free install-and-happy-path tutorial, or a universal best
   practice that hides version, workload, and operational trade-offs.

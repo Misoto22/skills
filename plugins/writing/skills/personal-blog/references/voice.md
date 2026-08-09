@@ -39,6 +39,14 @@ Preserve intentional roughness, ambiguity, repetition, fragments, and bilingual
 phrasing when the evidence shows them. Do not normalize them merely to make the
 prose more conventionally smooth.
 
+For a line edit, mark the requested defect and the features the writer asked to
+keep. Lock already-clear words, fragments, and sentence breaks that carry those
+features; change only the span needed to fix the requested defect. Named
+protected features outrank a general clarity request: a deliberate fragment is
+locked, not a clarity defect. Before keeping any edit, identify the specific
+ambiguity or likely misreading it fixes; if there is none, restore the original
+span verbatim.
+
 ## Gaps stay visible
 
 When a personal detail is structurally necessary but absent, either rewrite the
