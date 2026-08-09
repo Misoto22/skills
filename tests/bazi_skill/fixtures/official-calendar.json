@@ -1,0 +1,91 @@
+{
+  "authorities": [
+    {
+      "name": "GB/T 33661-2017 Calculation and promulgation of the Chinese calendar",
+      "role": "calendar rules"
+    },
+    {
+      "name": "Hong Kong Observatory Gregorian-Lunar Calendar Conversion Table",
+      "url": "https://www.hko.gov.hk/en/gts/time/conversion.htm",
+      "role": "published date and solar-term fixtures"
+    }
+  ],
+  "solar_terms": [
+    {
+      "year": 2022,
+      "name": "Li Chun",
+      "longitude": 315.0,
+      "utc": "2022-02-03T20:51:00+00:00",
+      "tolerance_seconds": 60
+    },
+    {
+      "year": 2026,
+      "name": "Li Chun",
+      "longitude": 315.0,
+      "utc": "2026-02-03T20:02:00+00:00",
+      "tolerance_seconds": 60
+    }
+  ],
+  "solar_term_dates": [
+    {
+      "year": 1950,
+      "name": "Jing Zhe",
+      "longitude": 345.0,
+      "beijing_date": "1950-03-06"
+    },
+    {
+      "year": 2000,
+      "name": "Winter Solstice",
+      "longitude": 270.0,
+      "beijing_date": "2000-12-21"
+    },
+    {
+      "year": 2100,
+      "name": "Winter Solstice",
+      "longitude": 270.0,
+      "beijing_date": "2100-12-22"
+    }
+  ],
+  "lunar_dates": [
+    {
+      "lunar": "1900-01-01",
+      "leap": false,
+      "gregorian": "1900-01-31"
+    },
+    {
+      "lunar": "1950-01-01",
+      "leap": false,
+      "gregorian": "1950-02-17"
+    },
+    {
+      "lunar": "2000-01-01",
+      "leap": false,
+      "gregorian": "2000-02-05"
+    },
+    {
+      "lunar": "2020-04-01",
+      "leap": false,
+      "gregorian": "2020-04-23"
+    },
+    {
+      "lunar": "2020-04-01",
+      "leap": true,
+      "gregorian": "2020-05-23"
+    },
+    {
+      "lunar": "2020-05-01",
+      "leap": false,
+      "gregorian": "2020-06-21"
+    },
+    {
+      "lunar": "2026-01-01",
+      "leap": false,
+      "gregorian": "2026-02-17"
+    },
+    {
+      "lunar": "2100-01-01",
+      "leap": false,
+      "gregorian": "2100-02-09"
+    }
+  ]
+}
