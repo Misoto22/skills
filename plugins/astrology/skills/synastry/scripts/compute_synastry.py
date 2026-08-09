@@ -12,7 +12,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from artifact import build_artifact, write_artifact
+from artifact import ArtifactExistsError, build_artifact, write_artifact
 from ephemeris import EphemerisError, ResolvedChart, resolve_subject, set_ephemeris_path
 from request_schema import CalculationOptions, RequestError, Subject, parse_request
 from synastry_schema import SchemaError
@@ -64,8 +64,11 @@ def main(argv: list[str] | None = None, resolver: Resolver = resolve_subject) ->
     except SchemaError:
         print("error: calculated artifact failed schema validation", file=sys.stderr)
         return 2
-    except OSError as error:
-        print(f"error: {error}", file=sys.stderr)
+    except ArtifactExistsError:
+        print("error: output already exists; pass --overwrite to replace it", file=sys.stderr)
+        return 2
+    except OSError:
+        print("error: filesystem operation failed", file=sys.stderr)
         return 2
 
     print(f"wrote {written}")

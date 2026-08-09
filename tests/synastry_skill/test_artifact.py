@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,6 +25,7 @@ from ephemeris import (  # type: ignore[import-not-found]
 )
 from request_schema import SynastryRequest, parse_request  # type: ignore[import-not-found]
 from synastry_schema import (  # type: ignore[import-not-found]
+    SchemaError,
     attach_integrity,
     canonical_json,
     validate_artifact,
@@ -180,6 +182,20 @@ class ArtifactConstructionTests(unittest.TestCase):
             {item["code"] for item in artifact["limitations"]},
         )
 
+    def test_resolved_precision_and_utc_interval_must_match_the_request(self) -> None:
+        parsed = request()
+        first, second = exact_charts()
+        shifted_interval = replace(
+            first.interval,
+            start_utc=first.interval.start_utc + timedelta(minutes=1),
+            end_utc=first.interval.end_utc + timedelta(minutes=1),
+        )
+
+        with self.assertRaisesRegex(SchemaError, "UTC interval"):
+            build_artifact(parsed, (replace(first, interval=shifted_interval), second))
+        with self.assertRaisesRegex(SchemaError, "precision"):
+            build_artifact(parsed, (replace(first, precision_mode="window"), second))
+
     def test_uncertain_chart_uses_ranges_and_suppresses_exact_only_overlays(self) -> None:
         parsed = parse_request(mixed_precision_request())
         exact_first, _ = exact_charts()
@@ -299,6 +315,21 @@ class SafeWriteTests(unittest.TestCase):
                     write_artifact(document, self.directory)
 
         self.assertEqual(list(self.directory.iterdir()), [])
+
+    def test_non_ascii_labels_fit_the_filesystem_component_byte_limit(self) -> None:
+        payload = exact_request()
+        people = payload["people"]
+        assert isinstance(people, list)
+        people[0]["display_name"] = "界" * 120
+        people[1]["display_name"] = "語" * 120
+        parsed = parse_request(payload)
+        document = build_artifact(parsed, exact_charts())
+
+        written = write_artifact(document, self.directory)
+
+        self.assertLessEqual(len(written.name.encode("utf-8")), 255)
+        self.assertEqual(written.name, output_name(parsed))
+        self.assertEqual(validate_artifact(json.loads(written.read_bytes())), document)
 
 
 if __name__ == "__main__":

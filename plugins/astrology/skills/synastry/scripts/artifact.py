@@ -43,6 +43,7 @@ from synastry_schema import (
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 _UNSAFE_IN_FILENAME = re.compile(r"[^\w-]+", re.UNICODE)
 _CHART_ID = re.compile(r"\A[0-9a-f]{12}\Z")
+_FILENAME_MAX_BYTES = 255
 _PLANETS = (
     "Sun",
     "Moon",
@@ -55,6 +56,12 @@ _PLANETS = (
     "Neptune",
     "Pluto",
 )
+
+
+class ArtifactExistsError(FileExistsError):
+    """The deterministic artifact destination already exists."""
+
+
 _ASPECT_EXCLUDED = frozenset({"South_Node", "East_Point"})
 
 
@@ -86,7 +93,7 @@ def output_name(request: SynastryRequest) -> str:
     """Return the deterministic, path-safe filename for one request."""
 
     left, right = (_subject_filename(subject.display_name, subject.id) for subject in request.people)
-    return f"synastry_{left}_{right}_{chart_id(request)}.json"
+    return _output_filename(left, right, chart_id(request))
 
 
 def build_artifact(
@@ -144,7 +151,7 @@ def write_artifact(
     directory.mkdir(parents=True, exist_ok=True)
     try:
         for _ in range(32):
-            candidate = directory / f".{filename}.{secrets.token_hex(8)}.tmp"
+            candidate = directory / (f".synastry-{validated['chart_id']}-{secrets.token_hex(8)}.tmp")
             try:
                 descriptor = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             except FileExistsError:
@@ -174,7 +181,7 @@ def write_artifact(
             try:
                 os.link(temporary, destination)
             except FileExistsError as error:
-                raise FileExistsError(
+                raise ArtifactExistsError(
                     errno.EEXIST,
                     f"output already exists; pass --overwrite to replace it: {destination}",
                     destination,
@@ -558,7 +565,16 @@ def _order_charts(
     expected = {subject.id for subject in request.people}
     if len(charts) != 2 or len(by_subject) != 2 or set(by_subject) != expected:
         raise SchemaError("resolved charts must contain exactly one chart for each request subject")
-    return by_subject[request.people[0].id], by_subject[request.people[1].id]
+    ordered = by_subject[request.people[0].id], by_subject[request.people[1].id]
+    for subject, chart in zip(request.people, ordered, strict=True):
+        if chart.precision_mode != subject.birth.mode:
+            raise SchemaError(
+                f"resolved chart {subject.id!r} precision does not match its request birth mode"
+            )
+        interval = resolve_interval(subject.birth)
+        if chart.interval.start_utc != interval.start_utc or chart.interval.end_utc != interval.end_utc:
+            raise SchemaError(f"resolved chart {subject.id!r} UTC interval does not match its request")
+    return ordered
 
 
 def _artifact_output_name(document: Mapping[str, object]) -> str:
@@ -576,7 +592,7 @@ def _artifact_output_name(document: Mapping[str, object]) -> str:
         if not isinstance(label, str):
             raise ValueError("artifact subject cannot form a safe filename")
         names.append(_filename_label(label))
-    return f"synastry_{names[0]}_{names[1]}_{identifier}.json"
+    return _output_filename(names[0], names[1], identifier)
 
 
 def _subject_filename(display_name: str | None, subject_id: str) -> str:
@@ -587,10 +603,34 @@ def _filename_label(value: str) -> str:
     if _CONTROL.search(value):
         raise ValueError("control characters cannot form a safe filename")
     normalized = unicodedata.normalize("NFKC", value)
-    slug = _UNSAFE_IN_FILENAME.sub("-", normalized).strip("-_")[:80]
+    slug = _UNSAFE_IN_FILENAME.sub("-", normalized).strip("-_")
     if not slug or slug in {".", ".."}:
         raise ValueError("subject label cannot form a safe filename")
     return slug
+
+
+def _output_filename(left: str, right: str, identifier: str) -> str:
+    fixed_bytes = len(f"synastry___{identifier}.json".encode())
+    label_budget = _FILENAME_MAX_BYTES - fixed_bytes
+    left_size = len(left.encode("utf-8"))
+    right_size = len(right.encode("utf-8"))
+    left_budget = min(left_size, label_budget // 2)
+    right_budget = min(right_size, label_budget - left_budget)
+    left_budget = min(left_size, label_budget - right_budget)
+    filename = (
+        f"synastry_{_truncate_utf8(left, left_budget)}_"
+        f"{_truncate_utf8(right, right_budget)}_{identifier}.json"
+    )
+    if len(filename.encode("utf-8")) > _FILENAME_MAX_BYTES:  # pragma: no cover - invariant guard
+        raise ValueError("artifact filename exceeds the filesystem byte limit")
+    return filename
+
+
+def _truncate_utf8(value: str, byte_limit: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= byte_limit:
+        return value
+    return encoded[:byte_limit].decode("utf-8", errors="ignore")
 
 
 def _required_julian(value: float | None, subject_id: str) -> float:

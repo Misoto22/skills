@@ -134,7 +134,7 @@ class CalculatorCliTests(unittest.TestCase):
         self.assertNotIn("72.5", stderr)
 
     def test_request_file_io_error_returns_two_without_a_traceback(self) -> None:
-        missing = self.directory / "missing.json"
+        missing = self.directory / "birth_1990-03-14_07:42_secret.json"
 
         code, stdout, stderr = self.invoke(["--request", str(missing), "--out", str(self.directory)])
 
@@ -142,6 +142,48 @@ class CalculatorCliTests(unittest.TestCase):
         self.assertEqual(stdout, "")
         self.assertIn("error:", stderr)
         self.assertNotIn("Traceback", stderr)
+        self.assertNotIn("1990-03-14", stderr)
+        self.assertNotIn("07:42", stderr)
+        self.assertNotIn(str(missing), stderr)
+
+    def test_output_filesystem_error_does_not_echo_sensitive_paths(self) -> None:
+        sensitive = self.directory / "birth_1990-03-14_07:42_secret"
+
+        with (
+            patch.object(compute_synastry, "set_ephemeris_path"),
+            patch.object(
+                compute_synastry,
+                "write_artifact",
+                side_effect=OSError(f"cannot write {sensitive}"),
+            ),
+        ):
+            code, stdout, stderr = self.invoke(
+                ["--json", json.dumps(exact_request()), "--out", str(sensitive)]
+            )
+
+        self.assertEqual(code, 2)
+        self.assertEqual(stdout, "")
+        self.assertIn("error:", stderr)
+        self.assertNotIn("1990-03-14", stderr)
+        self.assertNotIn("07:42", stderr)
+        self.assertNotIn(str(sensitive), stderr)
+
+    def test_non_destination_file_exists_error_is_not_mislabeled_as_overwrite_collision(self) -> None:
+        with (
+            patch.object(compute_synastry, "set_ephemeris_path"),
+            patch.object(
+                compute_synastry,
+                "write_artifact",
+                side_effect=FileExistsError("temporary allocation failed at sensitive-path"),
+            ),
+        ):
+            code, stdout, stderr = self.invoke(
+                ["--json", json.dumps(exact_request()), "--out", str(self.directory)]
+            )
+
+        self.assertEqual(code, 2)
+        self.assertEqual(stdout, "")
+        self.assertEqual(stderr, "error: filesystem operation failed\n")
 
 
 if __name__ == "__main__":
