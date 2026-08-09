@@ -20,6 +20,11 @@
       "id": "uncertain-v2-artifact",
       "prompt": "Read this valid synastry v2 JSON. One subject is date-only, so aspects contain confirmed and possible orb ranges and overlays are absent by design.",
       "expected": "Fires, preserves the uncertainty classifications and ranges, and does not treat exact-only overlays as missing required data."
+    },
+    {
+      "id": "chinese-json-v2-reading",
+      "prompt": "请对这个已验证的合盘 JSON v2 文件做合盘解读，并保存带证据引用的 Markdown 报告。",
+      "expected": "Fires on the natural Chinese JSON v2 interpretation request, validates the artifact, and writes the evidence-linked reading in Chinese."
     }
   ],
   "non_triggers": [
@@ -75,7 +80,7 @@
     },
     {
       "id": "weak-requested-domain",
-      "prompt": "The valid v2 source explicitly requests Money and shared resources, but the evidence ledger has no directly relevant measurement.",
+      "prompt": "The user explicitly requests Money and shared resources while handing off a valid v2 artifact, but the evidence ledger has no directly relevant measurement.",
       "expectations": [
         "Keeps the explicitly requested canonical module.",
         "Uses the evidence-limit form instead of presenting unsupported advice as chart-supported.",

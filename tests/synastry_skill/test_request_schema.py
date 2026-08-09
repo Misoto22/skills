@@ -113,7 +113,7 @@ class ParseRequestTests(unittest.TestCase):
 
         parsed = parse_request(payload)
 
-        self.assertEqual(parsed.people[0].id, "a")
+        self.assertEqual(parsed.people[0].id, "subject-1")
         self.assertEqual(parsed.people[1].birth.mode, "date-only")
 
     def test_invalid_civil_values_and_non_finite_numbers_are_collected(self) -> None:
@@ -235,8 +235,8 @@ class ParseRequestTests(unittest.TestCase):
         cases = (
             ("major_orb", -0.1, "from 0 through 15"),
             ("major_orb", 15.1, "from 0 through 15"),
-            ("minor_orb", -0.1, "from 0 through 7.5"),
-            ("minor_orb", 7.6, "from 0 through 7.5"),
+            ("minor_orb", -0.1, "from 0 through 3"),
+            ("minor_orb", 3.1, "from 0 through 3"),
             ("calculation_profile", "other", "unsupported profile"),
             ("aspect_profile", "other", "unsupported profile"),
             ("ephemeris_policy", "other", "unsupported"),
@@ -250,6 +250,30 @@ class ParseRequestTests(unittest.TestCase):
                 with self.assertRaises(RequestError) as raised:
                     parse_request(payload)
                 self.assertIn(expected, "\n".join(raised.exception.problems))
+
+    def test_aspect_profile_rejects_positive_orb_overlap(self) -> None:
+        payload = exact_request()
+        options = payload["options"]
+        assert isinstance(options, dict)
+        options.update(major_orb=9.1, minor_orb=3.0)
+
+        with self.assertRaises(RequestError) as raised:
+            parse_request(payload)
+
+        self.assertIn("overlap", "\n".join(raised.exception.problems))
+
+    def test_aspect_profile_accepts_boundary_ties(self) -> None:
+        for major_orb, minor_orb in ((12.0, 0.0), (9.0, 3.0)):
+            with self.subTest(major_orb=major_orb, minor_orb=minor_orb):
+                payload = exact_request()
+                options = payload["options"]
+                assert isinstance(options, dict)
+                options.update(major_orb=major_orb, minor_orb=minor_orb)
+
+                parsed = parse_request(payload)
+
+                self.assertEqual(parsed.options.major_orb, major_orb)
+                self.assertEqual(parsed.options.minor_orb, minor_orb)
 
     def test_array_and_object_enum_values_are_collected_as_request_errors(self) -> None:
         cases = (

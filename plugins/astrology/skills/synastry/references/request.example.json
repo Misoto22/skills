@@ -2,28 +2,23 @@
   "schema_version": "2.0",
   "people": [
     {
-      "id": "a",
-      "display_name": "Alex",
-      "pronouns": "they/them",
+      "id": "subject-1",
       "birth": {
-        "date": "1990-03-14",
+        "date": "2000-01-01",
         "time_mode": "exact",
-        "time": "07:42",
-        "time_accuracy_minutes": 5,
-        "timezone": "Europe/Paris",
-        "latitude": 48.86,
-        "longitude": 2.35,
-        "place_label": "Paris",
-        "location_source": "user supplied"
+        "time": "00:00",
+        "time_accuracy_minutes": 0,
+        "timezone": "UTC",
+        "latitude": 0.0,
+        "longitude": 0.0
       }
     },
     {
-      "id": "b",
-      "display_name": "Morgan",
+      "id": "subject-2",
       "birth": {
-        "date": "1992-06-08",
+        "date": "2000-01-02",
         "time_mode": "date-only",
-        "timezone": "America/Los_Angeles"
+        "timezone": "UTC"
       }
     }
   ],
@@ -39,7 +34,7 @@
     "privacy": "minimal"
   },
   "relationship_context": {
-    "description": "Not stated",
+    "description": "unspecified",
     "requested_domains": []
   }
 }

@@ -281,6 +281,35 @@ class SynastrySchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(SchemaError, "configured orb"):
             validate_artifact(attach_integrity(source))
 
+    def test_artifact_configuration_rejects_positive_orb_overlap(self) -> None:
+        for major_orb, minor_orb, expected in (
+            (8.0, 3.1, "minor_orb"),
+            (9.1, 3.0, "overlap"),
+        ):
+            with self.subTest(major_orb=major_orb, minor_orb=minor_orb):
+                source = valid_artifact()
+                source["configuration"].update(  # type: ignore[union-attr]
+                    major_orb=major_orb,
+                    minor_orb=minor_orb,
+                )
+
+                with self.assertRaisesRegex(SchemaError, expected):
+                    validate_artifact(attach_integrity(source))
+
+    def test_artifact_configuration_accepts_orb_boundary_ties(self) -> None:
+        for major_orb, minor_orb in ((12.0, 0.0), (9.0, 3.0)):
+            with self.subTest(major_orb=major_orb, minor_orb=minor_orb):
+                source = valid_artifact()
+                source["configuration"].update(  # type: ignore[union-attr]
+                    major_orb=major_orb,
+                    minor_orb=minor_orb,
+                )
+
+                validated = validate_artifact(attach_integrity(source))
+
+                self.assertEqual(validated["configuration"]["major_orb"], major_orb)  # type: ignore[index]
+                self.assertEqual(validated["configuration"]["minor_orb"], minor_orb)  # type: ignore[index]
+
     def test_uncertain_charts_cannot_emit_sect_or_lots(self) -> None:
         for field, value in (("sect", "diurnal"), ("lots", {"Lot_of_Fortune": 10.0})):
             with self.subTest(field=field):

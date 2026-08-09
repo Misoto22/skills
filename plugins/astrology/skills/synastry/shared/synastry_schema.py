@@ -350,8 +350,12 @@ def _validate_configuration(value: object) -> dict[str, object]:
     minor_orb = _number(configuration["minor_orb"], "artifact.configuration.minor_orb")
     if not 0 <= major_orb <= 15:
         raise SchemaError("artifact.configuration.major_orb: expected a value from 0 through 15")
-    if not 0 <= minor_orb <= 7.5:
-        raise SchemaError("artifact.configuration.minor_orb: expected a value from 0 through 7.5")
+    if not 0 <= minor_orb <= 3:
+        raise SchemaError("artifact.configuration.minor_orb: expected a value from 0 through 3")
+    if major_orb + minor_orb > 12:
+        raise SchemaError(
+            "artifact.configuration: major_orb and minor_orb overlap; their sum must not exceed 12"
+        )
     if not isinstance(configuration["include_derived"], bool):
         raise SchemaError("artifact.configuration.include_derived: expected a boolean")
     if configuration["include_derived"] and configuration["derived_profile"] != DERIVED_PROFILE:

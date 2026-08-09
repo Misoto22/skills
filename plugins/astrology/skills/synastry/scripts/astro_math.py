@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
+from itertools import combinations
 from typing import NamedTuple
 
 SIGNS = (
@@ -308,6 +309,7 @@ def find_uncertain_aspects(
                     found.append(
                         AspectEvidence(left_name, right_name, kind.name, certainty, minimum_orb, maximum_orb)
                     )
+                    break
     found.sort(
         key=lambda evidence: (
             round(evidence.minimum_orb, 6),
@@ -321,21 +323,27 @@ def find_uncertain_aspects(
 
 
 def _validate_orbs(major_orb: float, minor_orb: float) -> None:
-    _validate_orb(major_orb, "major_orb", 15.0)
-    _validate_orb(minor_orb, "minor_orb", 7.5)
+    _validate_orb(major_orb, "major_orb")
+    _validate_orb(minor_orb, "minor_orb")
+    for left, right in combinations(ASPECT_KINDS, 2):
+        left_orb = major_orb if left.major else minor_orb
+        right_orb = major_orb if right.major else minor_orb
+        if left_orb + right_orb > abs(left.angle - right.angle):
+            fields = "major_orb" if left.major and right.major else "minor_orb"
+            if left.major != right.major:
+                fields = "major_orb and minor_orb"
+            raise ValueError(f"{fields}: aspect profile overlap between {left.name} and {right.name}")
 
 
-def _validate_orb(value: float, name: str, maximum: float) -> None:
+def _validate_orb(value: float, name: str) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"{name}: expected a finite value from 0 through {maximum:g}")
-    if isinstance(value, int):
-        if not 0 <= value <= maximum:
-            raise ValueError(f"{name}: expected a value from 0 through {maximum:g}")
-        return
-    if not math.isfinite(value):
-        raise ValueError(f"{name}: expected a finite value from 0 through {maximum:g}")
-    if not 0.0 <= value <= maximum:
-        raise ValueError(f"{name}: expected a value from 0 through {maximum:g}")
+        raise ValueError(f"{name}: expected a finite non-negative value")
+    try:
+        number = float(value)
+    except OverflowError as error:
+        raise ValueError(f"{name}: expected a finite non-negative value") from error
+    if not math.isfinite(number) or number < 0:
+        raise ValueError(f"{name}: expected a finite non-negative value")
 
 
 def _finite_longitudes(samples: Sequence[float], where: str) -> tuple[float, ...]:

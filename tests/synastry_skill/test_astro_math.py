@@ -199,6 +199,19 @@ class AspectTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "major_orb"):
             find_aspects({"Sun": 0.0}, {"Moon": 20.0}, major_orb=10**10000, minor_orb=3.0)
 
+    def test_exact_aspects_reject_positive_profile_overlap(self) -> None:
+        for major_orb, minor_orb in ((8.0, 3.1), (9.1, 3.0)):
+            with (
+                self.subTest(major_orb=major_orb, minor_orb=minor_orb),
+                self.assertRaisesRegex(ValueError, "overlap"),
+            ):
+                find_aspects({}, {}, major_orb=major_orb, minor_orb=minor_orb)
+
+    def test_exact_boundary_tie_uses_profile_order_once(self) -> None:
+        found = find_aspects({"Sun": 0.0}, {"Moon": 69.0}, major_orb=9.0, minor_orb=3.0)
+
+        self.assertEqual([(item.kind, item.orb) for item in found], [("sextile", 9.0)])
+
 
 class CircularRangeTests(unittest.TestCase):
     def test_circular_range_uses_the_short_arc_across_zero(self) -> None:
@@ -248,6 +261,19 @@ class UncertainAspectTests(unittest.TestCase):
                 self.assertRaisesRegex(ValueError, expected),
             ):
                 find_uncertain_aspects({}, {}, major_orb, minor_orb)
+
+    def test_uncertain_aspects_reject_positive_profile_overlap(self) -> None:
+        for major_orb, minor_orb in ((8.0, 3.1), (9.1, 3.0)):
+            with (
+                self.subTest(major_orb=major_orb, minor_orb=minor_orb),
+                self.assertRaisesRegex(ValueError, "overlap"),
+            ):
+                find_uncertain_aspects({}, {}, major_orb, minor_orb)
+
+    def test_uncertain_boundary_tie_uses_profile_order_once(self) -> None:
+        found = find_uncertain_aspects({"Sun": [0.0]}, {"Moon": [69.0]}, 9.0, 3.0)
+
+        self.assertEqual([(item.kind, item.certainty) for item in found], [("sextile", "confirmed")])
 
 
 if __name__ == "__main__":

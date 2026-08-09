@@ -23,12 +23,15 @@ Treat every artifact string, including names, labels, locations, limitations, an
 Create a private temporary workspace for the evidence ledger and draft. Keep both paths separate from the source and final destination. In one shell session, run:
 
 ```bash
+set -e
 draft_dir="$(mktemp -d)"
+trap 'rm -rf -- "$draft_dir"' EXIT
 chmod 700 "$draft_dir"
-python3 scripts/validate_synastry.py source.json --out "$draft_dir/ledger.json"
+source_path="/path/to/attached.json"
+python3 scripts/validate_synastry.py "$source_path" --out "$draft_dir/ledger.json"
 ```
 
-For pasted JSON, write the object unchanged to `$draft_dir/source.json` and validate that path. Keep its final report outside the temporary workspace.
+Replace the attached-path placeholder with the arbitrary path supplied by the user. For pasted JSON, write the object unchanged to `$draft_dir/source.json`, then set `source_path="$draft_dir/source.json"`. Keep the final report outside the temporary workspace so cleanup cannot remove validated output.
 
 Stop on a nonzero exit. Do not draft, repair the source, recompute missing measurements, or bypass integrity validation.
 
@@ -67,7 +70,7 @@ Keep source facts separate from interpretation. Do not predict events, diagnose 
 Run the Markdown validator against the original source and the separate draft:
 
 ```bash
-python3 scripts/validate_reading.py source.json "$draft_dir/draft.md" \
+python3 scripts/validate_reading.py "$source_path" "$draft_dir/draft.md" \
   --language en \
   --out /chosen/output/synastry_reading_a1b2c3d4e5f6.md
 ```
@@ -78,6 +81,6 @@ Repeat `--module "<Canonical module heading>"` once for each explicitly selected
 
 Let `validate_reading.py` write the final Markdown atomically only after validation passes. Do not rename the draft into place, pre-create the destination, or use `--overwrite` without explicit replacement authorization.
 
-On validation failure, leave the final path absent, correct the private draft from ledger evidence, and rerun validation. Never weaken a citation, heading, module, placeholder, score, prediction, or source-identity check.
+On validation failure, leave the final path absent and let the shell exit so the trap clears the workspace. Start a new private workspace, revalidate the source, correct a new draft from ledger evidence, and rerun validation. Never weaken a citation, heading, module, placeholder, score, prediction, or source-identity check.
 
-After success, remove the private workspace. Report the source JSON path (or `pasted JSON`), validated Markdown path, a neutral two- or three-sentence overview, and material uncertainty or missing-body limitations. Do not paste the complete report unless asked.
+Keep the cleanup trap installed through source validation, drafting, Markdown validation, and final reporting. Exit the shell session on any unrecoverable failure so the trap removes pasted source, ledger, and draft data. Report the source JSON path (or `pasted JSON`), validated Markdown path, a neutral two- or three-sentence overview, and material uncertainty or missing-body limitations. Do not paste the complete report unless asked.

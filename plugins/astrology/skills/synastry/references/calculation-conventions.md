@@ -81,11 +81,11 @@ For exact charts, record Ascendant, Midheaven, Descendant, Imum Coeli, Vertex, a
 | Family | Aspects and exact angles | Request bound |
 |---|---|---|
 | Ptolemaic | conjunction 0°, opposition 180°, trine 120°, square 90°, sextile 60° | `major_orb` from 0 through 15° |
-| Minor | semi-sextile 30°, semi-square 45°, quintile 72°, sesquiquadrate 135°, biquintile 144°, quincunx 150° | `minor_orb` from 0 through 7.5° |
+| Minor | semi-sextile 30°, semi-square 45°, quintile 72°, sesquiquadrate 135°, biquintile 144°, quincunx 150° | `minor_orb` from 0 through 3° |
 
-Compare every eligible source body with every eligible target body. Assign the first matching kind in profile order, report each body pair once, and sort exact results by orb with stable body-name tie breaks. The orb bounds prevent unequal adjacent matches from overlapping; an exact tie resolves by profile order. Exclude duplicate geometry carried by the South Node and East Point from the aspect pass.
+Compare every eligible source body with every eligible target body. Require `major_orb + minor_orb` to be no more than 12°. Together with the family bounds, this prevents positive overlap across every pair of configured aspect angles. Assign the first matching kind in profile order, report each body pair once, and sort exact results by orb with stable body-name tie breaks. A boundary equality resolves by profile order. Exclude duplicate geometry carried by the South Node and East Point from the aspect pass.
 
-The orb bounds prevent adjacent aspect families from overlapping by declaration order. They are validation limits, not claims that every allowed orb has equal interpretive weight.
+The orb constraints are validation limits, not claims that every allowed orb has equal interpretive weight. Reject a request or artifact whose configuration creates positive overlap; never rely on declaration order to hide it.
 
 ## Classical derived formulas
 

@@ -12,6 +12,7 @@ EXAMPLES = SKILL / "references" / "examples.md"
 CONVENTIONS = SKILL / "references" / "calculation-conventions.md"
 REQUEST_EXAMPLE = SKILL / "references" / "request.example.json"
 OPENAI = SKILL / "agents" / "openai.yaml"
+EVALS = ROOT / "evals" / "synastry" / "evals.json"
 sys.path.insert(0, str(SKILL / "scripts"))
 
 from request_schema import parse_request  # type: ignore[import-not-found]
@@ -52,6 +53,22 @@ class CalculatorSkillContractTests(unittest.TestCase):
         self.assertEqual(request.options.ephemeris_policy, "swiss-only")
         self.assertEqual({person.birth.mode for person in request.people}, {"exact", "date-only"})
 
+    def test_request_example_has_only_neutral_required_subject_data(self) -> None:
+        payload = json.loads(REQUEST_EXAMPLE.read_text(encoding="utf-8"))
+        people = payload["people"]
+
+        self.assertEqual([person["id"] for person in people], ["subject-1", "subject-2"])
+        for person in people:
+            self.assertTrue({"display_name", "pronouns"}.isdisjoint(person))
+            self.assertTrue({"place_label", "location_source"}.isdisjoint(person["birth"]))
+        exact_birth = people[0]["birth"]
+        self.assertEqual(exact_birth["timezone"], "UTC")
+        self.assertEqual((exact_birth["latitude"], exact_birth["longitude"]), (0.0, 0.0))
+        self.assertEqual(
+            payload["relationship_context"],
+            {"description": "unspecified", "requested_domains": []},
+        )
+
     def test_progressive_references_cover_fragile_cases(self) -> None:
         skill = CALCULATOR_SKILL.read_text(encoding="utf-8")
         self.assertTrue(CONVENTIONS.is_file(), "calculation conventions reference is missing")
@@ -76,6 +93,14 @@ class CalculatorSkillContractTests(unittest.TestCase):
         self.assertIn("$synastry", text)
         self.assertIn("JSON v2", text)
         self.assertIn("uncertainty", text)
+
+    def test_eval_categories_match_calculator_discovery_boundary(self) -> None:
+        suite = json.loads(EVALS.read_text(encoding="utf-8"))
+        non_trigger_ids = {case["id"] for case in suite["non_triggers"]}
+        behavior_ids = {case["id"] for case in suite["behaviors"]}
+
+        self.assertIn("legacy-txt-input-refusal", non_trigger_ids)
+        self.assertNotIn("legacy-txt-input-refusal", behavior_ids)
 
 
 if __name__ == "__main__":

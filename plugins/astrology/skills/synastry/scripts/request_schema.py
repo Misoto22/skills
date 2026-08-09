@@ -393,7 +393,9 @@ def _parse_options(value: object, problems: list[str]) -> CalculationOptions | N
     language = _enum(options.get("language"), _LANGUAGES, f"{where}.language", problems)
     house_system = _enum(options.get("house_system"), _HOUSE_SYSTEMS, f"{where}.house_system", problems)
     major_orb = _number(options.get("major_orb"), f"{where}.major_orb", problems, minimum=0, maximum=15)
-    minor_orb = _number(options.get("minor_orb"), f"{where}.minor_orb", problems, minimum=0, maximum=7.5)
+    minor_orb = _number(options.get("minor_orb"), f"{where}.minor_orb", problems, minimum=0, maximum=3)
+    if major_orb is not None and minor_orb is not None and major_orb + minor_orb > 12:
+        problems.append(f"{where}: major_orb and minor_orb overlap; their sum must not exceed 12")
     policy = _enum(
         options.get("ephemeris_policy"),
         _EPHEMERIS_POLICIES,

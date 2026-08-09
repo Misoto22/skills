@@ -38,6 +38,11 @@
       "prompt": "Interpret the attached validated synastry v2 JSON artifact and save the reading.",
       "routes_to": "synastry-reading",
       "expected": "Does not fire. An existing v2 artifact belongs to synastry-reading and must not be recalculated."
+    },
+    {
+      "id": "legacy-txt-input-refusal",
+      "prompt": "Use this legacy synastry_A_B.txt as the calculator request.",
+      "expected": "Does not fire. TXT is unsupported and is not a calculator request or compatibility input."
     }
   ],
   "behaviors": [
@@ -67,15 +72,6 @@
         "Does not create a TXT companion or include interpretive prose in the JSON.",
         "Immediately invokes synastry-reading with the exact JSON path after a successful write.",
         "Reports the JSON and validated Markdown paths after the hand-off."
-      ]
-    },
-    {
-      "id": "legacy-txt-input-refusal",
-      "prompt": "Use this legacy synastry_A_B.txt as the calculator request.",
-      "expectations": [
-        "Refuses the TXT request as unsupported.",
-        "Asks for a strict v2 JSON request instead.",
-        "Does not create any compatibility TXT output."
       ]
     }
   ]

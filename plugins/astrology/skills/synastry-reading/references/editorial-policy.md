@@ -15,10 +15,10 @@ Use this policy as a writing heuristic. It is not a validated compatibility scal
 
 Prioritize evidence in this order:
 
-1. Confirmed tight aspects involving personal bodies or angles.
+1. Confirmed tight aspects involving personal bodies.
 2. Repeated mechanisms supported by independent evidence IDs.
 3. Exact directional overlays, preserving who activates whose house.
-4. Outer planets, nodes, asteroids, Lots, and minor aspects as support.
+4. Citable outer-planet, node, asteroid, and minor aspects as support.
 
 Treat a lower orb as more prominent only among otherwise comparable evidence. Preserve the configured orb families and exact ledger measurements; do not create a new threshold or compatibility weight.
 
