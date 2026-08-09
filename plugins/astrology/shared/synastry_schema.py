@@ -8,6 +8,7 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 
 KIND = "synastry-chart"
 SCHEMA_VERSION = "2.0"
@@ -39,6 +40,84 @@ _MINOR_ASPECTS = frozenset(
 _ASPECTS = _MAJOR_ASPECTS | _MINOR_ASPECTS
 _ANGLE_NAMES = frozenset({"ascendant", "medium_coeli", "descendant", "imum_coeli", "vertex", "east_point"})
 _DIGNITIES = frozenset({"domicile", "exaltation", "detriment", "fall"})
+_SIGNS = ("Ari", "Tau", "Gem", "Can", "Leo", "Vir", "Lib", "Sco", "Sag", "Cap", "Aqu", "Pis")
+_SIGN_SET = frozenset(_SIGNS)
+_HOUSE_SYSTEMS = frozenset({"placidus", "koch", "campanus", "regiomontanus", "equal", "whole-sign"})
+_BIRTH_NORMALIZED_FIELDS = frozenset(
+    {
+        "mode",
+        "utc",
+        "utc_start",
+        "utc_end",
+        "julian_day",
+        "julian_start",
+        "julian_end",
+        "latitude",
+        "longitude",
+    }
+)
+_BIRTH_ARCHIVAL_FIELDS = frozenset(
+    {
+        "date",
+        "time",
+        "time_window",
+        "timezone",
+        "timezone_fold",
+        "utc_offset_hours",
+        "utc_offset_reason",
+        "place_label",
+        "location_source",
+    }
+)
+_EXACT_BIRTH_FIELDS = frozenset(
+    {
+        "mode",
+        "utc",
+        "julian_day",
+        "latitude",
+        "longitude",
+        "date",
+        "time",
+        "timezone",
+        "timezone_fold",
+        "utc_offset_hours",
+        "utc_offset_reason",
+        "place_label",
+        "location_source",
+    }
+)
+_WINDOW_BIRTH_FIELDS = frozenset(
+    {
+        "mode",
+        "utc_start",
+        "utc_end",
+        "julian_start",
+        "julian_end",
+        "date",
+        "time_window",
+        "timezone",
+        "timezone_fold",
+        "utc_offset_hours",
+        "utc_offset_reason",
+        "place_label",
+        "location_source",
+    }
+)
+_DATE_ONLY_BIRTH_FIELDS = frozenset(
+    {
+        "mode",
+        "utc_start",
+        "utc_end",
+        "julian_start",
+        "julian_end",
+        "date",
+        "timezone",
+        "utc_offset_hours",
+        "utc_offset_reason",
+        "place_label",
+        "location_source",
+    }
+)
 
 
 class SchemaError(ValueError):
@@ -85,30 +164,46 @@ def validate_artifact(document: Mapping[str, object]) -> dict[str, object]:
     _equal(artifact["schema_version"], SCHEMA_VERSION, "artifact.schema_version")
     _string(artifact["chart_id"], "artifact.chart_id")
 
-    subject_ids, subject_modes = _validate_subjects(artifact["subjects"])
-    major_orb, minor_orb = _validate_configuration(artifact["configuration"])
-    _validate_provenance(artifact["provenance"])
-    chart_modes, chart_bodies, chart_houses = _validate_charts(artifact["charts"], subject_ids)
+    configuration = _validate_configuration(artifact["configuration"])
+    privacy = _string(configuration["privacy"], "artifact.configuration.privacy")
+    subject_ids, subject_modes, subject_locations = _validate_subjects(artifact["subjects"], privacy)
+    ephemeris_policy = _string(configuration["ephemeris_policy"], "artifact.configuration.ephemeris_policy")
+    _validate_provenance(artifact["provenance"], ephemeris_policy)
+    chart_modes, chart_bodies, chart_houses, house_features = _validate_charts(
+        artifact["charts"],
+        subject_ids,
+        include_derived=bool(configuration["include_derived"]),
+        derived_profile=configuration["derived_profile"],
+    )
     for subject_id, chart_mode in chart_modes.items():
         if chart_mode != subject_modes[subject_id]:
             raise SchemaError(
                 f"artifact.charts: precision {chart_mode!r} does not match "
                 f"birth precision {subject_modes[subject_id]!r} for {subject_id!r}"
             )
-    _validate_aspects(artifact["aspects"], subject_ids, chart_modes, chart_bodies, major_orb, minor_orb)
+    _validate_house_reproducibility(configuration, house_features, subject_locations)
+    _validate_aspects(
+        artifact["aspects"],
+        subject_ids,
+        chart_modes,
+        chart_bodies,
+        float(configuration["major_orb"]),
+        float(configuration["minor_orb"]),
+    )
     _validate_overlays(artifact["overlays"], subject_ids, chart_modes, chart_bodies, chart_houses)
     _validate_limitations(artifact["limitations"])
     _validate_integrity(artifact, artifact["integrity"])
     return result
 
 
-def _validate_subjects(value: object) -> tuple[set[str], dict[str, str]]:
+def _validate_subjects(value: object, privacy: str) -> tuple[set[str], dict[str, str], dict[str, bool]]:
     subjects = _list(value, "artifact.subjects")
     if len(subjects) != 2:
         raise SchemaError("artifact.subjects: expected exactly two subjects")
 
     subject_ids: set[str] = set()
     subject_modes: dict[str, str] = {}
+    subject_locations: dict[str, bool] = {}
     for index, value in enumerate(subjects):
         subject = _object(
             value,
@@ -124,37 +219,30 @@ def _validate_subjects(value: object) -> tuple[set[str], dict[str, str]]:
         subject_ids.add(subject_id)
         if "display_name" in subject and subject["display_name"] is not None:
             _string(subject["display_name"], f"artifact.subjects[{index}].display_name")
-        subject_modes[subject_id] = _validate_birth(subject["birth"], f"artifact.subjects[{index}].birth")
-    return subject_ids, subject_modes
+        mode, has_location = _validate_birth(subject["birth"], privacy, f"artifact.subjects[{index}].birth")
+        subject_modes[subject_id] = mode
+        subject_locations[subject_id] = has_location
+    return subject_ids, subject_modes, subject_locations
 
 
-def _validate_birth(value: object, where: str) -> str:
-    birth = _object(
-        value,
-        {
-            "mode",
-            "utc",
-            "utc_start",
-            "utc_end",
-            "julian_day",
-            "julian_start",
-            "julian_end",
-            "latitude",
-            "longitude",
-            "date",
-            "time",
-            "time_window",
-            "timezone",
-            "timezone_fold",
-            "utc_offset_hours",
-            "utc_offset_reason",
-            "place_label",
-            "location_source",
-        },
-        {"mode"},
-        where,
-    )
-    mode = _enum(birth["mode"], {"exact", "window", "date-only"}, f"{where}.mode")
+def _validate_birth(value: object, privacy: str, where: str) -> tuple[str, bool]:
+    unclosed = _object(value, None, {"mode"}, where)
+    mode = _enum(unclosed["mode"], {"exact", "window", "date-only"}, f"{where}.mode")
+    mode_allowed = {
+        "exact": _EXACT_BIRTH_FIELDS,
+        "window": _WINDOW_BIRTH_FIELDS,
+        "date-only": _DATE_ONLY_BIRTH_FIELDS,
+    }[mode]
+    contradictory = sorted(set(unclosed) - mode_allowed)
+    if contradictory:
+        raise SchemaError(f"{where}: {mode} birth cannot include field {contradictory[0]!r}")
+    allowed = mode_allowed
+    if privacy == "minimal":
+        archival = sorted(set(unclosed) & _BIRTH_ARCHIVAL_FIELDS)
+        if archival:
+            raise SchemaError(f"{where}: minimal privacy forbids field {archival[0]!r}")
+        allowed = allowed & _BIRTH_NORMALIZED_FIELDS
+    birth = _object(unclosed, allowed, {"mode"}, where)
     for field in (
         "utc",
         "utc_start",
@@ -177,14 +265,36 @@ def _validate_birth(value: object, where: str) -> str:
         window = _object(birth["time_window"], {"start", "end"}, {"start", "end"}, f"{where}.time_window")
         _string(window["start"], f"{where}.time_window.start")
         _string(window["end"], f"{where}.time_window.end")
-    if mode == "exact" and "utc" not in birth:
-        raise SchemaError(f"{where}: exact birth requires utc")
-    if mode in {"window", "date-only"} and not ({"utc_start", "utc_end"} <= birth.keys()):
-        raise SchemaError(f"{where}: {mode} birth requires utc_start and utc_end")
-    return mode
+    if mode == "exact":
+        if "utc" not in birth:
+            raise SchemaError(f"{where}: exact birth requires utc")
+        _utc_timestamp(birth["utc"], f"{where}.utc")
+    else:
+        if not ({"utc_start", "utc_end"} <= birth.keys()):
+            raise SchemaError(f"{where}: {mode} birth requires utc_start and utc_end")
+        start = _utc_timestamp(birth["utc_start"], f"{where}.utc_start")
+        end = _utc_timestamp(birth["utc_end"], f"{where}.utc_end")
+        if start >= end:
+            raise SchemaError(f"{where}: {mode} UTC interval must be ordered and non-empty")
+    if ("julian_start" in birth) != ("julian_end" in birth):
+        raise SchemaError(f"{where}: julian_start and julian_end must appear together")
+    if "julian_start" in birth and _number(birth["julian_start"], f"{where}.julian_start") >= _number(
+        birth["julian_end"], f"{where}.julian_end"
+    ):
+        raise SchemaError(f"{where}: Julian interval must be ordered and non-empty")
+    has_location = "latitude" in birth and "longitude" in birth
+    if "latitude" in birth:
+        latitude = _number(birth["latitude"], f"{where}.latitude")
+        if not -90 <= latitude <= 90:
+            raise SchemaError(f"{where}.latitude: expected a value from -90 through 90")
+    if "longitude" in birth:
+        longitude = _number(birth["longitude"], f"{where}.longitude")
+        if not -180 <= longitude <= 180:
+            raise SchemaError(f"{where}.longitude: expected a value from -180 through 180")
+    return mode, has_location
 
 
-def _validate_configuration(value: object) -> tuple[float, float]:
+def _validate_configuration(value: object) -> dict[str, object]:
     configuration = _object(
         value,
         {
@@ -207,6 +317,8 @@ def _validate_configuration(value: object) -> tuple[float, float]:
             "privacy",
             "major_orb",
             "minor_orb",
+            "include_derived",
+            "ephemeris_policy",
         },
         "artifact.configuration",
     )
@@ -221,21 +333,41 @@ def _validate_configuration(value: object) -> tuple[float, float]:
     _enum(configuration["privacy"], {"minimal", "full"}, "artifact.configuration.privacy")
     if "evidence_policy" in configuration:
         _equal(configuration["evidence_policy"], EVIDENCE_POLICY, "artifact.configuration.evidence_policy")
-    for field in ("language", "house_system", "ephemeris_policy"):
-        if field in configuration:
-            _string(configuration[field], f"artifact.configuration.{field}")
+    if "language" in configuration:
+        _string(configuration["language"], "artifact.configuration.language")
+    if "house_system" in configuration:
+        _enum(
+            configuration["house_system"],
+            _HOUSE_SYSTEMS,
+            "artifact.configuration.house_system",
+        )
+    _enum(
+        configuration["ephemeris_policy"],
+        {"swiss-only", "allow-moshier"},
+        "artifact.configuration.ephemeris_policy",
+    )
     major_orb = _number(configuration["major_orb"], "artifact.configuration.major_orb")
     minor_orb = _number(configuration["minor_orb"], "artifact.configuration.minor_orb")
     if not 0 <= major_orb <= 15:
         raise SchemaError("artifact.configuration.major_orb: expected a value from 0 through 15")
     if not 0 <= minor_orb <= 7.5:
         raise SchemaError("artifact.configuration.minor_orb: expected a value from 0 through 7.5")
-    if "include_derived" in configuration and not isinstance(configuration["include_derived"], bool):
+    if not isinstance(configuration["include_derived"], bool):
         raise SchemaError("artifact.configuration.include_derived: expected a boolean")
-    return major_orb, minor_orb
+    if configuration["include_derived"] and configuration["derived_profile"] != DERIVED_PROFILE:
+        raise SchemaError(
+            f"artifact.configuration.derived_profile: include_derived requires {DERIVED_PROFILE!r}"
+        )
+    if not configuration["include_derived"] and configuration["derived_profile"] is not None:
+        raise SchemaError(
+            "artifact.configuration.derived_profile: must be null when include_derived is false"
+        )
+    configuration["major_orb"] = major_orb
+    configuration["minor_orb"] = minor_orb
+    return configuration
 
 
-def _validate_provenance(value: object) -> None:
+def _validate_provenance(value: object, ephemeris_policy: str) -> None:
     provenance = _object(
         value,
         {
@@ -259,14 +391,16 @@ def _validate_provenance(value: object) -> None:
         },
         "artifact.provenance",
     )
-    for field in (
-        "software_version",
-        "binding_version",
-        "requested_backend",
-        "actual_backend",
-        "timezone_source",
-    ):
+    for field in ("software_version", "binding_version", "timezone_source"):
         _string(provenance[field], f"artifact.provenance.{field}")
+    _enum(provenance["requested_backend"], {"swiss"}, "artifact.provenance.requested_backend")
+    actual_backend = _enum(
+        provenance["actual_backend"],
+        {"swiss", "moshier"},
+        "artifact.provenance.actual_backend",
+    )
+    if ephemeris_policy == "swiss-only" and actual_backend != "swiss":
+        raise SchemaError(f"artifact.provenance: swiss-only policy cannot record {actual_backend!r}")
     if "data_path" in provenance and provenance["data_path"] is not None:
         _string(provenance["data_path"], "artifact.provenance.data_path")
     for index, flag in enumerate(_list(provenance["return_flags"], "artifact.provenance.return_flags")):
@@ -276,8 +410,12 @@ def _validate_provenance(value: object) -> None:
 
 
 def _validate_charts(
-    value: object, subject_ids: set[str]
-) -> tuple[dict[str, str], dict[str, set[str]], dict[str, bool]]:
+    value: object,
+    subject_ids: set[str],
+    *,
+    include_derived: bool,
+    derived_profile: object,
+) -> tuple[dict[str, str], dict[str, set[str]], dict[str, bool], dict[str, bool]]:
     charts = _list(value, "artifact.charts")
     if len(charts) != len(subject_ids):
         raise SchemaError("artifact.charts: expected one chart per subject")
@@ -285,6 +423,7 @@ def _validate_charts(
     modes: dict[str, str] = {}
     bodies: dict[str, set[str]] = {}
     calculated_houses: dict[str, bool] = {}
+    house_features: dict[str, bool] = {}
     for index, value in enumerate(charts):
         chart = _object(
             value,
@@ -304,16 +443,26 @@ def _validate_charts(
         if not positions:
             raise SchemaError(f"artifact.charts[{index}].positions: must not be empty")
         body_names: set[str] = set()
+        position_has_house = False
         for body, position in positions.items():
             _string(body, f"artifact.charts[{index}].positions key")
             if not body:
                 raise SchemaError(f"artifact.charts[{index}].positions: body name must not be blank")
             if mode == "exact":
-                _validate_exact_position(position, f"artifact.charts[{index}].positions.{body}")
+                position_has_house = (
+                    _validate_exact_position(position, f"artifact.charts[{index}].positions.{body}")
+                    or position_has_house
+                )
             else:
                 _validate_uncertain_position(position, f"artifact.charts[{index}].positions.{body}")
             body_names.add(body)
-        _validate_derived(chart["derived"], f"artifact.charts[{index}].derived")
+        _validate_derived(
+            chart["derived"],
+            mode,
+            include_derived=include_derived,
+            derived_profile=derived_profile,
+            where=f"artifact.charts[{index}].derived",
+        )
         if mode == "exact":
             if "houses" in chart:
                 houses = _list(chart["houses"], f"artifact.charts[{index}].houses")
@@ -330,9 +479,25 @@ def _validate_charts(
         modes[subject_id] = mode
         bodies[subject_id] = body_names
         calculated_houses[subject_id] = "houses" in chart
+        house_features[subject_id] = "houses" in chart or "angles" in chart or position_has_house
     if set(modes) != subject_ids:
         raise SchemaError("artifact.charts: chart ownership does not match subjects")
-    return modes, bodies, calculated_houses
+    return modes, bodies, calculated_houses, house_features
+
+
+def _validate_house_reproducibility(
+    configuration: Mapping[str, object],
+    house_features: Mapping[str, bool],
+    subject_locations: Mapping[str, bool],
+) -> None:
+    owners = [subject_id for subject_id, present in house_features.items() if present]
+    if not owners:
+        return
+    if "house_system" not in configuration:
+        raise SchemaError("artifact.configuration.house_system: required when houses or angles are present")
+    for subject_id in owners:
+        if not subject_locations[subject_id]:
+            raise SchemaError(f"artifact.charts: houses for {subject_id!r} require latitude and longitude")
 
 
 def _validate_angles(value: object, where: str) -> None:
@@ -341,8 +506,23 @@ def _validate_angles(value: object, where: str) -> None:
         _longitude(longitude, f"{where}.{name}")
 
 
-def _validate_derived(value: object, where: str) -> None:
+def _validate_derived(
+    value: object,
+    mode: str,
+    *,
+    include_derived: bool,
+    derived_profile: object,
+    where: str,
+) -> None:
     derived = _object(value, {"sect", "dignities", "lots"}, None, where)
+    if derived and not include_derived:
+        raise SchemaError(f"{where}: content is forbidden when include_derived is false")
+    if derived and derived_profile != DERIVED_PROFILE:
+        raise SchemaError(f"{where}: content requires derived_profile {DERIVED_PROFILE!r}")
+    if mode != "exact":
+        forbidden = sorted(set(derived) & {"sect", "lots"})
+        if forbidden:
+            raise SchemaError(f"{where}: uncertain chart cannot include {forbidden[0]}")
     if "sect" in derived:
         _enum(derived["sect"], {"diurnal", "nocturnal"}, f"{where}.sect")
     if "dignities" in derived:
@@ -358,7 +538,7 @@ def _validate_derived(value: object, where: str) -> None:
             _longitude(longitude, f"{where}.lots.{name}")
 
 
-def _validate_exact_position(value: object, where: str) -> None:
+def _validate_exact_position(value: object, where: str) -> bool:
     position = _object(
         value,
         {
@@ -380,17 +560,21 @@ def _validate_exact_position(value: object, where: str) -> None:
         },
         where,
     )
-    _longitude(position["longitude_degrees"], f"{where}.longitude_degrees")
+    longitude = _longitude(position["longitude_degrees"], f"{where}.longitude_degrees")
     _number(position["latitude_degrees"], f"{where}.latitude_degrees")
     _number(position["distance_au"], f"{where}.distance_au")
     _number(position["longitudinal_speed_degrees_per_day"], f"{where}.longitudinal_speed_degrees_per_day")
     if not isinstance(position["retrograde"], bool):
         raise SchemaError(f"{where}.retrograde: expected a boolean")
-    _string(position["sign"], f"{where}.sign")
+    sign = _enum(position["sign"], _SIGN_SET, f"{where}.sign")
+    expected_sign = _SIGNS[int(longitude // 30)]
+    if sign != expected_sign:
+        raise SchemaError(f"{where}.sign: {sign!r} does not match longitude {longitude:g} ({expected_sign})")
     if "house" in position:
         house = _integer(position["house"], f"{where}.house")
         if not 1 <= house <= 12:
             raise SchemaError(f"{where}.house: expected a house from 1 through 12")
+    return "house" in position
 
 
 def _validate_uncertain_position(value: object, where: str) -> None:
@@ -406,18 +590,27 @@ def _validate_uncertain_position(value: object, where: str) -> None:
         {"start_degrees", "end_degrees", "wraps_zero"},
         f"{where}.longitude_range",
     )
-    _longitude(longitude_range["start_degrees"], f"{where}.longitude_range.start_degrees")
-    _longitude(longitude_range["end_degrees"], f"{where}.longitude_range.end_degrees")
+    start = _longitude(longitude_range["start_degrees"], f"{where}.longitude_range.start_degrees")
+    end = _longitude(longitude_range["end_degrees"], f"{where}.longitude_range.end_degrees")
     if not isinstance(longitude_range["wraps_zero"], bool):
         raise SchemaError(f"{where}.longitude_range.wraps_zero: expected a boolean")
     span = _number(position["max_span_degrees"], f"{where}.max_span_degrees")
     if not 0 <= span <= 360:
         raise SchemaError(f"{where}.max_span_degrees: expected a value from 0 through 360")
+    wraps_zero = longitude_range["wraps_zero"]
+    if (wraps_zero and start <= end) or (not wraps_zero and start > end):
+        raise SchemaError(f"{where}.longitude_range: wraps_zero contradicts start_degrees and end_degrees")
     signs = _list(position["signs"], f"{where}.signs")
     if not signs:
         raise SchemaError(f"{where}.signs: must not be empty")
-    for index, sign in enumerate(signs):
-        _string(sign, f"{where}.signs[{index}]")
+    selected_signs = {_enum(sign, _SIGN_SET, f"{where}.signs[{index}]") for index, sign in enumerate(signs)}
+    if len(selected_signs) != len(signs):
+        raise SchemaError(f"{where}.signs: duplicate sign")
+    expected_signs = _longitude_range_signs(start, end, bool(wraps_zero))
+    if selected_signs != expected_signs:
+        raise SchemaError(
+            f"{where}.signs: does not match longitude_range; expected {sorted(expected_signs)!r}"
+        )
     states = _list(position["retrograde_states"], f"{where}.retrograde_states")
     if not states:
         raise SchemaError(f"{where}.retrograde_states: must not be empty")
@@ -481,18 +674,30 @@ def _validate_aspects(
             if "orb_degrees" in aspect:
                 raise SchemaError(f"artifact.aspects[{index}]: uncertain aspect cannot carry orb_degrees")
             _validate_orb_range(
-                aspect["orb_range_degrees"], allowed_orb, f"artifact.aspects[{index}].orb_range_degrees"
+                aspect["orb_range_degrees"],
+                allowed_orb,
+                certainty,
+                f"artifact.aspects[{index}].orb_range_degrees",
             )
 
 
-def _validate_orb_range(value: object, allowed_orb: float, where: str) -> None:
+def _validate_orb_range(value: object, allowed_orb: float, certainty: str, where: str) -> None:
     orb_range = _object(
         value, {"minimum_degrees", "maximum_degrees"}, {"minimum_degrees", "maximum_degrees"}, where
     )
-    minimum = _configured_orb(orb_range["minimum_degrees"], allowed_orb, f"{where}.minimum_degrees")
-    maximum = _configured_orb(orb_range["maximum_degrees"], allowed_orb, f"{where}.maximum_degrees")
+    minimum = _orb(orb_range["minimum_degrees"], f"{where}.minimum_degrees")
+    maximum = _orb(orb_range["maximum_degrees"], f"{where}.maximum_degrees")
     if minimum > maximum:
         raise SchemaError(f"{where}: minimum_degrees must not exceed maximum_degrees")
+    if certainty == "confirmed" and maximum > allowed_orb:
+        raise SchemaError(f"{where}: confirmed aspect maximum exceeds configured orb of {allowed_orb:g}")
+    if certainty == "possible":
+        if minimum > allowed_orb:
+            raise SchemaError(f"{where}: possible aspect minimum exceeds configured orb of {allowed_orb:g}")
+        if maximum <= allowed_orb:
+            raise SchemaError(
+                f"{where}: possible aspect maximum is fully within the configured orb; use confirmed"
+            )
 
 
 def _validate_overlays(
@@ -635,6 +840,30 @@ def _configured_orb(value: object, allowed_orb: float, where: str) -> float:
     if orb > allowed_orb:
         raise SchemaError(f"{where}: exceeds the configured orb of {allowed_orb:g}")
     return orb
+
+
+def _utc_timestamp(value: object, where: str) -> datetime:
+    text = _string(value, where)
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise SchemaError(f"{where}: expected a valid normalized UTC timestamp") from error
+    if parsed.tzinfo is None or parsed.utcoffset() != UTC.utcoffset(parsed):
+        raise SchemaError(f"{where}: expected a normalized UTC timestamp")
+    return parsed.astimezone(UTC)
+
+
+def _longitude_range_signs(start: float, end: float, wraps_zero: bool) -> set[str]:
+    segments = ((start, 360.0), (0.0, end)) if wraps_zero else ((start, end),)
+    result: set[str] = set()
+    for index, sign in enumerate(_SIGNS):
+        sign_start = index * 30.0
+        sign_end = sign_start + 30.0
+        if any(
+            segment_start < sign_end and segment_end >= sign_start for segment_start, segment_end in segments
+        ):
+            result.add(sign)
+    return result
 
 
 def _owner(value: object, subject_ids: set[str], where: str) -> str:
