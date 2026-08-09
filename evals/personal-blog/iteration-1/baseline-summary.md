@@ -56,10 +56,15 @@ code blocks, and documentation links. For example:
 > 2. **A proxy or driver pool capacity.** PgBouncer or another pooling layer makes callers wait because all of *its* permitted server connections are checked out.
 > 3. **Application concurrency.** Django workers have enough requests needing database time that existing connections remain occupied or too many persistent connections accumulate.
 
-The capture then ends after this separate `Request B` draft fragment:
+For `Request B`, the original prompt text ended:
 
-> I keep reaching for abstractions too early. Maybe because naming a thing feels like understanding it. It doesn't. Sometimes it just gives confusion a nicer coat.
+> It doesn’t. Sometimes it only gives confusion a nicer coat.
 
-No response after `Request B` is present in the supplied raw file, so the
-capture does not provide observable evidence of how an edit would preserve that
-draft's voice.
+The recorded response ends:
+
+> It doesn't. Sometimes it just gives confusion a nicer coat.
+
+The observable edits are the replacement of the typographic apostrophe in
+`doesn’t` with the ASCII apostrophe in `doesn't`, and the replacement of `only`
+with `just`. The other sentences remain unchanged, so the response otherwise
+preserves the draft's sentence rhythm, directness, and compressed voice.

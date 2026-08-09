@@ -65,7 +65,7 @@
   "behaviors": [
     {
       "id": "mode-specific-structure",
-      "prompt": "Create outlines for an explainer, an idea essay, a personal essay, a review, and a technical article about their respective supplied topics.",
+      "prompt": "Create five separate blog outlines: (1) an explainer of why city trees lower surface temperature for homeowners; (2) an idea essay asking whether convenience erodes attention; (3) a personal essay from this note only: 'I left my shared apartment and missed hearing someone in the kitchen'; (4) a review of the film Past Lives; and (5) a technical article on diagnosing PostgreSQL connection exhaustion in Django.",
       "expectations": [
         "Selects a structure that serves each mode rather than a universal hook-body-recap template.",
         "The idea essay includes serious counterpressure and may leave its conclusion open.",
