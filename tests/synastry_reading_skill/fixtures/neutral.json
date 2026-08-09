@@ -1,0 +1,124 @@
+{
+  "aspects": [
+    {
+      "certainty": "exact",
+      "kind": "trine",
+      "orb_degrees": 0.42,
+      "source_body": "Sun",
+      "source_subject_id": "subject-a",
+      "target_body": "Moon",
+      "target_subject_id": "subject-b"
+    },
+    {
+      "certainty": "exact",
+      "kind": "square",
+      "orb_degrees": 1.1,
+      "source_body": "Moon",
+      "source_subject_id": "subject-b",
+      "target_body": "Sun",
+      "target_subject_id": "subject-a"
+    }
+  ],
+  "chart_id": "abc123def456",
+  "charts": [
+    {
+      "derived": {},
+      "houses": [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0],
+      "positions": {
+        "Sun": {
+          "distance_au": 1.0,
+          "house": 1,
+          "latitude_degrees": 0.0,
+          "longitude_degrees": 10.0,
+          "longitudinal_speed_degrees_per_day": 1.0,
+          "retrograde": false,
+          "sign": "Ari"
+        }
+      },
+      "precision_mode": "exact",
+      "subject_id": "subject-a"
+    },
+    {
+      "derived": {},
+      "houses": [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0],
+      "positions": {
+        "Moon": {
+          "distance_au": 1.0,
+          "house": 5,
+          "latitude_degrees": 0.0,
+          "longitude_degrees": 130.0,
+          "longitudinal_speed_degrees_per_day": 12.0,
+          "retrograde": false,
+          "sign": "Leo"
+        }
+      },
+      "precision_mode": "exact",
+      "subject_id": "subject-b"
+    }
+  ],
+  "configuration": {
+    "aspect_profile": "ptolemaic-minor-v1",
+    "calculation_profile": "western-tropical-v1",
+    "derived_profile": null,
+    "ephemeris_policy": "swiss-only",
+    "evidence_policy": "editorial-v1",
+    "house_system": "whole-sign",
+    "include_derived": false,
+    "language": "en",
+    "major_orb": 8.0,
+    "minor_orb": 3.0,
+    "privacy": "minimal"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "c9e7ec1267672093d77fccadd4eb31574cd5263475f69776e99e298dee54423e"
+  },
+  "kind": "synastry-chart",
+  "limitations": [],
+  "overlays": [
+    {
+      "source_body": "Sun",
+      "source_subject_id": "subject-a",
+      "target_house": 5,
+      "target_subject_id": "subject-b"
+    },
+    {
+      "source_body": "Moon",
+      "source_subject_id": "subject-b",
+      "target_house": 1,
+      "target_subject_id": "subject-a"
+    }
+  ],
+  "provenance": {
+    "actual_backend": "swiss",
+    "binding_version": "test",
+    "requested_backend": "swiss",
+    "return_flags": [2],
+    "software_version": "test",
+    "timezone_source": "iana",
+    "warnings": []
+  },
+  "schema_version": "2.0",
+  "subjects": [
+    {
+      "birth": {
+        "latitude": 48.86,
+        "longitude": 2.35,
+        "mode": "exact",
+        "utc": "1990-03-14T06:42:00Z"
+      },
+      "display_name": "Alex",
+      "id": "subject-a"
+    },
+    {
+      "birth": {
+        "latitude": 34.05,
+        "longitude": -118.24,
+        "mode": "exact",
+        "utc": "1992-06-08T15:00:00Z"
+      },
+      "display_name": "Morgan",
+      "id": "subject-b"
+    }
+  ]
+}
