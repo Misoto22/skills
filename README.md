@@ -51,7 +51,7 @@ Eight skills in four plugins. The plugin name is the command prefix, and each pl
 #### `astrology` — positions computed from birth data
 
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — computes two natal charts, every aspect between them, and both directions of house overlay. It refuses a birth time that is not given to the minute, writes the raw data, then starts the separate reading automatically.
-- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — reads completed synastry data and writes a fixed, evidence-linked Markdown report across love, friendship, business partnership, and money.
+- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — reads completed synastry data and writes a mechanism-first, evidence-linked Markdown report with only requested or strongly supported real-life domains.
 
 ---
 

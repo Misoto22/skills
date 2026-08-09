@@ -1,6 +1,6 @@
 ---
 name: synastry-reading
-description: Interpret an existing two-person synastry data file as an evidence-linked Markdown reading across love, friendship, business partnership, and money. Use after the synastry calculator hands off a completed file, or when someone supplies equivalent natal blocks, cross-chart aspects with orbs, and both house-overlay directions and asks for 解读, 分析, a reading, or what the relationship pattern means. Not for calculating from birth details, single natal charts, transits, forecasts, compatibility scores, or files missing required synastry sections.
+description: Use when the synastry calculator hands off a completed two-person data file, or when someone supplies equivalent natal blocks, cross-chart aspects with orbs, and both house-overlay directions and asks for 解读, 分析, a relationship reading, significant dynamics, or what the pattern means. Not for calculating birth details, single natal charts, transits, forecasts, compatibility scores, or files missing required synastry sections.
 license: MIT
 metadata:
   version: "0.8.1"
@@ -9,7 +9,7 @@ argument-hint: "[synastry-data-file] [--out=source-directory]"
 
 # Synastry Reading
 
-Turn one completed two-person synastry data file into a fixed Markdown reading whose claims remain traceable to the measurements that support them.
+Turn one completed two-person synastry data file into a structured Markdown reading whose claims remain traceable to the measurements that support them.
 
 This skill is the interpretation layer. It does not calculate a chart and it never changes the source file.
 
@@ -42,6 +42,7 @@ If duplicated entries disagree, quote both conflicting measurements and stop. Do
 Before drafting prose, extract a compact ledger containing:
 
 - both names and the source language
+- relationship context explicitly supplied by the user, or `not stated`
 - calculation engine, house system, and orbs in force
 - stated coordinate, birth-time, timezone, and ephemeris limitations
 - every cross-chart aspect exactly as written
@@ -60,16 +61,46 @@ Use this order to decide which measurements carry the reading:
 
 No single minor aspect, asteroid, lot, or outer-planet contact carries a strong conclusion by itself. An exact contact is more prominent than a wide one, but the source's declared orbs remain unchanged.
 
-Use the traditional topic associations as routing aids, not as a mechanical lookup table:
+Route evidence into relationship mechanisms before real-life applications. Use these associations as starting points, not as a mechanical lookup table:
 
-| Dimension | Start with | Relevant overlays |
+| Core mechanism | Start with | Relevant overlays |
 |---|---|---|
-| Love | Moon, Venus, Mars, Sun, Ascendant | 5th, 7th, 8th |
-| Friendship | Sun, Moon, Mercury, Jupiter, Ascendant | 3rd, 9th, 11th |
-| Business partnership | Sun, Mercury, Mars, Jupiter, Saturn, Midheaven | 6th, 10th, 11th |
-| Money | Venus, Jupiter, Saturn, Pluto when present | 2nd, 8th, 10th |
+| Relationship signature | repeated personal/angle themes, Sun, Moon, Ascendant | 1st, 4th, 7th, 8th |
+| Reciprocity and asymmetry | body ownership, parallel contacts, both overlay directions | compare every activated house by direction |
+| Emotional bond and security | Moon, Venus, Saturn; Sun as support | 4th, 8th, 12th |
+| Attraction, romance, and intimacy | Venus, Mars, Moon, Sun, Ascendant; Pluto as support | 5th, 7th, 8th |
+| Communication and mental rhythm | Mercury, Moon, Jupiter, Saturn | 3rd, 9th, 11th |
+| Conflict, power, and repair | Mars, Mercury, Moon, Saturn; Pluto and Uranus as support | 1st, 6th, 8th |
+| Trust, boundaries, and commitment | Moon, Venus, Saturn; nodes as support | 4th, 7th, 8th, 12th |
+| Growth, values, and shared direction | Sun, Jupiter, Saturn, Midheaven; nodes as support | 9th, 10th, 11th |
 
-A measurement may inform more than one dimension when the explanation is genuinely different. Do not repeat the same paragraph four times.
+Compare what each person activates and receives before describing a shared effect. A reciprocal theme may be experienced differently; do not flatten both overlay directions into one claim.
+
+## Select applied life domains
+
+The fixed core describes how the relationship works. The `Applied life domains` section describes where those mechanisms matter in practice.
+
+1. Include every domain the user explicitly requests.
+2. For a requested domain with weak evidence, keep the domain and state that the source does not support a confident domain-specific reading. Do not fill the gap with generic sign descriptions.
+3. Include an unrequested domain only when it has either:
+   - two separate relevant Ptolemaic contacts, with at least one involving a personal body or angle; or
+   - one tight personal-body or angle contact plus one directly relevant directional house overlay.
+4. Omit every unsupported unrequested domain.
+
+For this selection rule, `tight` means an orb of 1.00° or less and still within the source's declared orb. Do not widen the source's settings to make a domain qualify.
+
+Common domains are:
+
+| Applied domain | Start with | Relevant overlays |
+|---|---|---|
+| Friendship, community, and social networks | Sun, Moon, Mercury, Jupiter, Ascendant | 3rd, 9th, 11th |
+| Daily life, home, family, and care | Moon, Mercury, Venus, Saturn, IC | 4th, 6th |
+| Career, business, and creative collaboration | Sun, Mercury, Mars, Jupiter, Saturn, Midheaven | 5th, 6th, 10th, 11th |
+| Money, shared resources, and risk tolerance | Venus, Jupiter, Saturn; Pluto as support | 2nd, 8th, 10th |
+
+Add another requested or strongly activated domain under the same evidence rule. Do not infer that the people are lovers, friends, relatives, colleagues, housemates, or financial partners when the request does not state the relationship.
+
+A measurement may inform more than one mechanism or domain when the explanation is genuinely different. Cross-reference the earlier mechanism and explain only its new practical implication instead of repeating the paragraph.
 
 ## Write from measurements, not verdicts
 
@@ -87,9 +118,11 @@ Use conditional language: `can`, `may`, `tends to`, `is often read as`. Do not s
 
 Practical guidance must follow from the pattern already described. Keep it specific enough to try, but do not present medical, legal, financial, or psychological conclusions as astrology.
 
-## Write the fixed Markdown report
+## Write the structured Markdown report
 
-Read [output-template.md](references/output-template.md) before writing. Use every heading in its given order and do not merge the four relationship dimensions.
+Read [output-template.md](references/output-template.md) before writing. Use every fixed core heading in its given order. Under `Applied life domains`, include only requested domains and unrequested domains that pass the selection rule.
+
+Keep a fixed core heading when evidence is weak. State the limit briefly, include the available evidence list, and omit unsupported advice. Each fixed core section and selected domain ends with a compact evidence list; add practical guidance only when it follows from cited patterns.
 
 Choose the language this way:
 

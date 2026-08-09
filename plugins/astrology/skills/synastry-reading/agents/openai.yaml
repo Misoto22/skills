@@ -1,6 +1,6 @@
 interface:
   display_name: "Synastry Reading"
   short_description: "Interpret an existing two-person synastry file"
-  default_prompt: "Use $synastry-reading to interpret an existing synastry data file and write the fixed, evidence-linked Markdown report."
+  default_prompt: "Use $synastry-reading to interpret an existing synastry data file and write the structured, evidence-linked Markdown report."
 policy:
   allow_implicit_invocation: true

@@ -100,7 +100,7 @@ and the synastry block sorts every cross-chart contact by orb:
 >
 > Reading: `synastry_reading_Person-A_Person-B.md`.
 >
-> The report covers love, friendship, business partnership, and money, with each interpretation linked to the exact source aspect, orb, or directional house overlay. Both coordinates are city centres, so each Ascendant carries a few arc-minutes of uncertainty; New York in November 1988 resolved to UTC−5.
+> The report covers the relationship's core mechanisms, distinguishes the two overlay directions, and adds only requested or strongly supported real-life domains. Each interpretation is linked to the exact source aspect, orb, or directional house overlay. Both coordinates are city centres, so each Ascendant carries a few arc-minutes of uncertainty; New York in November 1988 resolved to UTC−5.
 >
 > Say the word if you want any of it read.
 
@@ -173,6 +173,6 @@ This installation had `pyswisseph` but not the asteroid data file, so five bodie
 >
 > 分析报告：`synastry_reading_Person-A_Person-B.md`。
 >
-> 报告按爱情、友情、事业合作和金钱四个维度展开，并逐条引用原始数据。有一件事要说明：这台机器缺小行星星历文件，凯龙、谷神、智神、婚神、灶神五颗没算出来；数据文件和分析报告都明确保留了这个限制。这不是“没有相位”，而是“没有计算”。
+> 报告先分析关系主轴、双方感受差异和核心互动机制，再只展开用户要求或证据充分的现实领域，并逐条引用原始数据。有一件事要说明：这台机器缺小行星星历文件，凯龙、谷神、智神、婚神、灶神五颗没算出来；数据文件和分析报告都明确保留了这个限制。这不是“没有相位”，而是“没有计算”。
 
 **Note**: the missing bodies get their own paragraph rather than a footnote. The reading skill may continue because both natal blocks, the aspect table, and both overlay directions are complete, but it cannot make a claim involving any unresolved body.

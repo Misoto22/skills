@@ -51,7 +51,7 @@
 #### `astrology` —— 按出生时间和地点排盘
 
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 排出两个人的本命盘，算出彼此之间的全部相位，以及各自落进对方的哪些宫位。出生时间不精确到分钟就拒绝计算；写完原始数据后自动进入独立解读流程。
-- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 读取已经算好的合盘数据，按爱情、友情、事业合作和金钱四个维度生成固定结构、逐条链接证据的 Markdown 报告。
+- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 读取已经算好的合盘数据，先分析关系机制，再只展开用户要求或证据充分的现实领域，并逐条链接原始证据。
 
 ---
 

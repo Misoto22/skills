@@ -4,12 +4,12 @@
     {
       "id": "existing-file-english",
       "prompt": "Read the attached synastry_Person-A_Person-B.txt and interpret what it says about our relationship. I want the result saved as a report I can keep.",
-      "expected": "Fires on an existing two-person synastry data file and writes the fixed Markdown reading without recalculating the chart."
+      "expected": "Fires on an existing two-person synastry data file and writes the structured Markdown reading without recalculating the chart."
     },
     {
       "id": "existing-file-chinese",
-      "prompt": "请解读刚才生成的 synastry_甲_乙.txt，爱情、友情、事业合作和金钱都要分析，结果保存成 Markdown。",
-      "expected": "Fires on the Chinese interpretation request, reads the existing measurements, and writes the complete Chinese Markdown template."
+      "prompt": "请解读刚才生成的 synastry_甲_乙.txt，分析关系里真正重要的互动机制，并保存成 Markdown。",
+      "expected": "Fires on the Chinese interpretation request, reads the existing measurements, and writes the structured Chinese Markdown reading."
     },
     {
       "id": "automatic-calculator-hand-off",
@@ -48,14 +48,15 @@
   ],
   "behaviors": [
     {
-      "id": "writes-fixed-evidence-linked-report",
+      "id": "writes-mechanism-first-evidence-linked-report",
       "prompt": "Interpret the complete attached synastry_A_B.txt and save the reading beside it.",
       "expectations": [
         "Writes synastry_reading_A_B.md beside the source file and reports both paths.",
-        "Uses the fixed section order: basis and limitations, relationship overview, love, friendship, business partnership, money, overall synthesis, and evidence index.",
-        "Includes every required subsection under love, friendship, business partnership, and money.",
+        "Uses the fixed section order: basis and limitations; relationship signature; reciprocity and asymmetry; emotional bond and security; attraction, romance, and intimacy; communication and mental rhythm; conflict, power, and repair; trust, boundaries, and commitment; growth, values, and shared direction; applied life domains; overall synthesis; and evidence index.",
+        "Keeps every fixed core heading even when evidence is weak, labels the evidence limit, and does not fill the gap with generic sign descriptions.",
+        "Selects unrequested applied domains only when supported by two independent major indicators or one tight personal or angle contact plus a directly relevant directional house overlay.",
         "Supports each substantive interpretation with an exact aspect including both bodies, aspect type, and orb, or with a directional house overlay naming both people.",
-        "Does not recompute placements, alter the source orbs, invent missing evidence, predict events, or assign a compatibility score."
+        "Does not infer whether the people are lovers, friends, relatives, colleagues, or financial partners; recompute placements; alter source orbs; invent evidence; predict events; or assign a compatibility score."
       ]
     },
     {
@@ -81,8 +82,26 @@
       "prompt": "用这份完整的中文合盘数据生成固定模板的解读报告。",
       "expectations": [
         "Writes the report in Chinese.",
-        "Uses the headings 分析基础与限制、关系总览、爱情、友情、事业合作、金钱、综合结论、证据索引 in that order.",
+        "Uses the headings 分析基础与限制、关系主轴、双向影响与不对称性、情绪连接与安全感、吸引力、浪漫与亲密关系、沟通与思维节奏、冲突、权力与修复能力、信任、边界与承诺、共同成长、价值观与人生方向、现实领域、综合结论、证据索引 in that order.",
         "Preserves every cited orb exactly as recorded in the source."
+      ]
+    },
+    {
+      "id": "includes-requested-domains-with-honest-evidence-limits",
+      "prompt": "Analyze this complete synastry file. In the applied section, I specifically need domestic life and money, even if one of those topics is not strongly shown.",
+      "expectations": [
+        "Includes separate domestic-life and money modules because the user explicitly requested both.",
+        "For a requested domain without sufficient chart evidence, states that a confident domain-specific reading is not supported and does not substitute generic astrology.",
+        "Does not add friendship or career modules unless their evidence independently meets the selection threshold."
+      ]
+    },
+    {
+      "id": "selects-only-strongly-activated-unrequested-domains",
+      "prompt": "Give me the standard reading of this complete synastry file. I have not specified whether this is a romantic, social, family, work, or financial relationship.",
+      "expectations": [
+        "Does not infer the relationship type from the chart or choose applied domains merely because they exist in the template reference.",
+        "Includes only unrequested real-life domains that meet the explicit evidence threshold.",
+        "Explains directional differences between what Person A activates for Person B and what Person B activates for Person A."
       ]
     }
   ]

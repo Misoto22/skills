@@ -21,9 +21,11 @@ Person A bodies falling in the houses of Person B
 
 **Reading excerpts**:
 
-> Affection and emotional response may find an easy rhythm here (Person A Venus trine Person B Moon, orb 0.42°). The same relationship can require deliberate pacing in serious conversations, because enthusiasm may meet caution or correction (Person A Mercury square Person B Saturn, orb 1.10°).
+> The relationship signature combines emotional ease with a more effortful mental rhythm. Affection and emotional response may find an easy flow (Person A Venus trine Person B Moon, orb 0.42°), while serious conversations may alternate between expression and caution (Person A Mercury square Person B Saturn, orb 1.10°).
 >
-> Friendship has a visible place in the bond: Person B's Sun falls in Person A's 11th house. In shared finances, Person A's Jupiter falling in Person B's 2nd house can amplify confidence around resources; that is a reason to agree limits, not evidence that an investment will succeed.
+> The effects are not identical in both directions. Person B's Sun activates Person A's 11th house, so Person A may experience Person B through community, friendship, or shared aspirations. Person A's Jupiter activates Person B's 2nd house, which may expand Person B's confidence around values and resources. These directional overlays do not show that both people experience the same theme.
+>
+> `Friendship, community, and social networks` qualifies as an applied domain because the 11th-house overlay is reinforced by the relationship's personal-planet contacts. A money module would require another independent relevant contact before being added without a user request; the 2nd-house overlay alone is not enough.
 
 **Wrote**: `synastry_reading_Person-A_Person-B.md`.
 
@@ -41,7 +43,7 @@ The prose distinguishes measurement from interpretation, preserves each orb, nam
 >
 > 分析报告：`charts/synastry_reading_甲_乙.md`
 >
-> 报告按照爱情、友情、事业合作和金钱四个维度展开，每一项解读都链接到原始相位、orb 或有方向的宫位互入。完整内容在 Markdown 文件中。
+> 报告先分析关系主轴、双方感受差异、情绪安全、吸引与亲密、沟通、冲突修复、信任承诺和共同方向，再仅展开用户要求或证据充分的现实领域。每项解读都链接到原始相位、orb 或有方向的宫位互入。完整内容在 Markdown 文件中。
 
 ## 3. Missing optional ephemeris bodies
 
@@ -62,3 +64,17 @@ This is degraded coverage, not an incomplete core synastry file.
 > Please provide the complete synastry data file or run the calculator again. I will not estimate the missing houses from the aspect list.
 
 No Markdown file is written. A partial document with complete-looking headings would be easy to mistake for a complete reading.
+
+## 5. Requested domain with weak evidence
+
+**Asked**: Include daily home life and money in the applied section.
+
+**Source pattern**: The complete file supports a domestic-life reading through two relevant Moon/Saturn contacts and a 4th-house overlay. It contains only one isolated 2nd-house overlay for money.
+
+**Action**:
+
+- Write the full domestic-life module with exact evidence and practical guidance.
+- Keep the requested money heading, but use the `Evidence limit` form. State that one isolated overlay does not support a confident money-specific reading.
+- Do not convert a general Venus aspect into financial advice unless its actual bodies, aspect, context, and supporting evidence make that implication relevant.
+
+The user request controls whether the weak-evidence domain appears; it does not lower the standard for making claims inside it.
