@@ -1,210 +1,198 @@
-# Synastry Reading Skill Implementation Plan
+# Synastry Reading Framework Revision Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Publish a `synastry-reading` skill in the existing `astrology` plugin and make a successful `synastry` calculation hand its raw data file to that skill automatically.
+**Goal:** Replace the four hard-coded relationship categories in `synastry-reading` with a fixed relationship-mechanism core and evidence-selected real-life domains.
 
-**Architecture:** Keep the existing Python calculator and its `.txt` artifact unchanged as the measurement layer. Add a prose-only reading skill that validates the calculator artifact, interprets only cited measurements, and writes a fixed Markdown report; the calculator's instructions own the automatic hand-off.
+**Architecture:** Keep the existing calculator, automatic hand-off, source validation, evidence ledger, and Markdown artifact contract unchanged. Revise only the prose analysis layer: every report uses the same mechanism-first core, while requested or strongly supported life domains are selected under an explicit evidence threshold.
 
-**Tech Stack:** Agent Skills Markdown, YAML client metadata, JSON evaluation suites, repository Python validation scripts, GitHub pull request workflow.
+**Tech Stack:** Agent Skills Markdown, YAML client metadata, JSON evaluation suites, Python `unittest` contract tests, repository validation scripts.
 
 ## Global Constraints
 
 - The raw `synastry_<name-a>_<name-b>.txt` file remains data only.
-- `synastry-reading` adds no Python or third-party dependency.
-- The reading output is `synastry_reading_<name-a>_<name-b>.md` beside the source unless another output directory is requested.
-- The reading always covers love, friendship, business partnership, and money in the fixed order.
+- `synastry-reading` adds no Python or third-party runtime dependency.
+- The reading output remains `synastry_reading_<name-a>_<name-b>.md` beside the source unless another output directory is requested.
+- Every report contains all fixed relationship-mechanism sections in the defined order.
+- Requested real-life domains are included; unrequested domains require two independent major indicators or one tight personal/angle contact plus a relevant directional overlay.
+- Weak evidence is disclosed instead of being replaced with generic astrology.
 - Every substantive interpretation cites measured aspects with orbs or directional house overlays.
-- The reading does not recompute the chart, invent evidence, predict events, or assign a compatibility score.
+- The reading does not infer the relationship label, recompute the chart, invent evidence, predict events, or assign a compatibility score.
 - Runtime content remains organization-neutral and contains no local absolute path.
 - All code identifiers, comments, documentation, and commit messages are English.
 
 ---
 
-### Task 1: Define routing and behavior evaluations
+### Task 1: Lock the revised reading contract with failing tests
 
 **Files:**
-- Create: `evals/synastry-reading/evals.json`
-- Modify: `evals/synastry/evals.json`
+- Modify: `tests/synastry_skill/test_skill_contract.py`
+- Modify: `evals/synastry-reading/evals.json`
 
 **Interfaces:**
-- Consumes: the existing evaluation schema used by `scripts/run-evals.py`.
-- Produces: routing cases for `synastry-reading` and behavioral assertions for the automatic calculator hand-off and fixed reading output.
+- Consumes: the published `synastry-reading` skill and its Markdown template.
+- Produces: an executable contract for the fixed mechanism headings and a declarative contract for adaptive applied domains.
 
-- [ ] **Step 1: Add the failing evaluation suite before publishing the skill**
+- [ ] **Step 1: Add the failing template contract**
 
-Create a suite with at least these trigger boundaries:
+Add paths for the reading skill and template, then add this test:
 
-```json
-{
-  "skill": "synastry-reading",
-  "triggers": [
-    {
-      "id": "existing-file",
-      "prompt": "Read the attached synastry_Person-A_Person-B.txt and interpret the relationship.",
-      "expected": "Uses the existing measurements and writes the fixed Markdown reading."
-    }
-  ],
-  "non_triggers": [
-    {
-      "id": "raw-birth-details",
-      "prompt": "Run a synastry for two supplied birth records.",
-      "routes_to": "synastry",
-      "expected": "Calculation belongs to synastry."
-    }
-  ],
-  "behaviors": []
-}
+```python
+READING_SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
+READING_SKILL_PATH = READING_SKILL / "SKILL.md"
+READING_TEMPLATE_PATH = READING_SKILL / "references" / "output-template.md"
+
+def test_reading_template_uses_mechanisms_before_applied_domains(self) -> None:
+    text = READING_TEMPLATE_PATH.read_text(encoding="utf-8")
+    headings = (
+        "## Relationship signature",
+        "## Reciprocity and asymmetry",
+        "## Emotional bond and security",
+        "## Attraction, romance, and intimacy",
+        "## Communication and mental rhythm",
+        "## Conflict, power, and repair",
+        "## Trust, boundaries, and commitment",
+        "## Growth, values, and shared direction",
+        "## Applied life domains",
+        "## Overall synthesis",
+        "## Evidence index",
+    )
+    positions = [text.index(heading) for heading in headings]
+    self.assertEqual(positions, sorted(positions))
 ```
 
-Expand this to cover Chinese interpretation phrasing, a calculator hand-off, a single natal chart, transits, incomplete source data, all four report dimensions, evidence citations, degraded ephemeris coverage, and prohibited scores or predictions.
+- [ ] **Step 2: Run the focused test and verify RED**
 
-- [ ] **Step 2: Run the evaluation contract and verify RED**
+Run: `python3 -m unittest tests.synastry_skill.test_skill_contract.SkillContractTests.test_reading_template_uses_mechanisms_before_applied_domains -v`
 
-Run: `python3 scripts/run-evals.py --check`
+Expected: `ERROR` at `text.index("## Relationship signature")` because the old template still starts with the four example categories.
 
-Expected: failure because `synastry-reading` is not yet a published skill.
+- [ ] **Step 3: Revise the evaluation expectations before production content**
 
-- [ ] **Step 3: Update the existing calculator behavior expectation**
+Replace fixed-category expectations with assertions that:
 
-Replace the old "stop at data" expectation with assertions that the raw file remains uninterpreted and the workflow immediately invokes `synastry-reading` after a successful write.
+- all mechanism-first core sections are present in order
+- requested domains appear even when the report must disclose weak evidence
+- unrequested domains appear only after the evidence threshold is met
+- the report distinguishes directional and asymmetric effects
+- generic filler and inferred relationship labels are prohibited
 
-- [ ] **Step 4: Validate the JSON syntax independently**
+Add one behavior case whose request asks only about domestic life and money, and one general reading case where only strongly activated life domains should be selected.
 
-Run: `python3 -m json.tool evals/synastry-reading/evals.json >/dev/null && python3 -m json.tool evals/synastry/evals.json >/dev/null`
+- [ ] **Step 4: Validate the evaluation JSON**
+
+Run: `python3 -m json.tool evals/synastry-reading/evals.json >/dev/null`
 
 Expected: exit code 0.
 
-### Task 2: Scaffold and author the reading skill
+### Task 2: Implement the hybrid analysis framework
 
 **Files:**
-- Create through scaffold: `plugins/astrology/skills/synastry-reading/SKILL.md`
-- Create through scaffold: `plugins/astrology/skills/synastry-reading/agents/openai.yaml`
-- Create: `plugins/astrology/skills/synastry-reading/references/output-template.md`
-- Create: `plugins/astrology/skills/synastry-reading/references/examples.md`
-- Modify through scaffold: `.claude-plugin/marketplace.json`
-- Modify through scaffold: `.version-bump.json`
-- Modify through scaffold: `README.md`
-- Modify through scaffold: `README.zh-CN.md`
-- Modify through scaffold: `bundle/.claude-plugin/plugin.json`
-- Modify through scaffold: `plugins/astrology/.claude-plugin/plugin.json`
-- Modify through scaffold: `plugins/astrology/skills/README.md`
-- Modify through scaffold: `scripts/validate-repository.py`
-- Modify through scaffold: `skills.sh.json`
+- Modify: `plugins/astrology/skills/synastry-reading/SKILL.md`
+- Modify: `plugins/astrology/skills/synastry-reading/references/output-template.md`
+- Modify: `plugins/astrology/skills/synastry-reading/references/examples.md`
+- Modify: `plugins/astrology/skills/synastry-reading/agents/openai.yaml`
 
 **Interfaces:**
-- Consumes: a `synastry_*.txt` path or equivalent complete pasted data.
-- Produces: `synastry_reading_<name-a>_<name-b>.md` following `references/output-template.md`.
+- Consumes: a complete synastry measurement file and optional user-requested topics.
+- Produces: one evidence-linked Markdown report with a fixed core plus selected applied-domain modules.
 
-- [ ] **Step 1: Run the repository scaffold**
+- [ ] **Step 1: Replace the four-category routing table**
 
-Run: `python3 scripts/new-skill.py astrology synastry-reading`
+Define evidence routes for the fixed core: relationship signature; reciprocity and asymmetry; emotional security; attraction and intimacy; communication; conflict, power, and repair; trust, boundaries, and commitment; growth, values, and shared direction.
 
-Expected: the skill directory and all repository registrations are created, with authoring placeholders reported by the command.
+- [ ] **Step 2: Add the applied-domain selection rule**
 
-- [ ] **Step 2: Replace every scaffold placeholder with final metadata**
+Include every explicitly requested domain. Include an unrequested domain only with either two independent major indicators or one tight personal/angle contact plus a relevant directional house overlay. Keep requested weak-evidence sections and label the evidence limit; omit unsupported unrequested domains.
 
-Use a discovery description that triggers on an existing synastry data file, a request to interpret or analyze one, or the automatic hand-off from `synastry`; explicitly exclude birth-data calculation, natal charts, transits, and forecasts.
+- [ ] **Step 3: Replace both language templates**
 
-Set `agents/openai.yaml` to:
+Write the English and Chinese fixed headings from the approved design. Put `Evidence`/`星盘证据` inside every fixed section and selected domain. Give the adaptive section repeatable module placeholders without hard-coding friendship, career, or money as mandatory output.
 
-```yaml
-interface:
-  display_name: "Synastry Reading"
-  short_description: "Interpret an existing two-person synastry file"
-  default_prompt: "Use $synastry-reading to interpret an existing synastry data file and write the fixed, evidence-linked Markdown report."
-policy:
-  allow_implicit_invocation: true
-```
+- [ ] **Step 4: Revise examples and client metadata**
 
-- [ ] **Step 3: Author the executable reading workflow**
+Show one relationship-mechanism excerpt, one evidence-qualified applied domain, one requested weak-evidence domain, and the unchanged incomplete-source refusal. Change client copy from “fixed report” to “structured, evidence-linked report.”
 
-The skill body must:
+- [ ] **Step 5: Run the focused test and verify GREEN**
 
-1. Validate both natal blocks, the aspect table with orbs, and both overlay directions.
-2. Stop and name a missing required section rather than writing a partial report.
-3. Prioritize tight personal-planet and angle Ptolemaic aspects, then repeated themes and overlays.
-4. Treat outer planets, nodes, asteroids, lots, and minor aspects as supporting evidence.
-5. Cite every substantive interpretation and repeat source limitations.
-6. Write the Markdown report through the fixed template.
-7. Return the source and output paths with a short neutral overview.
+Run: `python3 -m unittest tests.synastry_skill.test_skill_contract.SkillContractTests.test_reading_template_uses_mechanisms_before_applied_domains -v`
 
-- [ ] **Step 4: Add the fixed template and worked examples**
+Expected: one test passes.
 
-`output-template.md` carries the complete English and Chinese heading contracts. `examples.md` covers a direct English reading, an automatic Chinese hand-off, a source missing optional asteroid data, and a refusal on incomplete synastry data.
+- [ ] **Step 6: Run the complete focused suite**
 
-- [ ] **Step 5: Run the evaluation contract and verify GREEN**
+Run: `python3 -m unittest discover -s tests/synastry_skill -t tests -v`
 
-Run: `python3 scripts/run-evals.py --check`
+Expected: all synastry tests pass.
 
-Expected: `evaluation suites are complete` with exit code 0.
-
-- [ ] **Step 6: Run description validation**
-
-Run: `python3 scripts/check-descriptions.py --report`
-
-Expected: every description passes length, negative-boundary, placeholder, and overlap checks.
-
-### Task 3: Connect the calculator hand-off and verify publication
+### Task 3: Remove stale four-category publication copy
 
 **Files:**
-- Modify: `plugins/astrology/skills/synastry/SKILL.md`
-- Modify: `plugins/astrology/skills/synastry/references/examples.md`
-- Modify: `plugins/astrology/skills/README.md`
-- Modify: `README.md`
-- Modify: `README.zh-CN.md`
+- Modify if matched: `README.md`
+- Modify if matched: `README.zh-CN.md`
+- Modify if matched: `plugins/astrology/plugin.json`
+- Modify if matched: `plugins/astrology/.claude-plugin/plugin.json`
+- Modify if matched: `plugins/astrology/skills/README.md`
 
 **Interfaces:**
-- Consumes: the successful calculator output path.
-- Produces: an immediate invocation of `synastry-reading` with the exact path, while preserving the raw data artifact.
+- Consumes: the published hybrid reading behavior.
+- Produces: marketplace and repository descriptions that accurately describe mechanism-first analysis.
 
-- [ ] **Step 1: Change the calculator reporting contract**
+- [ ] **Step 1: Find stale promises**
 
-Replace the current instruction to stop after listing measurements with this sequence:
+Run: `rg -n "love, friendship, business partnership, and money|爱情、友情、事业合作和金钱|four relationship dimensions|四个维度" README.md README.zh-CN.md plugins/astrology evals/synastry-reading`
 
-```text
-After the data file exists, invoke synastry-reading immediately with that exact path.
-Do not wait for another user request. Do not add interpretation to the data file.
-If calculation failed, do not invoke the reading skill.
-```
+Expected: only files that still describe the old mandatory shape are listed.
 
-- [ ] **Step 2: Update the worked examples**
+- [ ] **Step 2: Replace stale publication copy**
 
-Show both output paths on successful English and Chinese runs. Preserve the refusal case and ensure it produces neither a data file nor a reading file.
+Describe the output as a structured, evidence-linked reading with a fixed relationship-mechanism core and evidence-selected real-life domains. Keep manifest descriptions synchronized where their shared fields must match.
 
-- [ ] **Step 3: Review generated registry copy**
-
-Replace the scaffold's README placeholders with concise English and Chinese descriptions, confirm both astrology plugin manifests list both skills in sorted order, and confirm all root registries name `synastry-reading` once.
-
-- [ ] **Step 4: Run focused checks**
+- [ ] **Step 3: Run metadata checks**
 
 Run:
 
 ```bash
 python3 scripts/run-evals.py --check
-python3 -m unittest discover -s tests/synastry_skill -t tests -v
-python3 scripts/validate-repository.py
+python3 scripts/check-descriptions.py --report
 ```
 
-Expected: every command exits 0.
+Expected: all evaluation suites and descriptions pass.
 
-- [ ] **Step 5: Run release-quality checks**
+### Task 4: Verify and update the existing pull request
+
+**Files:**
+- Verify: all changed files from Tasks 1-3
+- Update: Git branch `codex/add-synastry-reading` and Draft PR #36
+
+**Interfaces:**
+- Consumes: the complete revised implementation.
+- Produces: a clean pushed branch and an updated Draft PR describing the hybrid framework.
+
+- [ ] **Step 1: Run repository verification**
 
 Run:
 
 ```bash
+python3 scripts/validate-repository.py
+python3 scripts/run-evals.py --check
+python3 scripts/check-descriptions.py --report
 uvx ruff check .
 uvx ruff format --check .
 shellcheck scripts/*.sh
 git diff --check
 ```
 
-Expected: every command exits 0 without warnings requiring source changes.
+Expected: every command exits 0.
 
-- [ ] **Step 6: Review the final diff against the design**
+- [ ] **Step 2: Review requirements and scope**
 
-Confirm every acceptance criterion in `docs/superpowers/specs/2026-08-09-synastry-reading-design.md`, scan for runtime absolute paths and placeholders, and verify no unrelated file changed.
+Read the approved design beside the final diff. Confirm every fixed section, selection threshold, weak-evidence behavior, asymmetry rule, evidence citation rule, and prohibited inference is represented. Confirm calculator scripts are unchanged and no unrelated files changed.
 
-- [ ] **Step 7: Publish the branch**
+- [ ] **Step 3: Commit and push**
 
-Stage only the planned files, commit with a terse conventional message, push `codex/add-synastry-reading`, and open a draft pull request against `main` with the changes, rationale, impact, and validation commands.
+Stage only the planned files, commit with `feat: broaden synastry reading framework`, and push `codex/add-synastry-reading` without force.
+
+- [ ] **Step 4: Update and verify PR #36**
+
+Update its body to explain the fixed mechanism core and evidence-selected domains. Verify the PR remains open and draft, points from `codex/add-synastry-reading` to `main`, and includes the new commit.
