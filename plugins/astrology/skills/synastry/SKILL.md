@@ -1,6 +1,6 @@
 ---
 name: synastry
-description: Compute a synastry data file for two people from their birth details — both natal charts, cross-chart aspects under separate Ptolemaic and minor orbs, and house overlays in both directions — written as plain text with the interpretation deliberately left out. Use when two sets of birth details arrive and the ask is 合盘, synastry, a compatibility or relationship chart, 星盘配对, 看看我俩的盘, or the details turn up informally as a name plus a date, a time, and a city. Not for one person's natal chart on its own, not for transits, horoscopes, or predictions, and not for reading back a chart file that already exists.
+description: Compute a synastry data file for two people from their birth details — both natal charts, cross-chart aspects under separate Ptolemaic and minor orbs, and house overlays in both directions — then hand the completed file to the separate reading skill. Use when two sets of birth details arrive and the ask is 合盘, synastry, a compatibility or relationship chart, 星盘配对, 看看我俩的盘, or the details turn up informally as a name plus a date, a time, and a city. Not for one person's natal chart on its own, not for transits, horoscopes, or predictions, and not for reading back a chart file that already exists.
 license: MIT
 metadata:
   version: "0.8.1"
@@ -9,9 +9,9 @@ argument-hint: "[--language=en|zh] [--house-system=placidus]"
 
 # Synastry
 
-Turn two people's birth details into one plain-text data file: each natal chart, the aspects between them, and where each falls in the other's houses.
+Turn two people's birth details into one plain-text data file: each natal chart, the aspects between them, and where each falls in the other's houses. After the file exists, hand it directly to `synastry-reading` for the separate Markdown interpretation.
 
-The file is data. Element balance, modality balance, stellium calls, and anything resembling a verdict are for the turn after it, written from the numbers rather than mixed into them. Keeping the two apart is what stops an inference being filed as a measurement.
+The file is data. Element balance, modality balance, stellium calls, and anything resembling a verdict belong only in the reading file, written from the numbers rather than mixed into them. Keeping the two artifacts apart is what stops an inference being filed as a measurement.
 
 ## When this fires
 
@@ -94,16 +94,19 @@ The output lands at `<out>/synastry_<name-a>_<name-b>.txt`.
 - **Aspects** — computed over both charts in full, so an asteroid-to-asteroid contact is found on the same pass as a Sun-to-Moon one. The Descendant, Imum Coeli, and South Node are held out of that pass: each sits exactly opposite a body already included, and would report every contact twice under a second name.
 - **Orbs** — two, not one. A single 8° orb lets the minor aspects outnumber the Ptolemaic ones and buries the pattern worth reading.
 
-## Reporting back
+## Automatic reading hand-off
 
 After writing the file:
 
-1. Say where it landed.
-2. List the two or three tightest aspects with their orbs, and the house each body falls into. No good-or-bad framing — an orb is a measurement, not a verdict.
-3. Name anything that limits the reading: a coordinate you had to guess, a zone the database was thin on, a placement inside a degree of a sign boundary.
-4. Stop there. Interpretation is the next turn, if it is asked for.
+1. Confirm that the raw data file exists and retain its exact path.
+2. Invoke `synastry-reading` immediately with that path. Do not wait for another user request, and do not ask whether they also want an interpretation.
+3. Keep the raw file untouched. Every interpretive sentence belongs in `synastry_reading_<name-a>_<name-b>.md`, never in the `.txt` file.
+4. If calculation failed or no data file was written, do not invoke the reading skill.
+5. If `synastry-reading` is unavailable, report the raw path and the missing reading component rather than improvising its job inline.
 
-Reply in the language the caller is writing in, and keep their register. The report file is separate: its labels are fixed by `--language`, so pass `zh` when the conversation is in Chinese rather than translating the file's contents in the reply. Neither the file nor the reply should tell anyone what a chart means about them unless they asked.
+After the hand-off succeeds, name both output paths and give only the short overview returned by the reading skill. Repeat any coordinate, timezone, sign-boundary, or missing-ephemeris limitation that materially constrains the report.
+
+Reply in the language the caller is writing in, and keep their register. The data file's labels are fixed by `--language`, so pass `zh` when the conversation is in Chinese rather than translating its contents in the reply. The reading skill follows that language into its separate Markdown report.
 
 See [examples.md](references/examples.md) for three worked cases: a straight run with the reply it produced, a refusal on an hour-only birth time, and a Chinese-label run where the ephemeris was missing its asteroid file. Read it before the first run, and whenever a run has to report something it could not compute.
 

@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "astrology",
   "version": "0.8.1",
-  "description": "Positional astrology computed from birth data, reported as data rather than as a reading.",
+  "description": "Two-person synastry calculated as auditable position data, then interpreted in a separate evidence-linked reading.",
   "author": {
     "name": "skills contributors"
   },

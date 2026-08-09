@@ -1,12 +1,13 @@
 {
   "name": "astrology",
   "version": "0.8.1",
-  "description": "Positional astrology computed from birth data, reported as data rather than as a reading.",
+  "description": "Two-person synastry calculated as auditable position data, then interpreted in a separate evidence-linked reading.",
   "author": {
     "name": "skills contributors"
   },
   "license": "MIT",
   "skills": [
-    "./skills/synastry"
+    "./skills/synastry",
+    "./skills/synastry-reading"
   ]
 }

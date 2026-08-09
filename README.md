@@ -51,7 +51,8 @@ Eight skills in four plugins. The plugin name is the command prefix, and each pl
 
 #### `astrology` — positions computed from birth data
 
-- **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — computes two natal charts, every aspect between them, and both directions of house overlay. It refuses a birth time that is not given to the minute, and stops at the data: the reading is a separate turn.
+- **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — computes two natal charts, every aspect between them, and both directions of house overlay. It refuses a birth time that is not given to the minute, writes the raw data, then starts the separate reading automatically.
+- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — reads completed synastry data and writes a mechanism-first, evidence-linked Markdown report with only requested or strongly supported real-life domains.
 
 ---
 
@@ -201,7 +202,7 @@ flowchart LR
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:readme"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
-  A --> SN["/astrology:synastry"]
+  A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
 
@@ -210,7 +211,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,PB,T,R,SY,SH,CL,SN,SW,SV s
+  class E,PB,T,R,SY,SH,CL,SN,SR,SW,SV s
 ```
 
 <details>

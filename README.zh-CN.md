@@ -51,7 +51,8 @@
 
 #### `astrology` —— 按出生时间和地点排盘
 
-- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 排出两个人的本命盘，算出彼此之间的全部相位，以及各自落进对方的哪些宫位。出生时间不精确到分钟就拒绝计算。它只出数据，怎么解读是另一回事。
+- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 排出两个人的本命盘，算出彼此之间的全部相位，以及各自落进对方的哪些宫位。出生时间不精确到分钟就拒绝计算；写完原始数据后自动进入独立解读流程。
+- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 读取已经算好的合盘数据，先分析关系机制，再只展开用户要求或证据充分的现实领域，并逐条链接原始证据。
 
 ---
 
@@ -196,7 +197,7 @@ flowchart LR
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:readme"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
-  A --> SN["/astrology:synastry"]
+  A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
 
@@ -205,7 +206,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,PB,T,R,SY,SH,CL,SN,SW,SV s
+  class E,PB,T,R,SY,SH,CL,SN,SR,SW,SV s
 ```
 
 <details>
