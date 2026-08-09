@@ -251,6 +251,65 @@ class ParseRequestTests(unittest.TestCase):
                     parse_request(payload)
                 self.assertIn(expected, "\n".join(raised.exception.problems))
 
+    def test_array_and_object_enum_values_are_collected_as_request_errors(self) -> None:
+        cases = (
+            ("birth.time_mode", [], "expected a string"),
+            ("birth.time_mode", {}, "expected a string"),
+            ("options.language", [], "expected a string"),
+            ("options.house_system", {}, "expected a string"),
+        )
+        for field, value, expected in cases:
+            with self.subTest(field=field, value=value):
+                payload = exact_request()
+                self._set_field(payload, field, value)
+                with self.assertRaises(RequestError) as raised:
+                    parse_request(payload)
+                self.assertIn(expected, "\n".join(raised.exception.problems))
+
+    def test_representational_boundaries_become_request_errors(self) -> None:
+        payload = mixed_precision_request()
+        people = payload["people"]
+        assert isinstance(people, list)
+        first = people[0]
+        second = people[1]
+        assert isinstance(first, dict)
+        assert isinstance(second, dict)
+        exact_birth = first["birth"]
+        date_only_birth = second["birth"]
+        assert isinstance(exact_birth, dict)
+        assert isinstance(date_only_birth, dict)
+        exact_birth["latitude"] = 10**10000
+        date_only_birth["date"] = "9999-12-31"
+        options = payload["options"]
+        assert isinstance(options, dict)
+        options["major_orb"] = 10**10000
+
+        with self.assertRaises(RequestError) as raised:
+            parse_request(payload)
+
+        message = "\n".join(raised.exception.problems)
+        self.assertIn("latitude", message)
+        self.assertIn("major_orb", message)
+        self.assertIn("date", message)
+
+    def test_near_twenty_four_hour_offset_is_rejected_before_resolution(self) -> None:
+        payload = exact_request()
+        people = payload["people"]
+        assert isinstance(people, list)
+        first = people[0]
+        assert isinstance(first, dict)
+        birth = first["birth"]
+        assert isinstance(birth, dict)
+        birth.update(
+            utc_offset_hours=23.999999999999,
+            utc_offset_reason="contemporary local record",
+        )
+
+        with self.assertRaises(RequestError) as raised:
+            parse_request(payload)
+
+        self.assertIn("utc_offset_hours", "\n".join(raised.exception.problems))
+
     def test_ambiguous_exact_time_requires_a_fold_or_reasoned_override(self) -> None:
         payload = exact_request()
         people = payload["people"]
@@ -360,6 +419,21 @@ class ParseRequestTests(unittest.TestCase):
         value = payload[target.removesuffix(".extra")]
         assert isinstance(value, dict)
         value["extra"] = True
+
+    @staticmethod
+    def _set_field(payload: dict[str, object], field: str, value: object) -> None:
+        if field == "birth.time_mode":
+            people = payload["people"]
+            assert isinstance(people, list)
+            person = people[0]
+            assert isinstance(person, dict)
+            birth = person["birth"]
+            assert isinstance(birth, dict)
+            birth["time_mode"] = value
+            return
+        options = payload["options"]
+        assert isinstance(options, dict)
+        options[field.removeprefix("options.")] = value
 
 
 if __name__ == "__main__":

@@ -184,8 +184,12 @@ def resolve_interval(birth: ExactBirth | WindowBirth | DateOnlyBirth) -> TimeInt
         birth.utc_offset_reason,
         "birth.date",
     )
+    try:
+        following_date = birth.date + timedelta(days=1)
+    except OverflowError as error:
+        raise RequestError(["birth.date: date-only interval exceeds the supported calendar range"]) from error
     end = _resolve_local(
-        datetime.combine(birth.date + timedelta(days=1), time.min),
+        datetime.combine(following_date, time.min),
         birth.timezone,
         None,
         birth.utc_offset_hours,
@@ -256,6 +260,9 @@ def _parse_birth(
     if birth is None:
         return None
     mode = birth.get("time_mode")
+    if not isinstance(mode, str):
+        problems.append(f"{where}.time_mode: expected a string")
+        return None
     if mode not in {"exact", "window", "date-only"}:
         problems.append(f"{where}.time_mode: unsupported mode {mode!r}")
         return None
@@ -543,7 +550,11 @@ def _number(
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         problems.append(f"{where}: expected a number")
         return None
-    number = float(value)
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        problems.append(f"{where}: expected a finite number")
+        return None
     if not math.isfinite(number):
         problems.append(f"{where}: expected a finite number")
         return None
@@ -584,13 +595,25 @@ def _offset_override(
     if isinstance(offset_value, bool) or not isinstance(offset_value, (int, float)):
         problems.append(f"{where}.utc_offset_hours: expected a number")
         return None, None
-    offset = float(offset_value)
+    try:
+        offset = float(offset_value)
+    except (OverflowError, ValueError):
+        problems.append(f"{where}.utc_offset_hours: expected a finite number")
+        return None, None
+    representable = False
     if not math.isfinite(offset):
         problems.append(f"{where}.utc_offset_hours: expected a finite number")
     elif not -24 < offset < 24:
         problems.append(f"{where}.utc_offset_hours: expected a value between -24 and 24")
+    else:
+        try:
+            timezone(timedelta(hours=offset))
+        except (OverflowError, ValueError):
+            problems.append(f"{where}.utc_offset_hours: is not representable as a UTC offset")
+        else:
+            representable = True
     reason = _label(reason_value, f"{where}.utc_offset_reason", problems, required=True)
-    if not math.isfinite(offset) or not -24 < offset < 24 or reason is None:
+    if not math.isfinite(offset) or not -24 < offset < 24 or not representable or reason is None:
         return None, None
     return offset, reason
 
@@ -610,6 +633,9 @@ def _parse_window(value: object, where: str, problems: list[str]) -> tuple[time,
 
 
 def _enum(value: object, allowed: frozenset[str], where: str, problems: list[str]) -> str | None:
+    if not isinstance(value, str):
+        problems.append(f"{where}: expected a string")
+        return None
     if value not in allowed:
         problems.append(f"{where}: unsupported value {value!r}")
         return None
