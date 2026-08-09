@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -125,6 +126,8 @@ def resolve_subject(
 ) -> ResolvedChart:
     """Resolve exact or sampled positions and record the backend actually used."""
 
+    if options.ephemeris_policy not in {"swiss-only", "allow-moshier"}:
+        raise EphemerisError(f"unsupported ephemeris policy {options.ephemeris_policy!r}")
     swe = swe_module if swe_module is not None else _load_binding()
     interval = resolve_interval(subject.birth)
     moments = _sample_moments(interval)
@@ -154,7 +157,7 @@ def resolve_subject(
             if not flags & swe.FLG_SPEED:
                 raise EphemerisError(f"returned flags {flags} did not include requested speed data")
             actual = backend_name(flags, swe)
-            if options.ephemeris_policy == "swiss-only" and actual != "swiss":
+            if actual != "swiss" and options.ephemeris_policy != "allow-moshier":
                 raise EphemerisError(
                     "requested Swiss Ephemeris data but used Moshier; provide --ephemeris-path "
                     "or explicitly choose allow-moshier"
@@ -226,7 +229,10 @@ def _sample_moments(interval: TimeInterval) -> tuple[datetime, ...]:
 
 def _julian_day(moment: datetime, swe: Any) -> float:
     hour = moment.hour + moment.minute / 60.0 + moment.second / 3600.0 + moment.microsecond / 3_600_000_000.0
-    return float(swe.julday(moment.year, moment.month, moment.day, hour))
+    try:
+        return float(swe.julday(moment.year, moment.month, moment.day, hour))
+    except swe.Error as error:
+        raise EphemerisError(f"could not calculate Julian day: {_concise(error)}") from error
 
 
 def _body_codes(swe: Any) -> Mapping[str, int]:
@@ -343,4 +349,6 @@ def _concise(error: BaseException) -> str:
 
 def _is_missing_data_error(error: BaseException) -> bool:
     message = _concise(error).casefold()
-    return any(marker in message for marker in ("not found", "no such file", "missing file"))
+    if "no such file" in message or "missing file" in message:
+        return True
+    return "not found" in message and re.search(r"\b(?:file|path)\b", message) is not None

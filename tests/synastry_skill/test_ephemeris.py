@@ -69,6 +69,7 @@ class FakeSwe:
         self.house_error = house_error
         self.body_errors = frozenset(body_errors)
         self.calc_ut_error = "missing file"
+        self.julday_error: str | None = None
         self.julday_calls: list[tuple[int, int, int, float]] = []
         self.calc_calls: list[tuple[float, int, int]] = []
         self.house_calls: list[tuple[float, float, float, bytes]] = []
@@ -79,6 +80,8 @@ class FakeSwe:
 
     def julday(self, year: int, month: int, day: int, hour: float) -> float:
         self.julday_calls.append((year, month, day, hour))
+        if self.julday_error is not None:
+            raise self.Error(self.julday_error)
         return float(year * 10000 + month * 100 + day) + hour / 24.0
 
     def calc_ut(self, julian_day: float, code: int, flags: int) -> tuple[tuple[float, ...], int]:
@@ -214,6 +217,13 @@ class BackendPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(EphemerisError, "returned flags.*speed"):
             resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
 
+    def test_unknown_policy_never_authorizes_moshier(self) -> None:
+        fake = FakeSwe(return_flags=FakeSwe.FLG_MOSEPH | FakeSwe.FLG_SPEED)
+        invalid = replace(swiss_options(), ephemeris_policy="accept-anything")
+
+        with self.assertRaisesRegex(EphemerisError, "unsupported ephemeris policy"):
+            resolve_subject(exact_subject(), invalid, swe_module=fake)
+
     def test_provenance_records_each_distinct_return_flag(self) -> None:
         swiss = FakeSwe.FLG_SWIEPH | FakeSwe.FLG_SPEED
         moshier = FakeSwe.FLG_MOSEPH | FakeSwe.FLG_SPEED
@@ -311,6 +321,20 @@ class BindingFailureTests(unittest.TestCase):
         fake.calc_ut_error = "corrupt ephemeris data"
 
         with self.assertRaisesRegex(EphemerisError, "Chiron.*corrupt"):
+            resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
+
+    def test_non_file_not_found_optional_body_error_remains_fatal(self) -> None:
+        fake = FakeSwe(body_errors=(FakeSwe.CHIRON,))
+        fake.calc_ut_error = "asteroid record not found"
+
+        with self.assertRaisesRegex(EphemerisError, "Chiron.*record not found"):
+            resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
+
+    def test_julian_day_binding_error_is_converted_to_domain_error(self) -> None:
+        fake = FakeSwe()
+        fake.julday_error = "calendar conversion failed"
+
+        with self.assertRaisesRegex(EphemerisError, "Julian day.*calendar conversion failed"):
             resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
 
 
