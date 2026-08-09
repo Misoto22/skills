@@ -6,7 +6,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
+  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:personal-blog, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
 </picture>
 
 <br />
@@ -31,11 +31,12 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Seven skills in four plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Eight skills in four plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
 - **[email](plugins/writing/skills/email/SKILL.md)** (`/writing:email`) — drafts policy-aware email, or sends exact hashed artefacts and verifies them against the Sent message. Draft is the default, and automated send stays off until a narrow local scope is configured.
+- **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)** (`/writing:personal-blog`) — researches, outlines, drafts, or edits five kinds of personal blog post while preserving supplied evidence and voice; finished articles arrive as raw Markdown.
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)** (`/writing:tempering`) — rewrites a blunt or frustrated workplace message into three registers, keeping the request, the date, and the consequence the raw tone was carrying.
 
 #### `docs` — prose aimed at whoever opens the repository next
@@ -137,7 +138,7 @@ Maintainers who want editable installs rather than copies can run `bash scripts/
 
 ### Directories
 
-This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same seven skills grouped by plugin.
+This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same eight skills grouped by plugin.
 
 The rest index Agent Skills repositories at large. None of them carry this one — they are here for the skills it does not cover:
 
@@ -171,9 +172,8 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
-- **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)** (`/writing:personal-blog`) — PLACEHOLDER, one line.
 
-Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the seven skills above.
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the eight skills above.
 
 > [!NOTE]
 > The pinned commit is the point. A bookmark tracking a branch would install
@@ -198,11 +198,11 @@ Rules two skills share live in `plugins/<plugin>/shared/`, the only copy anyone 
 ```mermaid
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
-  W --> E["/writing:email"] & T["/writing:tempering"]
+  W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:readme"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
   A --> SN["/astrology:synastry"]
-  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & T
+  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
 
   classDef m fill:#0969da,stroke:#0969da,color:#fff
@@ -210,7 +210,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,T,R,SY,SH,CL,SN,SW,SV s
+  class E,PB,T,R,SY,SH,CL,SN,SW,SV s
 ```
 
 <details>
