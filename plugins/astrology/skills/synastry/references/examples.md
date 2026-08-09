@@ -1,8 +1,9 @@
 # Worked examples
 
-Three cases: a straight run, a refusal, and a run in Chinese where the ephemeris
-was missing an optional data file. Every report excerpt below is copied from a
-real run of [request.example.json](request.example.json), not reconstructed.
+Three cases: a straight run with its automatic reading hand-off, a refusal, and
+a Chinese run where the ephemeris was missing an optional data file. Every raw
+data excerpt below is copied from a real run of
+[request.example.json](request.example.json), not reconstructed.
 
 ## Contents
 
@@ -91,17 +92,19 @@ and the synastry block sorts every cross-chart contact by orb:
   Mercury             biquintile        Mercury              0.25°
 ```
 
-**Replied**:
+**Hand-off**: The completed file is passed immediately to `synastry-reading`, which writes `synastry_reading_Person-A_Person-B.md` beside it.
 
-> Written to `synastry_Person-A_Person-B.txt`.
+**Replied after the hand-off**:
+
+> Raw synastry data: `synastry_Person-A_Person-B.txt`.
 >
-> Tightest three: A's Venus semi-sextile B's Neptune, 0.12°. A's North Node semi-square B's Midheaven, 0.13°. A's Saturn biquintile B's Moon, 0.18°. B's Sun falls in A's 7th; A's Mercury falls in B's 3rd.
+> Reading: `synastry_reading_Person-A_Person-B.md`.
 >
-> Both coordinates are city centres, so each Ascendant carries a few arc-minutes of uncertainty — the sub-degree contacts above sit inside that. New York in November 1988 resolved to UTC−5.
+> The report covers love, friendship, business partnership, and money, with each interpretation linked to the exact source aspect, orb, or directional house overlay. Both coordinates are city centres, so each Ascendant carries a few arc-minutes of uncertainty; New York in November 1988 resolved to UTC−5.
 >
 > Say the word if you want any of it read.
 
-**Note**: the reply names orbs and houses, then stops. No aspect is called good or bad, and no summary of the relationship is offered. The one thing volunteered beyond the data is what limits it.
+**Note**: the `.txt` file remains measurement data. The model does not add a reading to that artifact or wait for another request; it delegates interpretation to the second skill and returns both paths.
 
 ---
 
@@ -120,6 +123,8 @@ and the synastry block sorts every cross-chart contact by orb:
 > A birth certificate or a hospital record usually carries it.
 
 **Note**: no noon substitute, no early-and-late pair, and no partial run offering "the aspects that do not depend on the Ascendant". A half-computed chart invites exactly the reading it cannot support. The script refuses the same request for the same reason, so working around it here only moves the failure downstream.
+
+No data file exists, so `synastry-reading` is not invoked and no Markdown report is written.
 
 ---
 
@@ -160,12 +165,14 @@ This installation had `pyswisseph` but not the asteroid data file, so five bodie
   未能解析 · 缺少星历数据文件: 凯龙星、谷神星、智神星、婚神星、灶神星
 ```
 
-**Replied**:
+**Hand-off**: The completed Chinese data file is passed immediately to `synastry-reading`. The missing bodies remain explicit input limitations rather than placements to infer.
 
-> 写到 `synastry_Person-A_Person-B.txt` 了，标签中文，次相位收到 1.5°。
->
-> 最紧的三条：金星十二分相海王星 0.12°，北交点半刑天顶 0.13°，土星倍五分相月亮 0.18°。
->
-> 有一件事要说明：这台机器缺小行星星历文件，凯龙、谷神、智神、婚神、灶神五颗没算出来，报告里也标了。婚神星在合盘里常被拿来看，所以这不是"没有相位"，是"没算"。要补上就装一下星历数据文件，再用 `--ephemeris-path` 指过去。
+**Replied after the hand-off**:
 
-**Note**: the missing bodies get their own paragraph rather than a footnote. An absent line in a data file reads as nothing to report, and Juno in particular is a placement people go looking for — leaving the omission implicit would have been read as an answer.
+> 原始合盘数据：`synastry_Person-A_Person-B.txt`，标签中文，次相位收到 1.5°。
+>
+> 分析报告：`synastry_reading_Person-A_Person-B.md`。
+>
+> 报告按爱情、友情、事业合作和金钱四个维度展开，并逐条引用原始数据。有一件事要说明：这台机器缺小行星星历文件，凯龙、谷神、智神、婚神、灶神五颗没算出来；数据文件和分析报告都明确保留了这个限制。这不是“没有相位”，而是“没有计算”。
+
+**Note**: the missing bodies get their own paragraph rather than a footnote. The reading skill may continue because both natal blocks, the aspect table, and both overlay directions are complete, but it cannot make a claim involving any unresolved body.

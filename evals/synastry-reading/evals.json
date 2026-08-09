@@ -1,0 +1,89 @@
+{
+  "skill": "synastry-reading",
+  "triggers": [
+    {
+      "id": "existing-file-english",
+      "prompt": "Read the attached synastry_Person-A_Person-B.txt and interpret what it says about our relationship. I want the result saved as a report I can keep.",
+      "expected": "Fires on an existing two-person synastry data file and writes the fixed Markdown reading without recalculating the chart."
+    },
+    {
+      "id": "existing-file-chinese",
+      "prompt": "请解读刚才生成的 synastry_甲_乙.txt，爱情、友情、事业合作和金钱都要分析，结果保存成 Markdown。",
+      "expected": "Fires on the Chinese interpretation request, reads the existing measurements, and writes the complete Chinese Markdown template."
+    },
+    {
+      "id": "automatic-calculator-hand-off",
+      "prompt": "The synastry calculator has successfully written ./charts/synastry_A_B.txt. Continue the configured workflow with that exact file.",
+      "expected": "Fires as the automatic post-calculation hand-off and does not ask the user to confirm the analysis."
+    },
+    {
+      "id": "pasted-complete-data",
+      "prompt": "Below are two natal blocks, a cross-chart aspect table with orbs, and both directions of house overlays from an existing synastry calculation. Analyze these measurements using the standard relationship-reading format.",
+      "expected": "Fires when complete equivalent synastry data is pasted instead of attached as a file."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "raw-birth-details",
+      "prompt": "Run a synastry for A, born 1990-03-14 at 07:42 in Shanghai, and B, born 1988-11-02 at 21:05 in New York.",
+      "routes_to": "synastry",
+      "expected": "Does not fire. Raw birth details must be calculated by synastry first."
+    },
+    {
+      "id": "single-natal-reading",
+      "prompt": "Interpret my natal chart from this list of planetary placements and houses.",
+      "expected": "Does not fire. A single natal chart is not a two-person synastry reading."
+    },
+    {
+      "id": "transit-forecast",
+      "prompt": "Use my transits to forecast whether I will meet a partner next month.",
+      "expected": "Does not fire. Transits and forecasts are outside this skill."
+    },
+    {
+      "id": "change-calculation-settings",
+      "prompt": "Recompute our synastry with whole-sign houses and a 1.5 degree minor orb.",
+      "routes_to": "synastry",
+      "expected": "Does not fire. Changing houses or orbs requires a new calculation."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "writes-fixed-evidence-linked-report",
+      "prompt": "Interpret the complete attached synastry_A_B.txt and save the reading beside it.",
+      "expectations": [
+        "Writes synastry_reading_A_B.md beside the source file and reports both paths.",
+        "Uses the fixed section order: basis and limitations, relationship overview, love, friendship, business partnership, money, overall synthesis, and evidence index.",
+        "Includes every required subsection under love, friendship, business partnership, and money.",
+        "Supports each substantive interpretation with an exact aspect including both bodies, aspect type, and orb, or with a directional house overlay naming both people.",
+        "Does not recompute placements, alter the source orbs, invent missing evidence, predict events, or assign a compatibility score."
+      ]
+    },
+    {
+      "id": "refuses-incomplete-source",
+      "prompt": "Analyze this synastry excerpt. It has both natal charts and some aspects, but the house-overlay section is missing.",
+      "expectations": [
+        "Names both missing overlay directions as required source sections.",
+        "Does not write a partial Markdown reading.",
+        "Asks for the complete data file or a fresh calculation rather than estimating the overlays."
+      ]
+    },
+    {
+      "id": "preserves-degraded-ephemeris-limit",
+      "prompt": "Read this complete synastry file. Its points section says Chiron, Ceres, Pallas, Juno, and Vesta were not resolved because the ephemeris data file was missing.",
+      "expectations": [
+        "Writes the reading because the required natal, aspect, and overlay sections are complete.",
+        "Repeats the unresolved-body limitation in the report.",
+        "Does not interpret or imply contacts involving any unresolved body."
+      ]
+    },
+    {
+      "id": "uses-source-language",
+      "prompt": "用这份完整的中文合盘数据生成固定模板的解读报告。",
+      "expectations": [
+        "Writes the report in Chinese.",
+        "Uses the headings 分析基础与限制、关系总览、爱情、友情、事业合作、金钱、综合结论、证据索引 in that order.",
+        "Preserves every cited orb exactly as recorded in the source."
+      ]
+    }
+  ]
+}

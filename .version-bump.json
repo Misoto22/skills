@@ -38,6 +38,7 @@
     }
   ],
   "text": [
+    "plugins/astrology/skills/synastry-reading/SKILL.md",
     "plugins/astrology/skills/synastry/SKILL.md",
     "plugins/dev/skills/cleanup/SKILL.md",
     "plugins/dev/skills/sync/SKILL.md",

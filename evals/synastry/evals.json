@@ -36,7 +36,8 @@
     {
       "id": "reading-an-existing-file",
       "prompt": "Look at the synastry file we generated yesterday and tell me what the Venus square means.",
-      "expected": "Does not fire. The file exists; answer from it rather than recomputing."
+      "routes_to": "synastry-reading",
+      "expected": "Does not fire. The file exists and must be interpreted by synastry-reading rather than recomputed."
     }
   ],
   "behaviors": [
@@ -50,12 +51,13 @@
       ]
     },
     {
-      "id": "stops-at-the-data",
+      "id": "hands-off-after-writing-data",
       "prompt": "Synastry for A (1990-03-14 07:42 Shanghai) and B (1988-11-02 21:05 New York).",
       "expectations": [
-        "Names the file it wrote.",
-        "Lists two or three tightest aspects with orbs and houses, with no good-or-bad framing.",
-        "Does not volunteer a compatibility verdict or relationship advice."
+        "Names the raw synastry data file it wrote and keeps that file free of interpretation.",
+        "Immediately invokes synastry-reading with the exact written path without waiting for another user request.",
+        "Does not invoke the reading skill if calculation failed.",
+        "After the hand-off succeeds, reports both the raw data path and the Markdown reading path."
       ]
     }
   ]

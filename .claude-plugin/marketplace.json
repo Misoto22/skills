@@ -92,7 +92,8 @@
       "category": "learning",
       "source": "./plugins/astrology",
       "skills": [
-        "./skills/synastry"
+        "./skills/synastry",
+        "./skills/synastry-reading"
       ]
     }
   ]

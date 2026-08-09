@@ -28,9 +28,10 @@
     },
     {
       "title": "Astrology",
-      "description": "Positional astrology from birth data \u2014 charts, aspects, and house overlays computed with the Swiss Ephemeris and reported as data, with the reading left to the reader.",
+      "description": "Two-person synastry in two stages \u2014 auditable chart data computed with the Swiss Ephemeris, then a separate evidence-linked Markdown reading.",
       "skills": [
-        "synastry"
+        "synastry",
+        "synastry-reading"
       ]
     }
   ]

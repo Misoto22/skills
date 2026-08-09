@@ -19,7 +19,7 @@ VERSION = "0.8.1"
 # without being added here is unregistered somewhere, and one listed here without
 # appearing on disk has been dropped.
 PUBLISHED = {
-    "astrology": ["synastry"],
+    "astrology": ["synastry", "synastry-reading"],
     "dev": ["cleanup", "ship", "sync"],
     "docs": ["readme"],
     "writing": ["email", "tempering"],
