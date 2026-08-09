@@ -61,7 +61,8 @@
     "plugins/docs/skills/readme/SKILL.md",
     "scripts/validate-repository.py",
     "tests/test_repository_contract.py",
-    "tests/synastry_skill/test_skill_contract.py"
+    "tests/synastry_skill/test_skill_contract.py",
+    "tests/bazi_skill/test_skill_contract.py"
   ],
   "audit": {
     "exclude": [

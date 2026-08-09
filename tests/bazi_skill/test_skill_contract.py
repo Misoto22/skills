@@ -25,9 +25,7 @@ BIRTH_DATE = re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}\b")
 
 class SkillContractTests(unittest.TestCase):
     def test_plugin_registers_exactly_the_four_approved_skills(self) -> None:
-        manifest = json.loads(
-            (PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
-        )
+        manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "chinese-metaphysics")
         self.assertEqual(manifest["version"], VERSION)
