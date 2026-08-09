@@ -1,13 +1,14 @@
 {
   "name": "writing",
   "version": "0.8.1",
-  "description": "Portable agent skills for reliable everyday writing.",
+  "description": "Portable agent skills for evidence-safe articles and reliable messages.",
   "author": {
     "name": "skills contributors"
   },
   "license": "MIT",
   "skills": [
     "./skills/email",
+    "./skills/personal-blog",
     "./skills/tempering"
   ]
 }

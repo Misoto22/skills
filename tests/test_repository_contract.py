@@ -63,7 +63,10 @@ class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
 
-        self.assertEqual(plugin["skills"], ["./skills/email", "./skills/tempering"])
+        self.assertEqual(
+            plugin["skills"],
+            ["./skills/email", "./skills/personal-blog", "./skills/tempering"],
+        )
         self.assertEqual(plugin["author"]["name"], "skills contributors")
         self.assertNotIn("drafts", json.dumps(plugin))
         self.assertNotIn("deprecated", json.dumps(plugin))
@@ -1202,27 +1205,34 @@ class RepositoryContractTests(unittest.TestCase):
     def test_retiring_a_skill_clears_the_hand_offs_that_named_it(self) -> None:
         """A routes_to naming a retired skill fails --check, so removal has to own it."""
 
+        routed_evals = ["evals/email/evals.json", "evals/personal-blog/evals.json"]
         edited = [
             "scripts/validate-repository.py",
             *ROOT_READMES,
             ".version-bump.json",
             "skills.sh.json",
-            "evals/email/evals.json",
+            *routed_evals,
             "plugins/writing/.claude-plugin/plugin.json",
             "plugins/writing/skills/README.md",
         ]
         before = {path: (ROOT / path).read_bytes() for path in edited}
-        self.assertIn(b'"routes_to": "tempering"', before["evals/email/evals.json"])
+        routed_case_ids = {
+            path: {case["id"] for case in json.loads(before[path])["non_triggers"]} for path in routed_evals
+        }
+        for path in routed_evals:
+            self.assertIn(b'"routes_to": "tempering"', before[path], path)
         retired = ROOT / "deprecated" / "writing" / "tempering"
         try:
             # Without --delete, so the move is reversible and nothing is destroyed.
             self._run("scripts/remove-skill.py", "writing", "tempering")
-            self.assertNotIn(b'"routes_to": "tempering"', (ROOT / "evals/email/evals.json").read_bytes())
-            # The case itself survives: that prompt still must not fire email.
-            suite = json.loads((ROOT / "evals/email/evals.json").read_text(encoding="utf-8"))
-            self.assertEqual(
-                len(suite["non_triggers"]), len(json.loads(before["evals/email/evals.json"])["non_triggers"])
-            )
+            for path in routed_evals:
+                self.assertNotIn(b'"routes_to": "tempering"', (ROOT / path).read_bytes(), path)
+                suite = json.loads((ROOT / path).read_text(encoding="utf-8"))
+                self.assertEqual(
+                    {case["id"] for case in suite["non_triggers"]},
+                    routed_case_ids[path],
+                    path,
+                )
             self._run("scripts/run-evals.py", "--check")
         finally:
             if (retired / "evals").is_dir():

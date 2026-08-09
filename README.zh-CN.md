@@ -6,7 +6,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
+  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:personal-blog, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
 </picture>
 
 <br />
@@ -31,11 +31,12 @@
 
 ### Skills
 
-四个 plugin，七个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+四个 plugin，八个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
 - **[email](plugins/writing/skills/email/SKILL.md)**（`/writing:email`）—— 按预设的策略起草邮件；也能发送，发完再拿哈希逐字比对已发送的那封，确认内容没被中途改动。默认只起草，自动发送要先配好一个足够窄的授权范围才会打开。
+- **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)**（`/writing:personal-blog`）—— 研究、列提纲、起草或编辑五类个人博客文章，保留作者提供的证据和文风；成稿直接以原始 Markdown 返回。
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)**（`/writing:tempering`）—— 把生硬或带火气的职场消息改写成三种轻重不同的说法，原话里的诉求、日期和后果一个都不丢。
 
 #### `docs` —— 写给下一个打开这个仓库的人
@@ -135,7 +136,7 @@ gh attestation verify email.skill --repo Misoto22/skills
 
 ### 目录站
 
-这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这七个 skill。
+这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这八个 skill。
 
 其余几个是 Agent Skills 仓库的综合索引。它们都没有收录本仓库 —— 列在这里是为了这个仓库覆盖不到的 skill：
 
@@ -170,7 +171,7 @@ claude plugin install obsidian@misoto22
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
 
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面七个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面八个 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，
@@ -187,16 +188,16 @@ Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则
 > 它上面的东西一概不拷。用 `../` 爬出去的引用只在这个仓库里解析得开，到别处就是断的；
 > 而 `${CLAUDE_*}` 只有 Claude Code 会展开。这两种写法在已发布的 skill 内容里都会被拒绝。
 
-两个 skill 共用的规则放在 `plugins/<plugin>/shared/`，只有这一份是手写的。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 拿真正装出来的目录验一遍这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 里的拷贝，或者解包后的 `.skill`，都行。
+三个 skill 共用的规则放在 `plugins/<plugin>/shared/`，只有这一份是手写的。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 拿真正装出来的目录验一遍这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 里的拷贝，或者解包后的 `.skill`，都行。
 
 ```mermaid
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
-  W --> E["/writing:email"] & T["/writing:tempering"]
+  W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:readme"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
   A --> SN["/astrology:synastry"]
-  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & T
+  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
 
   classDef m fill:#0969da,stroke:#0969da,color:#fff
@@ -204,7 +205,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,T,R,SY,SH,CL,SN,SW,SV s
+  class E,PB,T,R,SY,SH,CL,SN,SW,SV s
 ```
 
 <details>

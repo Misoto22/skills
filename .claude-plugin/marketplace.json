@@ -17,6 +17,7 @@
       "source": "./plugins/writing",
       "skills": [
         "./skills/email",
+        "./skills/personal-blog",
         "./skills/tempering"
       ]
     },
