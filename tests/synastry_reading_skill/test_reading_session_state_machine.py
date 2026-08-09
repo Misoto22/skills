@@ -5,6 +5,7 @@ import io
 import json
 import os
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,17 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         self.assertEqual(code, 0)
         return json.loads(stdout.getvalue())
 
+    def start_attached_without_watchdog(self, source: Path) -> dict[str, object]:
+        stdout = io.StringIO()
+        with (
+            patch.dict(os.environ, self.environment, clear=False),
+            patch.object(reading_session.sys, "stdout", stdout),
+            patch.object(reading_session, "_spawn_watchdog", return_value=None),
+        ):
+            code = reading_session._start(type("Arguments", (), {"source": str(source), "ttl_seconds": 60})())
+        self.assertEqual(code, 0)
+        return json.loads(stdout.getvalue())
+
     def finalize_in_process(
         self,
         token: str,
@@ -135,6 +147,38 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             metadata["expires_at"] = expires_at
             path.write_text(json.dumps(metadata), encoding="utf-8")
             path.chmod(0o600)
+
+    def make_committing_state(
+        self,
+        source: dict[str, object],
+        destination: Path,
+        *,
+        payload: bytes = b"validated final bytes\n",
+    ) -> tuple[dict[str, object], Path]:
+        status = self.start_without_watchdog(source)
+        public = Path(str(status["pages_path"])).parent
+        committing = self.session_root / f".committing-{status['token']}"
+        public.rename(committing)
+        (committing / "commit.md").write_bytes(payload)
+        (committing / "commit.json").write_text(
+            json.dumps(
+                {
+                    "destination": str(destination),
+                    "expires_at": int(status["expires_at"]),
+                    "format": "synastry-reading-session-v1",
+                    "payload_bytes": len(payload),
+                    "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                    "recover_after": int(time.time()) - 1,
+                    "source_device": None,
+                    "source_inode": None,
+                    "token": str(status["token"]),
+                }
+            ),
+            encoding="utf-8",
+        )
+        (committing / "commit.md").chmod(0o600)
+        (committing / "commit.json").chmod(0o600)
+        return status, committing
 
     def expire_in_process(self, token: str, expires_at: int) -> int:
         arguments = type(
@@ -274,6 +318,60 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         self.assertEqual(identical_result.returncode, 0, identical_result.stderr)
         self.assertEqual(different_result.returncode, 2)
         self.assertEqual(destination.read_text(encoding="utf-8"), report)
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "final symlink paths require symlink support")
+    def test_finalization_refuses_final_symlinks_and_retains_committing_state(self) -> None:
+        source = source_with()
+        report = valid_report(source)
+        for name, existing_target in (("absent", False), ("exact", True)):
+            with self.subTest(name=name):
+                status = self.start_without_watchdog(source)
+                target = self.directory / f"{name}-target.md"
+                if existing_target:
+                    target.write_text(report, encoding="utf-8")
+                    target.chmod(0o600)
+                    target_identity = (target.stat().st_dev, target.stat().st_ino)
+                output_link = self.directory / f"{name}-output-link.md"
+                output_link.symlink_to(target.name)
+
+                result = self.run_helper(
+                    ["finalize", str(status["token"]), "--out", str(output_link)],
+                    input_text=report,
+                )
+
+                committing = self.session_root / f".committing-{status['token']}"
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertTrue(output_link.is_symlink())
+                self.assertTrue(committing.is_dir())
+                if existing_target:
+                    self.assertEqual(target.read_text(encoding="utf-8"), report)
+                    self.assertEqual((target.stat().st_dev, target.stat().st_ino), target_identity)
+                else:
+                    self.assertFalse(target.exists())
+
+    def test_finalization_refuses_source_alias_and_retains_committing_state(self) -> None:
+        source = source_with()
+        source_path = self.directory / "attached-source.json"
+        source_path.write_text(json.dumps(source), encoding="utf-8")
+        status = self.start_attached_without_watchdog(source_path)
+        source_alias = self.directory / "source-alias.md"
+        source_alias.hardlink_to(source_path)
+        source_identity = (source_path.stat().st_dev, source_path.stat().st_ino)
+        source_bytes = source_path.read_bytes()
+
+        result = self.run_helper(
+            ["finalize", str(status["token"]), "--out", str(source_alias)],
+            input_text=valid_report(source),
+        )
+
+        committing = self.session_root / f".committing-{status['token']}"
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(source_path.read_bytes(), source_bytes)
+        self.assertEqual(source_alias.read_bytes(), source_bytes)
+        self.assertEqual((source_alias.stat().st_dev, source_alias.stat().st_ino), source_identity)
+        self.assertTrue(committing.is_dir())
 
     def test_restart_sweep_recovers_all_stale_owned_states_and_leaves_unrelated_directories(self) -> None:
         now = int(time.time())
@@ -471,6 +569,46 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         self.assertTrue(committing.is_dir())
         self.assertFalse(destination.exists())
 
+    def test_parent_directory_sync_failure_retains_commit_for_idempotent_recovery(self) -> None:
+        source = source_with()
+        report = valid_report(source)
+        status = self.start_without_watchdog(source)
+        destination = self.directory / "directory-sync-failure.md"
+        committing = self.session_root / f".committing-{status['token']}"
+        parent_status = os.stat(destination.parent)
+        original_fsync = os.fsync
+        failed = False
+
+        def fail_first_destination_parent_sync(descriptor: int) -> None:
+            nonlocal failed
+            descriptor_status = os.fstat(descriptor)
+            is_destination_parent = stat.S_ISDIR(descriptor_status.st_mode) and (
+                descriptor_status.st_dev,
+                descriptor_status.st_ino,
+            ) == (parent_status.st_dev, parent_status.st_ino)
+            if is_destination_parent and not failed:
+                failed = True
+                raise OSError("injected destination directory sync failure")
+            original_fsync(descriptor)
+
+        code, stdout, stderr = self.finalize_in_process(
+            str(status["token"]),
+            destination,
+            report,
+            patch.object(validate_synastry.os, "fsync", fail_first_destination_parent_sync),
+        )
+
+        self.assertTrue(failed)
+        self.assertEqual(code, 2, stderr)
+        self.assertEqual(stdout, "")
+        self.assertEqual(destination.read_text(encoding="utf-8"), report)
+        self.assertTrue(committing.is_dir())
+
+        recovered = reading_session._recover_committing(self.session_root, committing)
+
+        self.assertTrue(recovered)
+        self.assertFalse(committing.exists())
+
     def test_expire_revalidates_live_persisted_lease_instead_of_cli_deadline(self) -> None:
         source = source_with()
         status = self.start_without_watchdog(source, ttl_seconds=60)
@@ -521,6 +659,26 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         self.assertFalse(future_state.exists())
         self.assertTrue(early_state.is_dir())
 
+    def test_future_mtime_cannot_extend_malformed_state_deadline(self) -> None:
+        source = source_with()
+        now = int(time.time())
+        status = self.start_without_watchdog(source)
+        state = Path(str(status["pages_path"])).parent
+        for name in ("lease.json", "session.json"):
+            path = state / name
+            path.write_text("{}", encoding="utf-8")
+            path.chmod(0o600)
+        future_mtime = now + reading_session.MAX_TTL_SECONDS * 100
+        os.utime(state, (future_mtime, future_mtime))
+
+        with patch.object(reading_session.time, "time", return_value=now):
+            deadline = reading_session._state_deadline(state, "public")
+
+        self.assertEqual(
+            deadline,
+            now + reading_session.MAX_TTL_SECONDS + reading_session._CLOCK_GRACE_SECONDS,
+        )
+
     def test_commit_deadline_is_token_bound_consistent_and_bounded(self) -> None:
         source = source_with()
         now = int(time.time())
@@ -570,6 +728,36 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
 
         self.assertFalse(recovered)
         self.assertTrue(committing.is_dir())
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlink-loop paths require symlink support")
+    def test_symlink_loop_recovery_is_isolated_from_unrelated_start(self) -> None:
+        source = source_with()
+        loop_a = self.directory / "loop-a"
+        loop_b = self.directory / "loop-b"
+        loop_a.symlink_to(loop_b.name, target_is_directory=True)
+        loop_b.symlink_to(loop_a.name, target_is_directory=True)
+        destination = loop_a / "unsafe.md"
+        _, committing = self.make_committing_state(source, destination)
+
+        recovered = reading_session._recover_committing(self.session_root, committing)
+        replacement = self.start_without_watchdog(source)
+
+        self.assertFalse(recovered)
+        self.assertTrue(committing.is_dir())
+        self.assertTrue(Path(str(replacement["pages_path"])).parent.is_dir())
+
+    def test_unrelated_runtime_error_during_recovery_remains_visible(self) -> None:
+        committing = self.session_root / f".committing-{'f' * 32}"
+
+        with (
+            patch.object(
+                reading_session,
+                "_complete_committing",
+                side_effect=RuntimeError("injected programming error"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "programming error"),
+        ):
+            reading_session._recover_committing(self.session_root, committing)
 
     def test_delayed_commit_preparation_remains_recoverable_after_crash(self) -> None:
         source = source_with()

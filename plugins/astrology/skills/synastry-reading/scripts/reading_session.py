@@ -19,6 +19,7 @@ import tempfile
 import time
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager, suppress
+from dataclasses import replace
 from pathlib import Path
 
 from validate_reading import (
@@ -78,6 +79,20 @@ def _root(*, create: bool) -> Path:
             raise OSError("session root has the wrong owner")
         os.chmod(root, 0o700)
     return root
+
+
+def _absolute_output_path(path: Path, root: Path) -> Path:
+    expanded = path.expanduser()
+    absolute = expanded if expanded.is_absolute() else Path.cwd() / expanded
+    try:
+        resolved_parent = absolute.parent.resolve(strict=False)
+        resolved_root = root.resolve(strict=False)
+    except (OSError, RuntimeError) as error:
+        raise ValueError("invalid output path") from error
+    candidate = resolved_parent / absolute.name
+    if candidate.is_relative_to(resolved_root):
+        raise ValueError("final output must be outside the private session")
+    return candidate
 
 
 def _session_path(root: Path, token: str) -> Path:
@@ -235,10 +250,10 @@ def _owned_state(candidate: Path) -> tuple[str, str] | None:
 
 def _fallback_deadline(candidate: Path) -> int:
     try:
-        modified_at = int(os.lstat(candidate).st_mtime)
+        observed_mtime = min(int(os.lstat(candidate).st_mtime), int(time.time()))
     except FileNotFoundError:
         return 0
-    return modified_at + MAX_TTL_SECONDS + _CLOCK_GRACE_SECONDS
+    return observed_mtime + MAX_TTL_SECONDS + _CLOCK_GRACE_SECONDS
 
 
 def _candidate_token(candidate: Path) -> str | None:
@@ -649,8 +664,9 @@ def _commit_material(root: Path, committing: Path) -> tuple[bytes, Path, tuple[i
     if not isinstance(destination, str):
         raise ValueError("invalid commit destination")
     target = Path(destination)
-    if not target.is_absolute() or target.resolve(strict=False).is_relative_to(root.resolve(strict=False)):
+    if not target.is_absolute():
         raise ValueError("invalid commit destination")
+    target = _absolute_output_path(target, root)
     device = manifest["source_device"]
     inode = manifest["source_inode"]
     if device is None and inode is None:
@@ -763,13 +779,12 @@ def _finalize(arguments: argparse.Namespace) -> int:
             ledger = load_ledger(source)
             if ledger.source_digest != metadata["source_digest"]:
                 raise ValueError("source changed")
-            destination = arguments.out.expanduser().resolve(strict=False)
-            if destination.is_relative_to(root.resolve(strict=False)):
-                raise ValueError("final output must be outside the private session")
+            destination = _absolute_output_path(arguments.out, root)
             markdown = sys.stdin.read()
+            content_ledger = replace(ledger, source_device=None, source_inode=None)
             target, payload = prepare_validated_markdown(
                 markdown,
-                ledger,
+                content_ledger,
                 destination,
                 arguments.language or ledger.language,
                 arguments.modules,
@@ -795,7 +810,7 @@ def _finalize(arguments: argparse.Namespace) -> int:
             with suppress(BaseException):
                 _prune_root(root)
             committing = None
-        except BaseException:
+        except _SignalInterruption:
             if committing is not None:
                 _complete_known_commit(payload, target, ledger)
                 _best_effort_remove_private_tree(committing)

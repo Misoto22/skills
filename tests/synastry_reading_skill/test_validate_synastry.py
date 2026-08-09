@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
@@ -112,6 +113,88 @@ class SourceValidationTests(unittest.TestCase):
                 load_ledger(text_path)
         with self.assertRaisesRegex((TypeError, ValueError), r"object|\.json"):
             load_ledger(json.dumps(fixture()))
+
+
+class AtomicPublicationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.directory = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def test_atomic_publication_syncs_parent_after_link_or_exchange_before_return(self) -> None:
+        payload = b"durable publication\n"
+
+        def run_case(name: str, overwrite: bool) -> None:
+            destination = self.directory / f"{name}.md"
+            if overwrite:
+                destination.write_bytes(b"displaced bytes\n")
+                destination.chmod(0o600)
+            events: list[str] = []
+            descriptor_kinds: dict[int, str] = {}
+            original_open = os.open
+            original_fsync = os.fsync
+            original_link = os.link
+            original_exchange = validate_synastry._exchange_paths
+
+            def recording_open(
+                path: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+                flags: int,
+                *args: object,
+                **kwargs: object,
+            ) -> int:
+                descriptor = original_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
+                if Path(path) == destination.parent:
+                    descriptor_kinds[descriptor] = "parent"
+                    events.append("parent-open")
+                else:
+                    descriptor_kinds[descriptor] = "file"
+                return descriptor
+
+            def recording_fsync(descriptor: int) -> None:
+                events.append(f"{descriptor_kinds.get(descriptor, 'unknown')}-fsync")
+                original_fsync(descriptor)
+
+            def recording_link(
+                source: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+                target: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+                *args: object,
+                **kwargs: object,
+            ) -> None:
+                original_link(source, target, *args, **kwargs)  # type: ignore[arg-type]
+                if Path(target) == destination:
+                    events.append("publish")
+
+            def recording_exchange(first: Path, second: Path) -> None:
+                original_exchange(first, second)
+                if second == destination:
+                    events.append("publish")
+
+            with (
+                patch.object(validate_synastry.os, "open", recording_open),
+                patch.object(validate_synastry.os, "fsync", recording_fsync),
+                patch.object(validate_synastry.os, "link", recording_link),
+                patch.object(validate_synastry, "_exchange_paths", recording_exchange),
+            ):
+                result = validate_synastry._write_atomic_bytes(
+                    payload,
+                    destination,
+                    overwrite=overwrite,
+                    temporary_prefix=f"durability-{name}",
+                )
+            events.append("return")
+
+            self.assertEqual(result, destination)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertIn("parent-open", events)
+            self.assertLess(events.index("file-fsync"), events.index("publish"))
+            self.assertLess(events.index("publish"), events.index("parent-fsync"))
+            self.assertEqual(events[-1], "return")
+
+        for name, overwrite in (("link", False), ("exchange", True)):
+            with self.subTest(name=name):
+                run_case(name, overwrite)
 
 
 class SourceValidatorCliTests(unittest.TestCase):

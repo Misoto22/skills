@@ -182,6 +182,14 @@ def _number(value: object) -> str:
     return format(float(value), ".15g")
 
 
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _write_atomic_bytes(
     payload: bytes,
     destination: Path,
@@ -237,6 +245,7 @@ def _write_atomic_bytes(
                 unpublished_temporary = temporary
                 temporary = None
                 _discard_published_temporary(unpublished_temporary)
+                _fsync_directory(destination.parent)
                 return destination
             raise OutputExistsError(
                 errno.EEXIST,
@@ -341,6 +350,7 @@ def _write_atomic_bytes(
                     unpublished_temporary = temporary
                     temporary = None
                     _discard_published_temporary(unpublished_temporary)
+                    _fsync_directory(destination.parent)
                     return destination
                 raise OutputExistsError(
                     errno.EEXIST,
@@ -357,6 +367,7 @@ def _write_atomic_bytes(
             published_temporary = temporary
             temporary = None
             _discard_published_temporary(published_temporary)
+        _fsync_directory(destination.parent)
         return destination
     finally:
         if descriptor is not None:
