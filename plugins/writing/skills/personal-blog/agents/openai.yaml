@@ -1,0 +1,6 @@
+interface:
+  display_name: "Personal Blog"
+  short_description: "Draft evidence-safe personal blog posts"
+  default_prompt: "Use $personal-blog to turn my topic, notes, or draft into the requested blog artefact while preserving my evidence and voice."
+policy:
+  allow_implicit_invocation: true

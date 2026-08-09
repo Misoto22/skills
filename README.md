@@ -6,7 +6,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
+  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:personal-blog, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
 </picture>
 
 <br />
@@ -36,6 +36,7 @@ Eight skills in four plugins. The plugin name is the command prefix, and each pl
 #### `writing` — prose aimed at a person
 
 - **[email](plugins/writing/skills/email/SKILL.md)** (`/writing:email`) — drafts policy-aware email, or sends exact hashed artefacts and verifies them against the Sent message. Draft is the default, and automated send stays off until a narrow local scope is configured.
+- **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)** (`/writing:personal-blog`) — researches, outlines, drafts, or edits five kinds of personal blog post while preserving supplied evidence and voice; finished articles arrive as raw Markdown.
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)** (`/writing:tempering`) — rewrites a blunt or frustrated workplace message into three registers, keeping the request, the date, and the consequence the raw tone was carrying.
 
 #### `docs` — prose aimed at whoever opens the repository next
@@ -193,16 +194,16 @@ Claude Code and Codex both install these. `npx skills add` and the skills.sh lis
 > repository and dangles everywhere else, and only Claude Code expands
 > `${CLAUDE_*}`. Both forms are rejected in published skill content.
 
-Rules two skills share live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
+Rules shared by three skills live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
 
 ```mermaid
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
-  W --> E["/writing:email"] & T["/writing:tempering"]
+  W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:readme"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
   A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
-  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & T
+  SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
 
   classDef m fill:#0969da,stroke:#0969da,color:#fff
@@ -210,7 +211,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,T,R,SY,SH,CL,SN,SR,SW,SV s
+  class E,PB,T,R,SY,SH,CL,SN,SR,SW,SV s
 ```
 
 <details>

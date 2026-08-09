@@ -22,7 +22,7 @@ PUBLISHED = {
     "astrology": ["synastry", "synastry-reading"],
     "dev": ["cleanup", "ship", "sync"],
     "docs": ["readme"],
-    "writing": ["email", "tempering"],
+    "writing": ["email", "personal-blog", "tempering"],
 }
 
 # Other people's plugins, registered so they install from this marketplace too.

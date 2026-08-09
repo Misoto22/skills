@@ -4,10 +4,11 @@
   "groupings": [
     {
       "title": "Writing",
-      "description": "Prose aimed at a person \u2014 drafting outbound email under policy, and rewriting a message that carries more frustration than its author wants to send.",
+      "description": "Prose aimed at a person \u2014 evidence-safe personal blog articles, outbound email under policy, and workplace message rewrites that preserve the underlying request.",
       "skills": [
         "email",
-        "tempering"
+        "tempering",
+        "personal-blog"
       ]
     },
     {

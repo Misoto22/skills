@@ -1,0 +1,136 @@
+{
+  "skill": "personal-blog",
+  "triggers": [
+    {
+      "id": "explainer-mental-model",
+      "prompt": "Write a blog post that explains how heat pumps work for homeowners who know basic physics but not HVAC.",
+      "expected": "Fires in explainer mode, establishes the scope and mental model, and distinguishes the mechanism from any analogy."
+    },
+    {
+      "id": "chinese-idea-essay",
+      "prompt": "写一篇博客，讨论人为什么总想给人生找到意义；不要把结尾写成鸡汤。",
+      "expected": "Fires in idea-essay mode, develops a defensible argument with counterpressure, and ends on a narrowed claim, residual tension, or open question rather than second-person reassurance or advice."
+    },
+    {
+      "id": "personal-essay-sparse-notes",
+      "prompt": "Turn these sparse notes into a personal blog essay: I left a long-term team; freedom felt quiet; I missed being seen. Do not add events I did not give you.",
+      "expected": "Fires in personal-essay mode, limits every concrete detail about the writer or team to the supplied facts regardless of pronoun, and leaves any missing time, routine, work, feeling, or outcome impersonal or visibly bracketed in Markdown."
+    },
+    {
+      "id": "review-cultural-work",
+      "prompt": "Write a review of the film Past Lives for my blog. Discuss what the film earns emotionally, and mark spoilers if you need them.",
+      "expected": "Fires in review mode, separates description from evaluation, and does not substitute plot summary for criticism."
+    },
+    {
+      "id": "technical-current-research",
+      "prompt": "Write a technical blog post about diagnosing PostgreSQL connection exhaustion in Django. Verify current claims and cite the primary documentation in Markdown.",
+      "expected": "Fires in technical mode, cites an official current-release or status page that establishes the stable Django series as of the stated date, cites matching versioned primary documentation rather than mutable development docs, states assumptions and trade-offs, and does not claim unobserved results."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "outbound-email",
+      "prompt": "Draft an email to the vendor asking whether the shipment can arrive on Friday.",
+      "expected": "Does not fire. This is an outbound message, not a blog artefact.",
+      "routes_to": "email"
+    },
+    {
+      "id": "message-tone-edit",
+      "prompt": "Make this Slack message less sharp: 'You ignored the agreed deadline again.'",
+      "expected": "Does not fire. This is an interpersonal tone rewrite, not a blog edit.",
+      "routes_to": "tempering"
+    },
+    {
+      "id": "repository-readme",
+      "prompt": "Rewrite this repository README so a new contributor can install and run the project.",
+      "expected": "Does not fire. Repository documentation is outside this skill.",
+      "routes_to": "readme"
+    },
+    {
+      "id": "newsletter-from-notes",
+      "prompt": "Turn these product-update notes into a publishable newsletter in Markdown.",
+      "expected": "Does not fire. A newsletter is not a personal blog artefact."
+    },
+    {
+      "id": "magazine-profile-voice-edit",
+      "prompt": "Edit this magazine profile while preserving the author's voice and narrative rhythm.",
+      "expected": "Does not fire. A magazine profile is outside this skill's personal-blog scope."
+    },
+    {
+      "id": "manuscript-line-edit",
+      "prompt": "Line-edit this nonfiction manuscript chapter and preserve the author's voice.",
+      "expected": "Does not fire. Manuscript editing is outside this skill's personal-blog scope."
+    },
+    {
+      "id": "marketing-landing-page",
+      "prompt": "Write conversion-focused copy for the pricing page, with a headline and three calls to action.",
+      "expected": "Does not fire. Marketing copy is outside this skill."
+    },
+    {
+      "id": "fiction-scene",
+      "prompt": "Write a 1,500-word scene about a detective returning to her childhood home.",
+      "expected": "Does not fire. Fiction is outside this skill."
+    },
+    {
+      "id": "academic-paper",
+      "prompt": "Draft the literature review section for my academic paper on platform governance.",
+      "expected": "Does not fire. Academic papers are outside this skill."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "mode-specific-structure",
+      "prompt": "Create five separate blog outlines: (1) an explainer of why city trees lower surface temperature for homeowners; (2) an idea essay asking whether convenience erodes attention; (3) a personal essay from this note only: 'I left my shared apartment and missed hearing someone in the kitchen'; (4) a review of the film Past Lives; and (5) a technical article on diagnosing PostgreSQL connection exhaustion in Django.",
+      "expectations": [
+        "Selects a structure that serves each mode rather than a universal hook-body-recap template.",
+        "The idea essay includes serious counterpressure and closes on its narrowed position, residual tension, or an open question instead of switching to reader reassurance or advice.",
+        "The review distinguishes description from evaluation, while the technical outline includes assumptions, trade-offs, and failure modes."
+      ]
+    },
+    {
+      "id": "sparse-personal-evidence",
+      "prompt": "Write a personal essay from this note only: 'The train was late and I called my sister.'",
+      "expectations": [
+        "Builds from an inventory of the supplied personal facts and, for every concrete sentence about the writer or anyone in the writer's life regardless of pronoun, maps only the fields actually asserted to exact supplied fragments; this includes third-person claims about the sister.",
+        "Keeps the result impersonal where the supplied material is insufficient or uses a visible Markdown placeholder for the missing personal material.",
+        "Does not present an inference as a supplied fact."
+      ]
+    },
+    {
+      "id": "voice-samples-without-biography",
+      "prompt": "Edit this blog draft for clarity: 'The new cache makes requests faster, but the extra layer adds complexity. That complexity may be acceptable, though the trade-off needs a clearer explanation.' Use these eight representative samples: (1) 'Not elegant. Still useful.' (2) '我以为会更简单。Nope.' (3) 'The first version worked. Then it didn't.' (4) 'Why add another layer?' (5) '先把问题说清楚。Then code.' (6) 'Fast? Sometimes. Predictable? Not yet.' (7) 'A small fix. For now.' (8) 'So what are we actually protecting?' Preserve the fragments, bilingual phrasing, short endings, and direct questions; do not infer anything else about me.",
+      "expectations": [
+        "Derives a task-local voice profile from observable writing features.",
+        "Preserves intentional fragments and bilingual phrasing rather than normalizing them into generic prose.",
+        "Does not turn the samples into a biography or invent personal beliefs, experiences, or preferences."
+      ]
+    },
+    {
+      "id": "technical-evidence-verification",
+      "prompt": "Research and draft a current technical post comparing Django persistent connections with PgBouncer. Include citations for claims that could change.",
+      "expectations": [
+        "Researches claims needing external support and prefers primary documentation for technical and current claims.",
+        "Verifies citations before using them and preserves disagreement if authoritative sources conflict.",
+        "For current released behavior, names an as-of date, cites an official current-release or status page establishing the stable series on that date, and cites documentation under that same version segment rather than historical release notes or a mutable development branch.",
+        "States versions and assumptions where they matter, and never reports tests or command results that were not observed."
+      ]
+    },
+    {
+      "id": "edit-preserves-intentional-style",
+      "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending: 'I keep returning to the same question. The same question, after every rewrite. Maybe because naming the problem feels like solving it. It doesn’t. I can make the sentence cleaner, then cleaner again. And then?'",
+      "expectations": [
+        "Each change fixes a specific grammar, ambiguity, needless-indirection, or sentence-structure defect while preserving the prompt's deliberate repetition, roughness, and open ending.",
+        "Preserves the writer's supplied facts, position, and uncertainty.",
+        "Does not add ceremonial transitions, inflated stakes, or a conclusion that merely restates the opening."
+      ]
+    },
+    {
+      "id": "raw-markdown-delivery",
+      "prompt": "Draft a short blog article in Markdown about maintaining a personal reading log. Return the finished article only.",
+      "expectations": [
+        "Returns the finished article as raw Markdown without preface, process commentary, or a wrapper around the artefact.",
+        "Does not impose a generic call to action when the requested article does not need one."
+      ]
+    }
+  ]
+}
