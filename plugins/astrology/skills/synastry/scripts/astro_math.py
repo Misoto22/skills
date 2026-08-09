@@ -326,7 +326,13 @@ def _validate_orbs(major_orb: float, minor_orb: float) -> None:
 
 
 def _validate_orb(value: float, name: str, maximum: float) -> None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name}: expected a finite value from 0 through {maximum:g}")
+    if isinstance(value, int):
+        if not 0 <= value <= maximum:
+            raise ValueError(f"{name}: expected a value from 0 through {maximum:g}")
+        return
+    if not math.isfinite(value):
         raise ValueError(f"{name}: expected a finite value from 0 through {maximum:g}")
     if not 0.0 <= value <= maximum:
         raise ValueError(f"{name}: expected a value from 0 through {maximum:g}")

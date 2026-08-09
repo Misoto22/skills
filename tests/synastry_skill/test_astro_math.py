@@ -196,6 +196,8 @@ class AspectTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "major_orb"):
             find_aspects({"Sun": 0.0}, {"Moon": 20.0}, major_orb=16.0, minor_orb=3.0)
+        with self.assertRaisesRegex(ValueError, "major_orb"):
+            find_aspects({"Sun": 0.0}, {"Moon": 20.0}, major_orb=10**10000, minor_orb=3.0)
 
 
 class CircularRangeTests(unittest.TestCase):
@@ -232,6 +234,7 @@ class UncertainAspectTests(unittest.TestCase):
         cases = (
             ("major_orb", -0.1, 3.0),
             ("major_orb", 15.1, 3.0),
+            ("major_orb", 10**10000, 3.0),
             ("major_orb", nan, 3.0),
             ("major_orb", inf, 3.0),
             ("minor_orb", 8.0, 8.0),
@@ -241,7 +244,7 @@ class UncertainAspectTests(unittest.TestCase):
         )
         for expected, major_orb, minor_orb in cases:
             with (
-                self.subTest(major_orb=major_orb, minor_orb=minor_orb),
+                self.subTest(expected=expected),
                 self.assertRaisesRegex(ValueError, expected),
             ):
                 find_uncertain_aspects({}, {}, major_orb, minor_orb)
