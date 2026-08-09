@@ -1,24 +1,45 @@
 {
+  "schema_version": "2.0",
   "people": [
     {
-      "name": "Person A",
-      "date": "1990-03-14",
-      "time": "07:42",
-      "timezone": "Asia/Shanghai",
-      "latitude": 31.23,
-      "longitude": 121.47,
-      "birth_place": "Shanghai",
-      "residence": "Shanghai"
+      "id": "a",
+      "display_name": "Alex",
+      "pronouns": "they/them",
+      "birth": {
+        "date": "1990-03-14",
+        "time_mode": "exact",
+        "time": "07:42",
+        "time_accuracy_minutes": 5,
+        "timezone": "Europe/Paris",
+        "latitude": 48.86,
+        "longitude": 2.35,
+        "place_label": "Paris",
+        "location_source": "user supplied"
+      }
     },
     {
-      "name": "Person B",
-      "date": "1988-11-02",
-      "time": "21:05",
-      "timezone": "America/New_York",
-      "latitude": 40.71,
-      "longitude": -74.01,
-      "birth_place": "New York",
-      "residence": "Shanghai"
+      "id": "b",
+      "display_name": "Morgan",
+      "birth": {
+        "date": "1992-06-08",
+        "time_mode": "date-only",
+        "timezone": "America/Los_Angeles"
+      }
     }
-  ]
+  ],
+  "options": {
+    "language": "en",
+    "house_system": "whole-sign",
+    "major_orb": 8.0,
+    "minor_orb": 3.0,
+    "ephemeris_policy": "swiss-only",
+    "calculation_profile": "western-tropical-v1",
+    "aspect_profile": "ptolemaic-minor-v1",
+    "include_derived": false,
+    "privacy": "minimal"
+  },
+  "relationship_context": {
+    "description": "Creative collaborators",
+    "requested_domains": ["communication", "creative collaboration"]
+  }
 }
