@@ -26,48 +26,13 @@
 ### Task 1: Lock the revised reading contract with failing tests
 
 **Files:**
-- Modify: `tests/synastry_skill/test_skill_contract.py`
 - Modify: `evals/synastry-reading/evals.json`
 
 **Interfaces:**
 - Consumes: the published `synastry-reading` skill and its Markdown template.
-- Produces: an executable contract for the fixed mechanism headings and a declarative contract for adaptive applied domains.
+- Produces: the repository's prose-skill behavior contract for fixed mechanisms and adaptive applied domains.
 
-- [ ] **Step 1: Add the failing template contract**
-
-Add paths for the reading skill and template, then add this test:
-
-```python
-READING_SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
-READING_SKILL_PATH = READING_SKILL / "SKILL.md"
-READING_TEMPLATE_PATH = READING_SKILL / "references" / "output-template.md"
-
-def test_reading_template_uses_mechanisms_before_applied_domains(self) -> None:
-    text = READING_TEMPLATE_PATH.read_text(encoding="utf-8")
-    headings = (
-        "## Relationship signature",
-        "## Reciprocity and asymmetry",
-        "## Emotional bond and security",
-        "## Attraction, romance, and intimacy",
-        "## Communication and mental rhythm",
-        "## Conflict, power, and repair",
-        "## Trust, boundaries, and commitment",
-        "## Growth, values, and shared direction",
-        "## Applied life domains",
-        "## Overall synthesis",
-        "## Evidence index",
-    )
-    positions = [text.index(heading) for heading in headings]
-    self.assertEqual(positions, sorted(positions))
-```
-
-- [ ] **Step 2: Run the focused test and verify RED**
-
-Run: `python3 -m unittest tests.synastry_skill.test_skill_contract.SkillContractTests.test_reading_template_uses_mechanisms_before_applied_domains -v`
-
-Expected: `ERROR` at `text.index("## Relationship signature")` because the old template still starts with the four example categories.
-
-- [ ] **Step 3: Revise the evaluation expectations before production content**
+- [ ] **Step 1: Revise the evaluation expectations before production content**
 
 Replace fixed-category expectations with assertions that:
 
@@ -79,11 +44,20 @@ Replace fixed-category expectations with assertions that:
 
 Add one behavior case whose request asks only about domestic life and money, and one general reading case where only strongly activated life domains should be selected.
 
-- [ ] **Step 4: Validate the evaluation JSON**
+- [ ] **Step 2: Verify RED against the unchanged skill**
 
-Run: `python3 -m json.tool evals/synastry-reading/evals.json >/dev/null`
+Compare the new cases with the current template and skill instructions before editing them. Record the exact mismatch: the current production content requires `Love`, `Friendship`, `Business partnership`, and `Money`, lacks the mechanism-first headings, and provides no evidence threshold for selecting unrequested domains.
 
-Expected: exit code 0.
+- [ ] **Step 3: Validate the evaluation JSON contract**
+
+Run:
+
+```bash
+python3 -m json.tool evals/synastry-reading/evals.json >/dev/null
+python3 scripts/run-evals.py --check
+```
+
+Expected: the JSON and suite schema pass. The behavior remains RED until the production skill is revised.
 
 ### Task 2: Implement the hybrid analysis framework
 
@@ -113,13 +87,11 @@ Write the English and Chinese fixed headings from the approved design. Put `Evid
 
 Show one relationship-mechanism excerpt, one evidence-qualified applied domain, one requested weak-evidence domain, and the unchanged incomplete-source refusal. Change client copy from “fixed report” to “structured, evidence-linked report.”
 
-- [ ] **Step 5: Run the focused test and verify GREEN**
+- [ ] **Step 5: Verify GREEN against every revised behavior case**
 
-Run: `python3 -m unittest tests.synastry_skill.test_skill_contract.SkillContractTests.test_reading_template_uses_mechanisms_before_applied_domains -v`
+Read the final skill and templates beside each expectation in `evals/synastry-reading/evals.json`. Confirm the output contract supplies every required heading, conditional branch, evidence threshold, and refusal without relying on unstated model behavior.
 
-Expected: one test passes.
-
-- [ ] **Step 6: Run the complete focused suite**
+- [ ] **Step 6: Run the existing calculator suite to protect the hand-off boundary**
 
 Run: `python3 -m unittest discover -s tests/synastry_skill -t tests -v`
 
