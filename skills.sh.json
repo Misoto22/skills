@@ -34,6 +34,16 @@
         "synastry",
         "synastry-reading"
       ]
+    },
+    {
+      "title": "Chinese Metaphysics",
+      "description": "BaZi calculation and interpretation — reusable single-person charts, static natal readings, transparent compatibility scores, and separate relationship reports.",
+      "skills": [
+        "bazi-chart",
+        "bazi-reading",
+        "bazi-compatibility",
+        "bazi-compatibility-reading"
+      ]
     }
   ]
 }

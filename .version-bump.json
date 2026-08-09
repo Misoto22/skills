@@ -35,9 +35,21 @@
     {
       "path": "plugins/astrology/plugin.json",
       "field": "version"
+    },
+    {
+      "path": "plugins/chinese-metaphysics/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/chinese-metaphysics/plugin.json",
+      "field": "version"
     }
   ],
   "text": [
+    "plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md",
+    "plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md",
+    "plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md",
+    "plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md",
     "plugins/astrology/skills/synastry-reading/SKILL.md",
     "plugins/writing/skills/personal-blog/SKILL.md",
     "plugins/astrology/skills/synastry/SKILL.md",
