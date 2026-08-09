@@ -58,6 +58,17 @@ class ReaderSkillContractTests(unittest.TestCase):
         self.assertRegex(text, r"(?i)TXT[^\n]+(?:refus|recalculat|not supported)")
         self.assertIn("untrusted data", text)
 
+    def test_reader_documents_recoverable_commit_acknowledgement_and_truthful_cancel(self) -> None:
+        text = READER_SKILL.read_text(encoding="utf-8").casefold()
+
+        for required in (
+            "exact bytes",
+            "different content",
+            "already complete",
+            "cancel exits nonzero",
+        ):
+            self.assertIn(required, text)
+
     def test_documented_private_session_executes_for_attached_and_pasted_sources(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
         session_helper = SKILL / "scripts" / "reading_session.py"

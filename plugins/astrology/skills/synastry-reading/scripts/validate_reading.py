@@ -671,18 +671,39 @@ def install_validated_markdown(
     destination: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    accept_identical: bool = False,
 ) -> Path:
     """Atomically install already-validated Markdown bytes."""
 
     target = Path(destination).expanduser()
     if _is_source_path(target, ledger):
         raise SourceIdentityError("reading destination must not replace the source JSON")
-    return _write_atomic_bytes(
+    return _install_prepared_markdown(
         payload,
         target,
         overwrite=overwrite,
-        temporary_prefix="synastry-reading",
         forbidden_identity=_source_identity(ledger),
+        accept_identical=accept_identical,
+    )
+
+
+def _install_prepared_markdown(
+    payload: bytes,
+    destination: Path,
+    *,
+    overwrite: bool = False,
+    forbidden_identity: tuple[int, int] | None = None,
+    accept_identical: bool = False,
+) -> Path:
+    """Install bytes that were validated before a durable commit transition."""
+
+    return _write_atomic_bytes(
+        payload,
+        destination,
+        overwrite=overwrite,
+        temporary_prefix="synastry-reading",
+        forbidden_identity=forbidden_identity,
+        accept_identical=accept_identical,
     )
 
 

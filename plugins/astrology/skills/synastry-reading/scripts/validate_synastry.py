@@ -189,6 +189,7 @@ def _write_atomic_bytes(
     overwrite: bool,
     temporary_prefix: str,
     forbidden_identity: tuple[int, int] | None = None,
+    accept_identical: bool = False,
 ) -> Path:
     destination = destination.expanduser()
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -227,6 +228,21 @@ def _write_atomic_bytes(
         existing_identity = _path_identity(destination)
         if forbidden_identity is not None and existing_identity == forbidden_identity:
             raise SourceIdentityError("output must not replace the source JSON")
+        if not overwrite and existing_identity is not None:
+            if accept_identical and _existing_regular_file_matches(
+                destination,
+                payload,
+                forbidden_identity=forbidden_identity,
+            ):
+                unpublished_temporary = temporary
+                temporary = None
+                _discard_published_temporary(unpublished_temporary)
+                return destination
+            raise OutputExistsError(
+                errno.EEXIST,
+                f"output already exists: {destination}",
+                destination,
+            )
 
         if overwrite:
             if existing_identity is None:
@@ -234,8 +250,12 @@ def _write_atomic_bytes(
                     os.link(temporary, destination)
                 except FileExistsError as error:
                     raise OSError(errno.EBUSY, "output changed during installation") from error
-                temporary.unlink()
+                except BaseException:
+                    if prepared_identity is None or _regular_file_identity(destination) != prepared_identity:
+                        raise
+                published_temporary = temporary
                 temporary = None
+                _discard_published_temporary(published_temporary)
             else:
                 regular_identity = _regular_file_identity(destination)
                 if regular_identity != existing_identity:
@@ -313,13 +333,30 @@ def _write_atomic_bytes(
             try:
                 os.link(temporary, destination)
             except FileExistsError as error:
+                if accept_identical and _existing_regular_file_matches(
+                    destination,
+                    payload,
+                    forbidden_identity=forbidden_identity,
+                ):
+                    unpublished_temporary = temporary
+                    temporary = None
+                    _discard_published_temporary(unpublished_temporary)
+                    return destination
                 raise OutputExistsError(
                     errno.EEXIST,
                     f"output already exists: {destination}",
                     destination,
                 ) from error
-            temporary.unlink()
+            except BaseException:
+                if not accept_identical or not _published_output_matches(
+                    destination,
+                    payload,
+                    forbidden_identity=forbidden_identity,
+                ):
+                    raise
+            published_temporary = temporary
             temporary = None
+            _discard_published_temporary(published_temporary)
         return destination
     finally:
         if descriptor is not None:
@@ -333,6 +370,94 @@ def _write_atomic_bytes(
         if recovery_directory is not None:
             with suppress(FileNotFoundError):
                 recovery_directory.rmdir()
+
+
+def _discard_published_temporary(temporary: Path) -> None:
+    """Best-effort cleanup that cannot invalidate an already published output."""
+
+    try:
+        temporary.unlink()
+    except BaseException:
+        # Publication is the commit point. A signal or unlink failure can leave a
+        # private hard link, but must not turn the committed destination into failure.
+        return
+
+
+def _existing_regular_file_matches(
+    destination: Path,
+    payload: bytes,
+    *,
+    forbidden_identity: tuple[int, int] | None,
+) -> bool:
+    """Compare bytes through one pinned regular-file descriptor without following links."""
+
+    link_status = os.lstat(destination)
+    if not stat.S_ISREG(link_status.st_mode):
+        raise OSError(errno.EINVAL, "existing output must be a regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(destination, flags)
+    try:
+        opened_status = os.fstat(descriptor)
+        identity = (opened_status.st_dev, opened_status.st_ino)
+        if not stat.S_ISREG(opened_status.st_mode) or identity != (
+            link_status.st_dev,
+            link_status.st_ino,
+        ):
+            raise OSError(errno.EBUSY, "output changed during installation")
+        if forbidden_identity is not None and identity == forbidden_identity:
+            raise SourceIdentityError("output must not replace the source JSON")
+        if hasattr(os, "getuid") and opened_status.st_uid != os.getuid():
+            return False
+        if stat.S_IMODE(opened_status.st_mode) != 0o600:
+            return False
+        initial_fingerprint = (
+            opened_status.st_size,
+            opened_status.st_mtime_ns,
+            opened_status.st_ctime_ns,
+            opened_status.st_mode,
+            opened_status.st_uid,
+        )
+        digest = hashlib.sha256()
+        while True:
+            chunk = os.read(descriptor, 65_536)
+            if not chunk:
+                break
+            digest.update(chunk)
+        final_status = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if (final_status.st_dev, final_status.st_ino) != identity:
+        raise OSError(errno.EBUSY, "output changed during installation")
+    final_fingerprint = (
+        final_status.st_size,
+        final_status.st_mtime_ns,
+        final_status.st_ctime_ns,
+        final_status.st_mode,
+        final_status.st_uid,
+    )
+    if final_fingerprint != initial_fingerprint:
+        raise OSError(errno.EBUSY, "output changed during installation")
+    if _regular_file_identity(destination) != identity:
+        raise OSError(errno.EBUSY, "output changed during installation")
+    return final_status.st_size == len(payload) and digest.digest() == hashlib.sha256(payload).digest()
+
+
+def _published_output_matches(
+    destination: Path,
+    payload: bytes,
+    *,
+    forbidden_identity: tuple[int, int] | None,
+) -> bool:
+    """Return false when interrupted publication left no destination."""
+
+    try:
+        return _existing_regular_file_matches(
+            destination,
+            payload,
+            forbidden_identity=forbidden_identity,
+        )
+    except FileNotFoundError:
+        return False
 
 
 def _restore_displaced_entry(

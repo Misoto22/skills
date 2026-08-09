@@ -82,6 +82,8 @@ Repeat `--module "<Canonical module heading>"` once for each explicitly selected
 
 The helper revalidates the original source, rejects a changed source, writes the final Markdown atomically only after validation passes, and removes the session on success or failure. It never overwrites an existing output. Do not rename a draft into place or pre-create the destination.
 
+Treat the destination bytes as recovery truth if the process stops after publication without acknowledging success. Start a new session and finalize the exact same draft to the same path. The helper accepts a user-only regular file with exact bytes as already complete; different content or a special filesystem entry remains an existing-output refusal.
+
 On validation failure, start a new session, read its complete ledger, correct a new in-model draft, and finalize with the new token. Never reuse a failed token or weaken a citation, heading, module, placeholder, score, prediction, or source-identity check.
 
-If stopping before finalization, run `python3 scripts/reading_session.py cancel <session-token>`. The watchdog is only recovery for interruption, not normal cleanup. Report `attached JSON` or `pasted JSON`, the validated Markdown path, a neutral two- or three-sentence overview, and material uncertainty or missing-body limitations. Do not paste the complete report unless asked.
+If stopping before finalization, run `python3 scripts/reading_session.py cancel <session-token>`. Cancel exits nonzero if finalization already claimed the token; do not report the session as cancelled in that case. The watchdog is only recovery for interruption, not normal cleanup. Report `attached JSON` or `pasted JSON`, the validated Markdown path, a neutral two- or three-sentence overview, and material uncertainty or missing-body limitations. Do not paste the complete report unless asked.
