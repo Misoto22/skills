@@ -38,6 +38,7 @@
     }
   ],
   "text": [
+    "plugins/writing/skills/personal-blog/SKILL.md",
     "plugins/astrology/skills/synastry/SKILL.md",
     "plugins/dev/skills/cleanup/SKILL.md",
     "plugins/dev/skills/sync/SKILL.md",

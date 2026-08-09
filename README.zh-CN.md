@@ -169,6 +169,7 @@ claude plugin install obsidian@misoto22
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
+- **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)** (`/writing:personal-blog`) — PLACEHOLDER, one line.
 
 Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面七个 skill。
 

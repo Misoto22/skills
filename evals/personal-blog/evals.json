@@ -1,0 +1,120 @@
+{
+  "skill": "personal-blog",
+  "triggers": [
+    {
+      "id": "explainer-mental-model",
+      "prompt": "Write a blog post that explains how heat pumps work for homeowners who know basic physics but not HVAC.",
+      "expected": "Fires in explainer mode, establishes the scope and mental model, and distinguishes the mechanism from any analogy."
+    },
+    {
+      "id": "chinese-idea-essay",
+      "prompt": "写一篇博客，讨论人为什么总想给人生找到意义；不要把结尾写成鸡汤。",
+      "expected": "Fires in idea-essay mode, develops a defensible argument with counterpressure, and permits an open ending rather than imposing a call to action."
+    },
+    {
+      "id": "personal-essay-sparse-notes",
+      "prompt": "Turn these sparse notes into a personal blog essay: I left a long-term team; freedom felt quiet; I missed being seen. Do not add events I did not give you.",
+      "expected": "Fires in personal-essay mode, uses only the supplied material, and makes an absent personal moment a visible Markdown placeholder instead of inventing it."
+    },
+    {
+      "id": "review-cultural-work",
+      "prompt": "Write a review of the film Past Lives for my blog. Discuss what the film earns emotionally, and mark spoilers if you need them.",
+      "expected": "Fires in review mode, separates description from evaluation, and does not substitute plot summary for criticism."
+    },
+    {
+      "id": "technical-current-research",
+      "prompt": "Write a technical blog post about diagnosing PostgreSQL connection exhaustion in Django. Verify current claims and cite the primary documentation in Markdown.",
+      "expected": "Fires in technical mode, verifies current claims against primary sources, states assumptions and trade-offs, and does not claim unobserved results."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "outbound-email",
+      "prompt": "Draft an email to the vendor asking whether the shipment can arrive on Friday.",
+      "expected": "Does not fire. This is an outbound message, not a blog artefact.",
+      "routes_to": "email"
+    },
+    {
+      "id": "message-tone-edit",
+      "prompt": "Make this Slack message less sharp: 'You ignored the agreed deadline again.'",
+      "expected": "Does not fire. This is an interpersonal tone rewrite, not a blog edit.",
+      "routes_to": "tempering"
+    },
+    {
+      "id": "repository-readme",
+      "prompt": "Rewrite this repository README so a new contributor can install and run the project.",
+      "expected": "Does not fire. Repository documentation is outside this skill.",
+      "routes_to": "readme"
+    },
+    {
+      "id": "marketing-landing-page",
+      "prompt": "Write conversion-focused copy for the pricing page, with a headline and three calls to action.",
+      "expected": "Does not fire. Marketing copy is outside this skill."
+    },
+    {
+      "id": "fiction-scene",
+      "prompt": "Write a 1,500-word scene about a detective returning to her childhood home.",
+      "expected": "Does not fire. Fiction is outside this skill."
+    },
+    {
+      "id": "academic-paper",
+      "prompt": "Draft the literature review section for my academic paper on platform governance.",
+      "expected": "Does not fire. Academic papers are outside this skill."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "mode-specific-structure",
+      "prompt": "Create outlines for an explainer, an idea essay, a personal essay, a review, and a technical article about their respective supplied topics.",
+      "expectations": [
+        "Selects a structure that serves each mode rather than a universal hook-body-recap template.",
+        "The idea essay includes serious counterpressure and may leave its conclusion open.",
+        "The review distinguishes description from evaluation, while the technical outline includes assumptions, trade-offs, and failure modes."
+      ]
+    },
+    {
+      "id": "sparse-personal-evidence",
+      "prompt": "Write a personal essay from this note only: 'The train was late and I called my sister.'",
+      "expectations": [
+        "Does not invent a relationship history, emotion, quotation, outcome, or additional event.",
+        "Keeps the result impersonal where the supplied material is insufficient or uses a visible Markdown placeholder for the missing personal material.",
+        "Does not present an inference as a supplied fact."
+      ]
+    },
+    {
+      "id": "voice-samples-without-biography",
+      "prompt": "Edit my blog draft using these eight representative samples. Preserve the fragments, bilingual phrasing, short endings, and direct questions; do not infer anything else about me.",
+      "expectations": [
+        "Derives a task-local voice profile from observable writing features.",
+        "Preserves intentional fragments and bilingual phrasing rather than normalizing them into generic prose.",
+        "Does not turn the samples into a biography or invent personal beliefs, experiences, or preferences."
+      ]
+    },
+    {
+      "id": "technical-evidence-verification",
+      "prompt": "Research and draft a current technical post comparing Django persistent connections with PgBouncer. Include citations for claims that could change.",
+      "expectations": [
+        "Researches claims needing external support and prefers primary documentation for technical and current claims.",
+        "Verifies citations before using them and preserves disagreement if authoritative sources conflict.",
+        "States versions and assumptions where they matter, and never reports tests or command results that were not observed."
+      ]
+    },
+    {
+      "id": "edit-preserves-intentional-style",
+      "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending.",
+      "expectations": [
+        "Returns editorial changes without erasing intentional repetition, roughness, or ambiguity.",
+        "Preserves the writer's supplied facts, position, and uncertainty.",
+        "Does not add ceremonial transitions, inflated stakes, or a conclusion that merely restates the opening."
+      ]
+    },
+    {
+      "id": "raw-markdown-delivery",
+      "prompt": "Draft a short blog article in Markdown about maintaining a personal reading log. Return the finished article only.",
+      "expectations": [
+        "Returns the finished article as raw Markdown without preface, process commentary, or a wrapper around the artefact.",
+        "Does not impose a generic call to action when the requested article does not need one."
+      ]
+    }
+  ]
+}

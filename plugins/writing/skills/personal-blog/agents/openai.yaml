@@ -1,0 +1,6 @@
+interface:
+  display_name: "Personal Blog"
+  short_description: "PLACEHOLDER — one line, under 60 characters"
+  default_prompt: "Use $personal-blog to PLACEHOLDER."
+policy:
+  allow_implicit_invocation: true

@@ -8,6 +8,7 @@
   "license": "MIT",
   "skills": [
     "./skills/email",
+    "./skills/personal-blog",
     "./skills/tempering"
   ]
 }
