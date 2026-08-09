@@ -1,0 +1,79 @@
+{
+  "skill": "bazi-chart",
+  "triggers": [
+    {
+      "id": "chinese-bazi-chart",
+      "prompt": "帮我排八字：林青，1990-03-14 07:42，上海出生。",
+      "expected": "Fires, resolves Shanghai coordinates and IANA time zone, calculates a reusable chart, and starts the reading."
+    },
+    {
+      "id": "four-pillars-english",
+      "prompt": "Make my Four Pillars chart. Name A, born 1988-11-02 at 21:05 in New York City.",
+      "expected": "Fires for a single exact birth record and uses the historical New York offset."
+    },
+    {
+      "id": "lunar-input",
+      "prompt": "按农历给陈明排盘：农历 2020-04-01 12:30，普通四月，不是闰月，成都。",
+      "expected": "Fires, records leap_month false, resolves Chengdu, and converts the standardized lunar date."
+    },
+    {
+      "id": "imprecise-minute",
+      "prompt": "我 1992-06-08 早上七点多在深圳出生，看看生辰八字。",
+      "expected": "Fires but stops for an exact minute without running the calculator."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "two-person-match",
+      "prompt": "看看我和对象的八字合不合。",
+      "routes_to": "bazi-compatibility",
+      "expected": "Does not fire; two-person matching belongs to the compatibility calculator."
+    },
+    {
+      "id": "existing-chart-reading",
+      "prompt": "解读一下刚才生成的 bazi_A.json。",
+      "routes_to": "bazi-reading",
+      "expected": "Does not fire; a valid existing chart should be interpreted without recalculation."
+    },
+    {
+      "id": "annual-forecast",
+      "prompt": "按八字预测我明年什么时候升职。",
+      "expected": "Does not fire; annual event forecasting is outside the natal calculator."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "ambiguous-place",
+      "prompt": "排盘：A，1990-03-14 07:42，Springfield 出生。",
+      "expectations": [
+        "Requests a region or country because the place is ambiguous.",
+        "Does not silently select one Springfield or run the calculator."
+      ]
+    },
+    {
+      "id": "missing-minute",
+      "prompt": "排盘：A，1990-03-14 早上 7 点，上海。",
+      "expectations": [
+        "Requests the exact birth minute.",
+        "Does not substitute 07:00, noon, or a range."
+      ]
+    },
+    {
+      "id": "boundary-alternate",
+      "prompt": "排盘：A，1990-03-14 23:30，上海。",
+      "expectations": [
+        "Uses true solar time before deciding whether the Zi-hour alternate applies.",
+        "Keeps primary and alternate charts separate and complete when applicable."
+      ]
+    },
+    {
+      "id": "successful-handoff",
+      "prompt": "八字排盘：A，1990-03-14 07:42，上海。",
+      "expectations": [
+        "Writes canonical JSON and data-only Markdown and verifies their checksum.",
+        "Automatically invokes bazi-reading with the exact JSON path after success.",
+        "Does not invoke the reading when calculation fails."
+      ]
+    }
+  ]
+}

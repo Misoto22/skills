@@ -1,0 +1,6 @@
+interface:
+  display_name: "BaZi Chart"
+  short_description: "Calculate one reusable BaZi chart"
+  default_prompt: "Use $bazi-chart to calculate one auditable BaZi chart from exact birth details, then hand it to the natal reading skill."
+policy:
+  allow_implicit_invocation: true

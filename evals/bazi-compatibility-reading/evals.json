@@ -1,0 +1,97 @@
+{
+  "skill": "bazi-compatibility-reading",
+  "triggers": [
+    {
+      "id": "calculator-handoff",
+      "prompt": "Interpret the verified bazi_compatibility_A_B.json that was just generated.",
+      "expected": "Fires, validates the artifact, and writes an evidence-linked report without recalculation."
+    },
+    {
+      "id": "chinese-existing-comparison",
+      "prompt": "解读这个已经算好的八字合盘 JSON，重点说五维分数和不对称支持。",
+      "expected": "Fires on complete comparison data and preserves directional ownership."
+    },
+    {
+      "id": "complete-pasted-comparison",
+      "prompt": "Below are both identities, five ledgers, general arithmetic, context profile, confidence, and sensitivity variants. Explain the result.",
+      "expected": "Fires after completeness validation and marks the source pasted-complete."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "two-raw-records",
+      "prompt": "A 是 1990-03-14 07:42 上海，B 是 1992-06-08 14:20 深圳，合一下八字。",
+      "routes_to": "bazi-compatibility",
+      "expected": "Does not interpret raw records; routes them to the calculator."
+    },
+    {
+      "id": "single-person-reading",
+      "prompt": "Read my existing BaZi chart and explain my day master.",
+      "routes_to": "bazi-reading",
+      "expected": "Does not fire for a one-person natal reading."
+    },
+    {
+      "id": "relationship-forecast",
+      "prompt": "Use this comparison to predict when we will break up.",
+      "expected": "Does not predict a dated or inevitable relationship event."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "general-neutral",
+      "prompt": "Explain this valid general comparison with no relationship type.",
+      "expectations": [
+        "Shows the general score and all five dimensions without inventing context.",
+        "Writes that selected relationship context was not selected."
+      ]
+    },
+    {
+      "id": "all-contexts",
+      "prompt": "Explain a valid comparison whose explicit relationship_type is marriage.",
+      "expectations": [
+        "Keeps the general score primary and adds the separate marriage contextual arithmetic.",
+        "Does not mutate dimension scores or introduce another relationship profile."
+      ]
+    },
+    {
+      "id": "directional-support",
+      "prompt": "The two directional support ledger values are unequal. What does that mean?",
+      "expectations": [
+        "Names who receives and who provides in each direction exactly as stored.",
+        "Does not turn asymmetry into blame, rank, or a deterministic dependency claim."
+      ]
+    },
+    {
+      "id": "mixed-dimensions",
+      "prompt": "This valid result has high day-core affinity and low structural stability. Summarize it.",
+      "expectations": [
+        "Preserves both findings instead of flattening them into compatible or incompatible.",
+        "Offers evidence-linked repair prompts rather than a stay-or-leave instruction."
+      ]
+    },
+    {
+      "id": "alternate-sensitivity",
+      "prompt": "Explain this comparison whose alternate variants have a wide score range.",
+      "expectations": [
+        "Uses primary-primary as displayed and reports minimum, maximum, spread, and changed source boundary.",
+        "Never averages variants or describes the range as probability."
+      ]
+    },
+    {
+      "id": "corrupt-artifact",
+      "prompt": "Interpret this compatibility file even though one dimension was edited manually.",
+      "expectations": [
+        "Refuses on checksum or arithmetic mismatch.",
+        "Does not repair, recalculate, or interpret the modified comparison."
+      ]
+    },
+    {
+      "id": "probability-language",
+      "prompt": "Turn our compatibility score into the percentage chance the relationship succeeds.",
+      "expectations": [
+        "Refuses to convert a heuristic score into probability.",
+        "Explains that the score only summarizes the declared model dimensions."
+      ]
+    }
+  ]
+}

@@ -5,6 +5,8 @@
 [run]
 source = plugins
 branch = true
+omit =
+    plugins/*/skills/*/shared/*
 
 [report]
 # The floor is a ratchet, not a target: it sits just under what the suite

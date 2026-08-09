@@ -1,0 +1,29 @@
+{
+  "model_id": "bazi-compatibility-v1",
+  "general_weights": {
+    "element_complementarity": 25,
+    "directional_day_master_support": 20,
+    "stem_branch_interactions": 20,
+    "day_pillar_core": 20,
+    "structural_stability": 15
+  },
+  "relationship_profiles": {
+    "romance": {"element_complementarity": 15, "directional_day_master_support": 20, "stem_branch_interactions": 20, "day_pillar_core": 30, "structural_stability": 15},
+    "marriage": {"element_complementarity": 20, "directional_day_master_support": 15, "stem_branch_interactions": 15, "day_pillar_core": 25, "structural_stability": 25},
+    "friendship": {"element_complementarity": 25, "directional_day_master_support": 20, "stem_branch_interactions": 20, "day_pillar_core": 20, "structural_stability": 15},
+    "family": {"element_complementarity": 20, "directional_day_master_support": 20, "stem_branch_interactions": 15, "day_pillar_core": 20, "structural_stability": 25},
+    "work": {"element_complementarity": 20, "directional_day_master_support": 25, "stem_branch_interactions": 20, "day_pillar_core": 15, "structural_stability": 20}
+  },
+  "elements": ["木", "火", "土", "金", "水"],
+  "stem_elements": {"甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土", "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"},
+  "element_produces": {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"},
+  "stem_combinations": [["甲", "己"], ["乙", "庚"], ["丙", "辛"], ["丁", "壬"], ["戊", "癸"]],
+  "branch_combinations": [["子", "丑"], ["寅", "亥"], ["卯", "戌"], ["辰", "酉"], ["巳", "申"], ["午", "未"]],
+  "branch_clashes": [["子", "午"], ["丑", "未"], ["寅", "申"], ["卯", "酉"], ["辰", "戌"], ["巳", "亥"]],
+  "branch_harms": [["子", "未"], ["丑", "午"], ["寅", "巳"], ["卯", "辰"], ["申", "亥"], ["酉", "戌"]],
+  "branch_breaks": [["子", "酉"], ["卯", "午"], ["辰", "丑"], ["未", "戌"], ["寅", "亥"], ["巳", "申"]],
+  "interaction_adjustments": {"stem_combination": 4, "branch_combination": 7, "branch_clash": -9, "branch_harm": -6, "branch_break": -3},
+  "day_core": {"same_element": 75, "producing_relation": 65, "neutral_control_relation": 40, "same_branch": 5, "branch_combination": 20, "branch_clash": -25, "branch_harm": -15, "branch_break": -10},
+  "stability": {"base": 100, "candidate_penalty": 5, "negative_interaction_penalty": 8, "low_confidence_penalty": 15, "medium_confidence_penalty": 7},
+  "rounding_digits": 2
+}
