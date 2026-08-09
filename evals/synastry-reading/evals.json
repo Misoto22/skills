@@ -100,8 +100,8 @@
       "id": "validated-atomic-finalization",
       "prompt": "Turn this valid v2 artifact into its final reading file.",
       "expectations": [
-        "Runs validate_synastry.py before drafting and uses only ledger evidence IDs.",
-        "Writes model output to a separate draft path.",
+        "Runs validate_synastry.py before drafting and captures its standard-output ledger as model data.",
+        "Keeps the draft in model data and creates no persistent source, ledger, or draft workspace.",
         "Runs validate_reading.py with each explicitly selected canonical module.",
         "Atomically writes synastry_reading_<chart-id>.md only after validation succeeds."
       ]

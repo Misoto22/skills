@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -56,18 +58,71 @@ class ReaderSkillContractTests(unittest.TestCase):
         self.assertRegex(text, r"(?i)TXT[^\n]+(?:refus|recalculat|not supported)")
         self.assertIn("untrusted data", text)
 
-    def test_reader_uses_one_quoted_source_path_and_immediate_cleanup_trap(self) -> None:
+    def test_documented_stateless_lifecycle_executes_for_attached_and_pasted_sources(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
+        source_validator = SKILL / "scripts" / "validate_synastry.py"
+        reading_validator = SKILL / "scripts" / "validate_reading.py"
+        source = json.loads(FIXTURE.read_text(encoding="utf-8"))
 
-        self.assertRegex(
-            text,
-            r'set -e\ndraft_dir="\$\(mktemp -d\)"\ntrap [^\n]+"\$draft_dir"[^\n]+\n',
+        attached = subprocess.run(
+            [sys.executable, str(source_validator), str(FIXTURE)],
+            cwd=SKILL,
+            capture_output=True,
+            check=False,
+            text=True,
         )
-        self.assertIn('source_path="/path/to/attached.json"', text)
-        self.assertIn('source_path="$draft_dir/source.json"', text)
-        self.assertRegex(text, r'validate_synastry\.py "\$source_path" --out')
-        self.assertRegex(text, r'validate_reading\.py "\$source_path" "\$draft_dir/draft\.md"')
-        self.assertNotRegex(text, r"validate_(?:synastry|reading)\.py source\.json")
+        pasted = subprocess.run(
+            [sys.executable, str(source_validator), "-"],
+            cwd=SKILL,
+            input=json.dumps(source),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual((attached.returncode, pasted.returncode), (0, 0))
+        attached_ledger = json.loads(attached.stdout)
+        pasted_ledger = json.loads(pasted.stdout)
+        self.assertEqual(attached_ledger["chart_id"], pasted_ledger["chart_id"])
+        self.assertEqual(attached_ledger["evidence"], pasted_ledger["evidence"])
+        evidence = attached_ledger["evidence"][0]["citation"]
+        lines = ["# Synastry reading"]
+        for heading in UNIVERSAL_HEADINGS:
+            lines.extend((f"## {heading}", evidence))
+        report = "\n\n".join(lines) + "\n"
+
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            destination = directory / "synastry_reading_abc123def456.md"
+            invalid = subprocess.run(
+                [sys.executable, str(reading_validator), "-", "-", "--out", str(destination)],
+                cwd=SKILL,
+                input=json.dumps({"source": source, "draft": "# Invalid"}),
+                capture_output=True,
+                check=False,
+                text=True,
+            )
+            self.assertEqual(invalid.returncode, 2)
+            self.assertEqual(list(directory.iterdir()), [])
+
+            retried = subprocess.run(
+                [sys.executable, str(reading_validator), "-", "-", "--out", str(destination)],
+                cwd=SKILL,
+                input=json.dumps({"source": source, "draft": report}),
+                capture_output=True,
+                check=False,
+                text=True,
+            )
+            self.assertEqual(retried.returncode, 0, retried.stderr)
+            self.assertEqual(destination.read_text(encoding="utf-8"), report)
+            self.assertEqual(list(directory.iterdir()), [destination])
+
+        self.assertIn("standard output", text)
+        self.assertIn("standard input", text)
+        self.assertNotIn("draft_dir", text)
+        self.assertNotIn("source_path", text)
+        self.assertNotIn("mktemp", text)
+        self.assertNotIn("trap ", text)
 
     def test_every_linked_reference_and_runtime_script_resolves(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")

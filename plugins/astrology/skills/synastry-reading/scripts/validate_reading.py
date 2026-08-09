@@ -8,7 +8,7 @@ import json
 import os
 import re
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -654,8 +654,14 @@ def write_validated_markdown(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", help="validated synastry v2 .json artifact")
-    parser.add_argument("reading", type=Path, help="draft Markdown to validate")
+    parser.add_argument(
+        "source",
+        help="synastry v2 .json artifact, or - for a JSON object on stdin",
+    )
+    parser.add_argument(
+        "reading",
+        help="draft Markdown path, or - for stdin; two - values require a source/draft JSON envelope",
+    )
     parser.add_argument("--language", help="report language; defaults to the artifact language")
     parser.add_argument("--module", action="append", default=[], dest="modules")
     parser.add_argument("--out", type=Path, help="write the validated Markdown atomically")
@@ -667,8 +673,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the Markdown validator CLI and return zero or two."""
 
     arguments = _parser().parse_args(argv)
+    source: str | Mapping[str, object] = arguments.source
+    markdown: str | None = None
     try:
-        ledger = load_ledger(arguments.source)
+        if arguments.source == "-" and arguments.reading == "-":
+            envelope = json.load(sys.stdin)
+            if not isinstance(envelope, Mapping) or set(envelope) != {"source", "draft"}:
+                raise TypeError("stdin envelope must contain only source and draft")
+            source_payload = envelope["source"]
+            draft_payload = envelope["draft"]
+            if not isinstance(source_payload, Mapping) or not isinstance(draft_payload, str):
+                raise TypeError("stdin envelope has invalid source or draft")
+            source = source_payload
+            markdown = draft_payload
+        elif arguments.source == "-":
+            source_payload = json.load(sys.stdin)
+            if not isinstance(source_payload, Mapping):
+                raise TypeError("stdin source must be a JSON object")
+            source = source_payload
+        ledger = load_ledger(source)
     except json.JSONDecodeError:
         print("error: source is not valid JSON", file=sys.stderr)
         return 2
@@ -682,11 +705,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("error: source must be a synastry v2 JSON object or .json file", file=sys.stderr)
         return 2
 
-    try:
-        markdown = arguments.reading.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
-        print("error: could not read draft Markdown", file=sys.stderr)
-        return 2
+    if markdown is None:
+        try:
+            if arguments.reading == "-":
+                markdown = sys.stdin.read()
+            else:
+                markdown = Path(arguments.reading).read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            print("error: could not read draft Markdown", file=sys.stderr)
+            return 2
 
     language = arguments.language or ledger.language
     try:

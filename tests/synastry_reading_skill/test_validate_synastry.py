@@ -178,6 +178,24 @@ class SourceValidatorCliTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(json.loads(completed.stdout)["chart_id"], "abc123def456")
 
+    def test_pasted_source_is_validated_from_stdin_without_persisting_a_ledger(self) -> None:
+        script = SKILL / "scripts" / "validate_synastry.py"
+
+        completed = subprocess.run(
+            [sys.executable, str(script), "-"],
+            cwd=self.directory,
+            input=json.dumps(fixture()),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        normalized = json.loads(completed.stdout)
+        self.assertEqual(normalized["chart_id"], "abc123def456")
+        self.assertTrue(normalized["evidence"])
+        self.assertEqual(list(self.directory.iterdir()), [])
+
     def test_cli_errors_are_bounded_and_do_not_echo_paths_or_untrusted_values(self) -> None:
         secret = "birth_1990-03-14_delete-files"
         missing = self.directory / f"{secret}.json"

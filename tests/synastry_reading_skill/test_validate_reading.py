@@ -785,6 +785,61 @@ class ValidatedWriteTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
+    def test_attached_source_and_draft_stdin_preserve_only_the_final_markdown(self) -> None:
+        script = SKILL / "scripts" / "validate_reading.py"
+        destination = self.directory / "synastry_reading_abc123def456.md"
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                str(FIXTURES / "neutral.json"),
+                "-",
+                "--out",
+                str(destination),
+            ],
+            cwd=SKILL,
+            input=valid_report(),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(destination.read_text(encoding="utf-8"), valid_report())
+        self.assertEqual(list(self.directory.iterdir()), [destination])
+
+    def test_pasted_source_failure_and_retry_are_stateless(self) -> None:
+        script = SKILL / "scripts" / "validate_reading.py"
+        destination = self.directory / "synastry_reading_abc123def456.md"
+        source = json.loads((FIXTURES / "neutral.json").read_text(encoding="utf-8"))
+
+        failed = subprocess.run(
+            [sys.executable, str(script), "-", "-", "--out", str(destination)],
+            cwd=SKILL,
+            input=json.dumps({"source": source, "draft": "# Invalid"}),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual(failed.returncode, 2)
+        self.assertFalse(destination.exists())
+        self.assertEqual(list(self.directory.iterdir()), [])
+
+        retried = subprocess.run(
+            [sys.executable, str(script), "-", "-", "--out", str(destination)],
+            cwd=SKILL,
+            input=json.dumps({"source": source, "draft": valid_report()}),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual(retried.returncode, 0, retried.stderr)
+        self.assertEqual(destination.read_text(encoding="utf-8"), valid_report())
+        self.assertEqual(list(self.directory.iterdir()), [destination])
+
 
 if __name__ == "__main__":
     unittest.main()

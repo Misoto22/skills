@@ -20,9 +20,11 @@ The paths, labels, chart IDs, and evidence IDs below are synthetic. Copy actual 
 Validate without `--module`:
 
 ```bash
-python3 scripts/validate_reading.py "$source_path" "$draft_dir/draft.md" \
+python3 scripts/validate_reading.py "/path/to/attached.json" - \
   --out synastry_reading_a1b2c3d4e5f6.md
 ```
+
+Supply the complete draft on standard input. For pasted JSON, use `- -` and supply the exact `source`/`draft` envelope defined in the main workflow.
 
 Chart evidence alone never turns this neutral source into a romantic, family, friendship, work, or financial reading.
 
@@ -33,7 +35,7 @@ Chart evidence alone never turns this neutral source into a romantic, family, fr
 **Action:** Select only `Romance and intimacy`. Draft its level-three module under the domains heading and pass the same canonical heading to validation:
 
 ```bash
-python3 scripts/validate_reading.py "$source_path" "$draft_dir/draft.md" \
+python3 scripts/validate_reading.py "/path/to/attached.json" - \
   --module "Romance and intimacy" \
   --out synastry_reading_a1b2c3d4e5f6.md
 ```

@@ -505,7 +505,7 @@ def _quarantine_stdout() -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", help="validated synastry v2 .json artifact")
+    parser.add_argument("source", help="synastry v2 .json artifact, or - for a JSON object on stdin")
     parser.add_argument("--out", type=Path, help="write the normalized ledger to this JSON path")
     parser.add_argument("--overwrite", action="store_true", help="replace an existing ledger atomically")
     return parser
@@ -516,7 +516,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     arguments = _parser().parse_args(argv)
     try:
-        ledger = load_ledger(arguments.source)
+        source: str | Mapping[str, object] = arguments.source
+        if source == "-":
+            payload = json.load(sys.stdin)
+            if not isinstance(payload, Mapping):
+                raise TypeError("stdin source must be a JSON object")
+            source = payload
+        ledger = load_ledger(source)
     except json.JSONDecodeError:
         print("error: source is not valid JSON", file=sys.stderr)
         return 2
