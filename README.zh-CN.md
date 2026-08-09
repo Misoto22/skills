@@ -188,7 +188,7 @@ Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则
 > 它上面的东西一概不拷。用 `../` 爬出去的引用只在这个仓库里解析得开，到别处就是断的；
 > 而 `${CLAUDE_*}` 只有 Claude Code 会展开。这两种写法在已发布的 skill 内容里都会被拒绝。
 
-两个 skill 共用的规则放在 `plugins/<plugin>/shared/`，只有这一份是手写的。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 拿真正装出来的目录验一遍这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 里的拷贝，或者解包后的 `.skill`，都行。
+三个 skill 共用的规则放在 `plugins/<plugin>/shared/`，只有这一份是手写的。`scripts/sync-shared.py` 把它 vendor 进每个 skill 并把副本一起提交，所以直接 clone 也能装对；校验器、打包器和 CI 都会因为漂移而失败。`scripts/verify-install.py <dir>` 拿真正装出来的目录验一遍这条保证 —— 指向 plugin 缓存、`~/.agents/skills` 里的拷贝，或者解包后的 `.skill`，都行。
 
 ```mermaid
 flowchart LR

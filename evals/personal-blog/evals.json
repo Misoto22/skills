@@ -98,7 +98,7 @@
     },
     {
       "id": "voice-samples-without-biography",
-      "prompt": "Edit my blog draft using these eight representative samples. Preserve the fragments, bilingual phrasing, short endings, and direct questions; do not infer anything else about me.",
+      "prompt": "Edit this blog draft for clarity: 'The new cache makes requests faster, but the extra layer adds complexity. That complexity may be acceptable, though the trade-off needs a clearer explanation.' Use these eight representative samples: (1) 'Not elegant. Still useful.' (2) '我以为会更简单。Nope.' (3) 'The first version worked. Then it didn't.' (4) 'Why add another layer?' (5) '先把问题说清楚。Then code.' (6) 'Fast? Sometimes. Predictable? Not yet.' (7) 'A small fix. For now.' (8) 'So what are we actually protecting?' Preserve the fragments, bilingual phrasing, short endings, and direct questions; do not infer anything else about me.",
       "expectations": [
         "Derives a task-local voice profile from observable writing features.",
         "Preserves intentional fragments and bilingual phrasing rather than normalizing them into generic prose.",
@@ -117,7 +117,7 @@
     },
     {
       "id": "edit-preserves-intentional-style",
-      "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending.",
+      "prompt": "Line-edit this existing blog paragraph for clarity but keep its deliberate repetition, roughness, and open ending: 'I keep returning to the same question. The same question, after every rewrite. Maybe because naming the problem feels like solving it. It doesn’t. I can make the sentence cleaner, then cleaner again. And then?'",
       "expectations": [
         "Each change fixes a specific grammar, ambiguity, needless-indirection, or sentence-structure defect while preserving the prompt's deliberate repetition, roughness, and open ending.",
         "Preserves the writer's supplied facts, position, and uncertainty.",

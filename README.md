@@ -193,7 +193,7 @@ Claude Code and Codex both install these. `npx skills add` and the skills.sh lis
 > repository and dangles everywhere else, and only Claude Code expands
 > `${CLAUDE_*}`. Both forms are rejected in published skill content.
 
-Rules two skills share live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
+Rules shared by three skills live in `plugins/<plugin>/shared/`, the only copy anyone edits. `scripts/sync-shared.py` vendors it into each skill and commits the copies, so a plain clone installs correctly; the validator, the packager, and CI all fail on drift. `scripts/verify-install.py <dir>` asserts the guarantee against a real installed tree — point it at a plugin cache, an `~/.agents/skills` copy, or an unpacked `.skill`.
 
 ```mermaid
 flowchart LR

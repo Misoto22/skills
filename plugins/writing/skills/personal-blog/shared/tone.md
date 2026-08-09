@@ -48,11 +48,15 @@ synergy · circle back · touch base · bandwidth · socialise an idea · double
 | Let's circle back on this once we have bandwidth. | I can't get to this until next week. |
 | We should align on the approach before we double-click into the details. | Let's agree the approach before working through the details. |
 
-## Preserve supplied facts
+## Preserve facts without inventing
 
 Pass through unchanged: dates, times, ticket and version numbers, names, addresses, URLs, amounts, and quoted text.
 
-Never supply a reason, date, or constraint the writer did not provide. Where a
-piece needs one to function, insert a bracketed placeholder — `[by Thursday]`,
-`[Module A]` — for the writer to complete. A placeholder is honest; an invented
-deadline is not.
+Never invent a reason, date, or constraint. In non-message writing, add one only
+when it is externally verifiable, backed by a verified source, and clearly
+presented as sourced information rather than the writer's personal experience.
+
+When drafting or rewriting a message, use only reasons, dates, and constraints
+the writer supplied. Where the message needs one to function, insert a bracketed
+placeholder — `[by Thursday]`, `[Module A]` — for the writer to complete. A
+placeholder is honest; an invented deadline is not.
