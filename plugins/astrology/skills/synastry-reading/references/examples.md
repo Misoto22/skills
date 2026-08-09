@@ -15,16 +15,16 @@ The paths, labels, chart IDs, and evidence IDs below are synthetic. Copy actual 
 
 **Input:** A valid JSON v2 artifact plus no explicit relationship context or requested domain.
 
-**Action:** Run `validate_synastry.py`, select no modules, and keep all five relationship-specific module headings out of the draft. Keep the universal `Requested or context-specific domains` heading without a level-three module.
+**Action:** Start a private session, read every ledger page, select no modules, and keep all five relationship-specific module headings out of the draft. Keep the universal `Requested or context-specific domains` heading without a level-three module.
 
 Validate without `--module`:
 
 ```bash
-python3 scripts/validate_reading.py "/path/to/attached.json" - \
+python3 scripts/reading_session.py finalize <session-token> \
   --out synastry_reading_a1b2c3d4e5f6.md
 ```
 
-Supply the complete draft on standard input. For pasted JSON, use `- -` and supply the exact `source`/`draft` envelope defined in the main workflow.
+Supply the complete draft on standard input after reading every bounded page of the private ledger.
 
 Chart evidence alone never turns this neutral source into a romantic, family, friendship, work, or financial reading.
 
@@ -35,7 +35,7 @@ Chart evidence alone never turns this neutral source into a romantic, family, fr
 **Action:** Select only `Romance and intimacy`. Draft its level-three module under the domains heading and pass the same canonical heading to validation:
 
 ```bash
-python3 scripts/validate_reading.py "/path/to/attached.json" - \
+python3 scripts/reading_session.py finalize <session-token> \
   --module "Romance and intimacy" \
   --out synastry_reading_a1b2c3d4e5f6.md
 ```

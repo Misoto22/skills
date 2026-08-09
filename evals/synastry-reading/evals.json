@@ -75,7 +75,7 @@
       "expectations": [
         "Selects only the canonical Family and care and Work and creative collaboration modules.",
         "Does not add romance, friendship, or money based on chart thresholds.",
-        "Passes both module headings explicitly to validate_reading.py."
+        "Passes both module headings explicitly to private-session finalization."
       ]
     },
     {
@@ -100,10 +100,10 @@
       "id": "validated-atomic-finalization",
       "prompt": "Turn this valid v2 artifact into its final reading file.",
       "expectations": [
-        "Runs validate_synastry.py before drafting and captures its standard-output ledger as model data.",
-        "Keeps the draft in model data and creates no persistent source, ledger, or draft workspace.",
-        "Runs validate_reading.py with each explicitly selected canonical module.",
-        "Atomically writes synastry_reading_<chart-id>.md only after validation succeeds."
+        "Starts a private expiring validation session and reads every bounded ledger page before drafting.",
+        "Uses stable subject and evidence IDs without exposing display names or the source path in terminal output.",
+        "Finalizes with each explicitly selected canonical module and revalidates the original source.",
+        "Atomically writes synastry_reading_<chart-id>.md only after validation succeeds, then cleans the session."
       ]
     }
   ]

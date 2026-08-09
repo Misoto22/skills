@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -45,8 +46,7 @@ class ReaderSkillContractTests(unittest.TestCase):
 
     def test_reader_uses_universal_core_and_conditional_domains(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
-        self.assertIn("validate_synastry.py", text)
-        self.assertIn("validate_reading.py", text)
+        self.assertIn("reading_session.py", text)
         self.assertIn("explicit relationship context", text)
         self.assertNotIn("Use every fixed core heading", text)
 
@@ -58,71 +58,63 @@ class ReaderSkillContractTests(unittest.TestCase):
         self.assertRegex(text, r"(?i)TXT[^\n]+(?:refus|recalculat|not supported)")
         self.assertIn("untrusted data", text)
 
-    def test_documented_stateless_lifecycle_executes_for_attached_and_pasted_sources(self) -> None:
+    def test_documented_private_session_executes_for_attached_and_pasted_sources(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
-        source_validator = SKILL / "scripts" / "validate_synastry.py"
-        reading_validator = SKILL / "scripts" / "validate_reading.py"
+        session_helper = SKILL / "scripts" / "reading_session.py"
         source = json.loads(FIXTURE.read_text(encoding="utf-8"))
-
-        attached = subprocess.run(
-            [sys.executable, str(source_validator), str(FIXTURE)],
-            cwd=SKILL,
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-        pasted = subprocess.run(
-            [sys.executable, str(source_validator), "-"],
-            cwd=SKILL,
-            input=json.dumps(source),
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-
-        self.assertEqual((attached.returncode, pasted.returncode), (0, 0))
-        attached_ledger = json.loads(attached.stdout)
-        pasted_ledger = json.loads(pasted.stdout)
-        self.assertEqual(attached_ledger["chart_id"], pasted_ledger["chart_id"])
-        self.assertEqual(attached_ledger["evidence"], pasted_ledger["evidence"])
-        evidence = attached_ledger["evidence"][0]["citation"]
-        lines = ["# Synastry reading"]
-        for heading in UNIVERSAL_HEADINGS:
-            lines.extend((f"## {heading}", evidence))
-        report = "\n\n".join(lines) + "\n"
 
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
-            destination = directory / "synastry_reading_abc123def456.md"
-            invalid = subprocess.run(
-                [sys.executable, str(reading_validator), "-", "-", "--out", str(destination)],
+            environment = os.environ | {
+                "SYNASTRY_READING_SESSION_ROOT": str(directory / "sessions"),
+                "PYTHONDONTWRITEBYTECODE": "1",
+            }
+            attached = subprocess.run(
+                [sys.executable, str(session_helper), "start", str(FIXTURE)],
                 cwd=SKILL,
-                input=json.dumps({"source": source, "draft": "# Invalid"}),
+                env=environment,
                 capture_output=True,
                 check=False,
                 text=True,
             )
-            self.assertEqual(invalid.returncode, 2)
-            self.assertEqual(list(directory.iterdir()), [])
-
-            retried = subprocess.run(
-                [sys.executable, str(reading_validator), "-", "-", "--out", str(destination)],
+            pasted = subprocess.run(
+                [sys.executable, str(session_helper), "start", "-"],
                 cwd=SKILL,
-                input=json.dumps({"source": source, "draft": report}),
+                env=environment,
+                input=json.dumps(source),
                 capture_output=True,
                 check=False,
                 text=True,
             )
-            self.assertEqual(retried.returncode, 0, retried.stderr)
-            self.assertEqual(destination.read_text(encoding="utf-8"), report)
-            self.assertEqual(list(directory.iterdir()), [destination])
 
-        self.assertIn("standard output", text)
-        self.assertIn("standard input", text)
-        self.assertNotIn("draft_dir", text)
-        self.assertNotIn("source_path", text)
-        self.assertNotIn("mktemp", text)
-        self.assertNotIn("trap ", text)
+            self.assertEqual((attached.returncode, pasted.returncode), (0, 0))
+            attached_status = json.loads(attached.stdout)
+            pasted_status = json.loads(pasted.stdout)
+            self.assertIn("pages_path", attached_status)
+            self.assertIn("pages_path", pasted_status)
+            attached_pages = Path(attached_status["pages_path"])
+            pasted_pages = Path(pasted_status["pages_path"])
+            attached_ledger = json.loads(
+                b"".join(path.read_bytes() for path in sorted(attached_pages.iterdir()))
+            )
+            pasted_ledger = json.loads(b"".join(path.read_bytes() for path in sorted(pasted_pages.iterdir())))
+            self.assertEqual(attached_ledger["evidence"], pasted_ledger["evidence"])
+            self.assertNotIn("display_name", json.dumps(attached_ledger))
+            for status in (attached_status, pasted_status):
+                cancelled = subprocess.run(
+                    [sys.executable, str(session_helper), "cancel", status["token"]],
+                    cwd=SKILL,
+                    env=environment,
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                )
+                self.assertEqual(cancelled.returncode, 0, cancelled.stderr)
+
+        self.assertIn("bounded", text)
+        self.assertIn("private", text)
+        self.assertIn("expires", text)
+        self.assertIn("reading_session.py", text)
 
     def test_every_linked_reference_and_runtime_script_resolves(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
@@ -131,7 +123,7 @@ class ReaderSkillContractTests(unittest.TestCase):
         scripts = re.findall(r"python3 (scripts/[^\s]+\.py)", text)
 
         self.assertEqual(len(references), 3)
-        self.assertEqual(set(scripts), {"scripts/validate_synastry.py", "scripts/validate_reading.py"})
+        self.assertEqual(set(scripts), {"scripts/reading_session.py"})
         for path in (*references, *scripts):
             with self.subTest(path=path):
                 self.assertTrue((SKILL / path).is_file())
@@ -211,6 +203,7 @@ class ReaderSkillContractTests(unittest.TestCase):
         self.assertIn("$synastry-reading", text)
         self.assertIn("JSON v2", text)
         self.assertIn("evidence", text)
+        self.assertIn("private", text.casefold())
 
     def test_eval_suite_covers_chinese_json_and_external_domain_authority(self) -> None:
         suite = json.loads(EVALS.read_text(encoding="utf-8"))

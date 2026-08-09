@@ -33,10 +33,9 @@ class OutputExistsError(FileExistsError):
 
 @dataclass(frozen=True)
 class EvidenceSubject:
-    """One presentation label bound to a stable artifact subject ID."""
+    """One stable artifact subject ID available to the model ledger."""
 
     id: str
-    display_name: str
 
 
 @dataclass(frozen=True)
@@ -61,7 +60,6 @@ class EvidenceLedger:
     configuration: Mapping[str, object] = field(default_factory=dict)
     provenance: Mapping[str, object] = field(default_factory=dict)
     limitations: tuple[Mapping[str, object], ...] = ()
-    source_path: str | None = None
     source_device: int | None = field(default=None, compare=False, repr=False)
     source_inode: int | None = field(default=None, compare=False, repr=False)
     source_digest: str = ""
@@ -94,10 +92,7 @@ def load_ledger(path_or_payload: str | os.PathLike[str] | Mapping[str, object]) 
     validated = validate_artifact(payload)  # type: ignore[arg-type]
     evidence = _evidence(validated)
     subjects = tuple(
-        EvidenceSubject(
-            id=str(subject["id"]),
-            display_name=str(subject.get("display_name") or subject["id"]),
-        )
+        EvidenceSubject(id=str(subject["id"]))
         for subject in validated["subjects"]  # type: ignore[union-attr]
     )
     configuration = copy.deepcopy(validated["configuration"])
@@ -110,7 +105,6 @@ def load_ledger(path_or_payload: str | os.PathLike[str] | Mapping[str, object]) 
         configuration=configuration,  # type: ignore[arg-type]
         provenance=copy.deepcopy(validated["provenance"]),  # type: ignore[arg-type]
         limitations=tuple(copy.deepcopy(validated["limitations"])),  # type: ignore[arg-type]
-        source_path=str(source_path.absolute()) if source_path is not None else None,
         source_device=source_identity[0] if source_identity is not None else None,
         source_inode=source_identity[1] if source_identity is not None else None,
         source_digest=str(validated["integrity"]["digest"]),  # type: ignore[index]
@@ -536,12 +530,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("error: source must be a synastry v2 JSON object or .json file", file=sys.stderr)
         return 2
 
-    payload = _ledger_bytes(ledger)
     if arguments.out is None:
-        if _write_stdout(payload):
+        if _write_stdout(canonical_json({"status": "valid"}) + b"\n"):
             return 0
         print("error: could not write ledger output", file=sys.stderr)
         return 2
+    payload = _ledger_bytes(ledger)
     try:
         if arguments.out.suffix != ".json":
             raise ValueError("ledger output must end in .json")
