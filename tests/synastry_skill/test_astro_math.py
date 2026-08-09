@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from math import inf, nan
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -10,15 +11,20 @@ sys.path.insert(0, str(ROOT / "plugins" / "astrology" / "skills" / "synastry" / 
 from astro_math import (
     ASPECT_KINDS,
     SIGNS,
+    AspectEvidence,
+    CircularRange,
+    circular_range,
     degrees_in_sign,
     dignities,
     find_aspects,
+    find_uncertain_aspects,
     format_degrees,
     house_of,
     is_critical,
     is_diurnal,
     lots,
     normalize,
+    round_longitude,
     separation,
     sign_of,
 )
@@ -46,6 +52,13 @@ class DegreeTests(unittest.TestCase):
         self.assertEqual(format_degrees(12.5), "12°30'")
         self.assertEqual(format_degrees(12.999), "13°00'")
         self.assertEqual(format_degrees(0.0), "0°00'")
+
+    def test_degree_rounding_carries_into_the_next_sign(self) -> None:
+        """Rounding the absolute arc-minute moves 29 degrees 59.994 minutes into Taurus."""
+
+        sign, degree = round_longitude(29.9999)
+
+        self.assertEqual((sign, degree), ("Tau", 0.0))
 
     def test_separation_never_exceeds_half_a_circle(self) -> None:
         self.assertAlmostEqual(separation(10.0, 350.0), 20.0)
@@ -177,6 +190,61 @@ class AspectTests(unittest.TestCase):
         found = find_aspects({"Sun": 0.0}, {"Moon": 46.0}, major_orb=8.0, minor_orb=3.0)
         self.assertEqual(len(found), 1)
         self.assertEqual(found[0].kind, "semi-square")
+
+    def test_invalid_orbs_are_rejected_before_exact_aspect_classification(self) -> None:
+        """An oversized conjunction orb must not win by aspect declaration order."""
+
+        with self.assertRaisesRegex(ValueError, "major_orb"):
+            find_aspects({"Sun": 0.0}, {"Moon": 20.0}, major_orb=16.0, minor_orb=3.0)
+
+
+class CircularRangeTests(unittest.TestCase):
+    def test_circular_range_uses_the_short_arc_across_zero(self) -> None:
+        """Samples either side of 0° cover 1.5°, rather than almost the whole circle."""
+
+        result = circular_range([359.5, 0.25, 1.0])
+
+        self.assertIsInstance(result, CircularRange)
+        self.assertAlmostEqual(result.start_degrees, 359.5)
+        self.assertAlmostEqual(result.end_degrees, 1.0)
+        self.assertTrue(result.wraps_zero)
+        self.assertAlmostEqual(result.span_degrees, 1.5)
+
+
+class UncertainAspectTests(unittest.TestCase):
+    def test_uncertain_aspect_distinguishes_confirmed_and_possible(self) -> None:
+        """Only a contact that survives every sample pairing is confirmed."""
+
+        confirmed = find_uncertain_aspects({"Sun": [0, 1]}, {"Moon": [120, 121]}, 8, 3)
+        possible = find_uncertain_aspects({"Sun": [0, 6]}, {"Moon": [126, 132]}, 8, 3)
+
+        self.assertEqual(confirmed[0].certainty, "confirmed")
+        self.assertEqual(possible[0].certainty, "possible")
+        self.assertIsInstance(confirmed[0], AspectEvidence)
+        self.assertAlmostEqual(confirmed[0].minimum_orb, 0.0)
+        self.assertAlmostEqual(confirmed[0].maximum_orb, 1.0)
+        self.assertAlmostEqual(possible[0].minimum_orb, 0.0)
+        self.assertAlmostEqual(possible[0].maximum_orb, 12.0)
+
+    def test_invalid_orbs_are_rejected_before_uncertain_pairing(self) -> None:
+        """Invalid configuration raises even when no samples would otherwise be compared."""
+
+        cases = (
+            ("major_orb", -0.1, 3.0),
+            ("major_orb", 15.1, 3.0),
+            ("major_orb", nan, 3.0),
+            ("major_orb", inf, 3.0),
+            ("minor_orb", 8.0, 8.0),
+            ("minor_orb", 3.0, -0.1),
+            ("minor_orb", 3.0, nan),
+            ("minor_orb", 3.0, inf),
+        )
+        for expected, major_orb, minor_orb in cases:
+            with (
+                self.subTest(major_orb=major_orb, minor_orb=minor_orb),
+                self.assertRaisesRegex(ValueError, expected),
+            ):
+                find_uncertain_aspects({}, {}, major_orb, minor_orb)
 
 
 if __name__ == "__main__":

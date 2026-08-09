@@ -8,6 +8,7 @@ stays testable on a machine with no Swiss Ephemeris installed.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
@@ -98,6 +99,26 @@ class Aspect(NamedTuple):
     orb: float
 
 
+class CircularRange(NamedTuple):
+    """The smallest circular arc containing a collection of longitudes."""
+
+    start_degrees: float
+    end_degrees: float
+    wraps_zero: bool
+    span_degrees: float
+
+
+class AspectEvidence(NamedTuple):
+    """An aspect's sampled certainty and the full observed orb range."""
+
+    left: str
+    right: str
+    kind: str
+    certainty: str
+    minimum_orb: float
+    maximum_orb: float
+
+
 def normalize(longitude: float) -> float:
     """Fold an ecliptic longitude into [0, 360)."""
 
@@ -114,6 +135,14 @@ def sign_of(longitude: float) -> str:
 
 def degrees_in_sign(longitude: float) -> float:
     return normalize(longitude) - sign_index(longitude) * 30.0
+
+
+def round_longitude(longitude: float) -> tuple[str, float]:
+    """Round an absolute longitude to the nearest arc-minute before naming its sign."""
+
+    total_minutes = round(normalize(longitude) * 60.0) % (360 * 60)
+    rounded = total_minutes / 60.0
+    return sign_of(rounded), degrees_in_sign(rounded)
 
 
 def format_degrees(value: float) -> str:
@@ -217,6 +246,7 @@ def find_aspects(
     rerun over the same input produces byte-identical output.
     """
 
+    _validate_orbs(major_orb, minor_orb)
     found: list[Aspect] = []
     for left_name, left_longitude in left.items():
         for right_name, right_longitude in right.items():
@@ -228,3 +258,90 @@ def find_aspects(
                     break
     found.sort(key=lambda aspect: (round(aspect.orb, 6), aspect.left, aspect.right))
     return found
+
+
+def circular_range(samples: Sequence[float]) -> CircularRange:
+    """Return the smallest circular arc that covers every supplied longitude."""
+
+    normalized = sorted(_finite_longitudes(samples, "samples"))
+    if len(normalized) == 1:
+        return CircularRange(normalized[0], normalized[0], False, 0.0)
+
+    gaps = [
+        normalized[(index + 1) % len(normalized)] - normalized[index]
+        if index + 1 < len(normalized)
+        else normalized[0] + 360.0 - normalized[index]
+        for index in range(len(normalized))
+    ]
+    largest_gap_index = max(range(len(gaps)), key=gaps.__getitem__)
+    start = normalized[(largest_gap_index + 1) % len(normalized)]
+    end = normalized[largest_gap_index]
+    return CircularRange(start, end, start > end, 360.0 - gaps[largest_gap_index])
+
+
+def find_uncertain_aspects(
+    left: Mapping[str, Sequence[float]],
+    right: Mapping[str, Sequence[float]],
+    major_orb: float,
+    minor_orb: float,
+) -> list[AspectEvidence]:
+    """Find confirmed and possible aspects across every pair of sampled positions."""
+
+    _validate_orbs(major_orb, minor_orb)
+    found: list[AspectEvidence] = []
+    for left_name, left_samples in left.items():
+        resolved_left = _finite_longitudes(left_samples, f"left.{left_name}")
+        for right_name, right_samples in right.items():
+            resolved_right = _finite_longitudes(right_samples, f"right.{right_name}")
+            arcs = [
+                separation(left_value, right_value)
+                for left_value in resolved_left
+                for right_value in resolved_right
+            ]
+            for kind in ASPECT_KINDS:
+                orbs = [abs(arc - kind.angle) for arc in arcs]
+                minimum_orb = min(orbs)
+                maximum_orb = max(orbs)
+                allowed_orb = major_orb if kind.major else minor_orb
+                if minimum_orb <= allowed_orb:
+                    certainty = "confirmed" if maximum_orb <= allowed_orb else "possible"
+                    found.append(
+                        AspectEvidence(left_name, right_name, kind.name, certainty, minimum_orb, maximum_orb)
+                    )
+    found.sort(
+        key=lambda evidence: (
+            round(evidence.minimum_orb, 6),
+            round(evidence.maximum_orb, 6),
+            evidence.left,
+            evidence.right,
+            evidence.kind,
+        )
+    )
+    return found
+
+
+def _validate_orbs(major_orb: float, minor_orb: float) -> None:
+    _validate_orb(major_orb, "major_orb", 15.0)
+    _validate_orb(minor_orb, "minor_orb", 7.5)
+
+
+def _validate_orb(value: float, name: str, maximum: float) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"{name}: expected a finite value from 0 through {maximum:g}")
+    if not 0.0 <= value <= maximum:
+        raise ValueError(f"{name}: expected a value from 0 through {maximum:g}")
+
+
+def _finite_longitudes(samples: Sequence[float], where: str) -> tuple[float, ...]:
+    if not samples:
+        raise ValueError(f"{where}: expected at least one longitude sample")
+    resolved: list[float] = []
+    for index, longitude in enumerate(samples):
+        if (
+            isinstance(longitude, bool)
+            or not isinstance(longitude, (int, float))
+            or not math.isfinite(longitude)
+        ):
+            raise ValueError(f"{where}[{index}]: expected a finite longitude")
+        resolved.append(normalize(longitude))
+    return tuple(resolved)
