@@ -56,9 +56,10 @@ _ATX_HEADING = re.compile(r"^[ \t]{0,3}(?P<marker>#{1,6})[ \t]+(?P<title>.*?)[ \
 _LIST_PREFIX = re.compile(r"^[ \t]{0,3}(?:(?:>[ \t]*)+)?(?:[-+*]|\d+[.)])[ \t]+")
 _QUOTE_PREFIX = re.compile(r"^[ \t]{0,3}(?:>[ \t]*)+")
 _CLAIM_BOUNDARY = re.compile(
-    r"[.!?;\N{IDEOGRAPHIC FULL STOP}\N{FULLWIDTH EXCLAMATION MARK}"
-    r"\N{FULLWIDTH QUESTION MARK}\N{FULLWIDTH SEMICOLON}]+|"
-    r"\b(?:and|but|while|whereas|although|however)\b",
+    r"[,.!?;\N{IDEOGRAPHIC COMMA}\N{IDEOGRAPHIC FULL STOP}"
+    r"\N{FULLWIDTH EXCLAMATION MARK}\N{FULLWIDTH QUESTION MARK}"
+    r"\N{FULLWIDTH SEMICOLON}]+|"
+    r"\b(?:and|or|but|though|while|whereas|although|however)\b",
     re.IGNORECASE,
 )
 _WORD_HOUSES = {
@@ -254,8 +255,8 @@ def _validate_headings(
                 present.add(normalized)
         elif heading.level == 3 and current_level_two == domains:
             problems.append("unselected module is present in the domains section")
-        if heading.level == 2:
-            current_level_two = normalized
+        if heading.level <= 2:
+            current_level_two = normalized if heading.level == 2 else None
 
     for module in sorted(selected - present):
         problems.append(f"selected module is missing: {canonical[module]}")
@@ -327,22 +328,32 @@ def _mask_code_containers(markdown: str) -> str:
     result: list[str] = []
     fence_character: str | None = None
     fence_length = 0
+    fence_quote_depth = 0
     for raw_line in markdown.splitlines(keepends=True):
         content = raw_line.rstrip("\r\n")
-        container_content = _QUOTE_PREFIX.sub("", content, count=1)
+        quote_prefix = _QUOTE_PREFIX.match(content)
+        quote_depth = quote_prefix.group(0).count(">") if quote_prefix is not None else 0
+        container_content = content[quote_prefix.end() :] if quote_prefix is not None else content
         fence = _FENCE.match(container_content)
         if fence_character is not None:
-            result.append(_blank(raw_line))
-            if fence is not None:
-                marker = fence.group("marker")
-                if marker[0] == fence_character and len(marker) >= fence_length:
-                    fence_character = None
-                    fence_length = 0
-            continue
+            if fence_quote_depth > 0 and quote_depth < fence_quote_depth:
+                fence_character = None
+                fence_length = 0
+                fence_quote_depth = 0
+            else:
+                result.append(_blank(raw_line))
+                if fence is not None and quote_depth == fence_quote_depth:
+                    marker = fence.group("marker")
+                    if marker[0] == fence_character and len(marker) >= fence_length:
+                        fence_character = None
+                        fence_length = 0
+                        fence_quote_depth = 0
+                continue
         if fence is not None:
             marker = fence.group("marker")
             fence_character = marker[0]
             fence_length = len(marker)
+            fence_quote_depth = quote_depth
             result.append(_blank(raw_line))
             continue
         if container_content.startswith("    ") or container_content.startswith("\t"):
@@ -434,8 +445,8 @@ def _section_keys(blocks: Sequence[_Block], language: str) -> list[tuple[str, st
     result: list[tuple[str, str | None] | None] = []
     for block in blocks:
         if block.kind == "heading":
-            if block.level == 2:
-                current_level_two = _normalize_heading(block.text)
+            if block.level <= 2:
+                current_level_two = _normalize_heading(block.text) if block.level == 2 else None
                 current_module = None
             elif block.level == 3 and current_level_two == domains:
                 current_module = _normalize_heading(block.text)
@@ -478,7 +489,8 @@ def _contains_unconditional_claim(text: str, language: str) -> bool:
     without_citations = _EVIDENCE_TOKEN.sub("", text)
     for claim in _CLAIM_BOUNDARY.split(without_citations):
         if language == "en":
-            substantive = len(re.findall(r"[A-Za-z]+", claim)) >= 3
+            words = re.findall(r"[A-Za-z]+", claim)
+            substantive = len(words) >= 3 or (len(words) >= 2 and words[0].casefold().endswith("ing"))
         else:
             substantive = len(re.findall(r"[\u3400-\u9fff]", claim)) >= 4
         if substantive and _CONDITIONAL[language].search(claim) is None:

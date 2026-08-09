@@ -248,6 +248,18 @@ class MarkdownValidationTests(unittest.TestCase):
         self.assertTrue(any("no inline evidence" in item for item in quoted_problems))
         self.assertTrue(any("selected module is missing" in item for item in span_problems))
 
+    def test_a_quoted_fence_ends_when_its_blockquote_container_ends(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            f"## Requested or context-specific domains\n\n{citation}",
+            f"## Requested or context-specific domains\n\n> ```text\n> hidden\n\n"
+            f"### Romance and intimacy\n\n{citation}",
+        )
+
+        problems = validate_markdown(report, ledger(), "en", ("Romance and intimacy",))
+
+        self.assertEqual(problems, [])
+
     def test_indented_code_cannot_supply_section_evidence(self) -> None:
         citation = ledger().evidence[0].citation
         report = valid_report().replace(
@@ -325,6 +337,18 @@ class MarkdownValidationTests(unittest.TestCase):
         self.assertTrue(any("module" in item for item in level_two_problems))
         self.assertTrue(any("module" in item for item in level_four_problems))
 
+    def test_higher_level_heading_resets_the_domains_section_ancestry(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            "## Overall synthesis",
+            f"# Separate document\n\n### Romance and intimacy\n\n{citation}\n\n## Overall synthesis",
+        )
+
+        problems = validate_markdown(report, ledger(), "en", ("Romance and intimacy",))
+
+        self.assertTrue(any("outside" in item for item in problems))
+        self.assertTrue(any("selected module is missing" in item for item in problems))
+
     def test_precision_language_and_conditional_wording_bypasses_are_rejected(self) -> None:
         aspect = next(item for item in ledger().evidence if item.kind == "aspect")
         overlay = next(item for item in ledger().evidence if item.kind == "overlay")
@@ -345,6 +369,22 @@ class MarkdownValidationTests(unittest.TestCase):
         incidental_may = base.replace(
             f"## Repeated interaction patterns\n\n{citation}",
             f"## Repeated interaction patterns\n\nThis proves compatibility and communication may improve. "
+            f"[{aspect.id}]\n\n{citation}",
+        )
+        alternative_may = base.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis proves compatibility or communication may improve. "
+            f"[{aspect.id}]\n\n{citation}",
+        )
+        concessive_may = base.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            "## Repeated interaction patterns\n\n"
+            "This proves compatibility, though communication may improve. "
+            f"[{aspect.id}]\n\n{citation}",
+        )
+        participle_claim = base.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nCommunication may improve, proving compatibility. "
             f"[{aspect.id}]\n\n{citation}",
         )
 
@@ -399,6 +439,14 @@ class MarkdownValidationTests(unittest.TestCase):
                 for item in validate_markdown(incidental_may, ledger(), "en", ())
             )
         )
+        for report in (alternative_may, concessive_may, participle_claim):
+            with self.subTest(report=report):
+                self.assertTrue(
+                    any(
+                        "conditional language" in item
+                        for item in validate_markdown(report, ledger(), "en", ())
+                    )
+                )
 
 
 class ValidatedWriteTests(unittest.TestCase):
@@ -514,6 +562,108 @@ class ValidatedWriteTests(unittest.TestCase):
 
         self.assertTrue(destination.samefile(source))
         self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
+
+    def test_overwrite_never_exchanges_or_replaces_a_directory(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.mkdir()
+        sentinel = destination / "keep.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+
+        with self.assertRaises(OSError):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertTrue(destination.is_dir())
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "keep")
+
+    def test_rollback_does_not_depend_on_a_second_exchange_or_discard_displaced_data(self) -> None:
+        source = self.directory / "source.json"
+        source.write_bytes((FIXTURES / "neutral.json").read_bytes())
+        selected = load_ledger(source)
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        original_identity = validate_synastry._path_identity
+        original_exchange = validate_synastry._exchange_paths
+        destination_checks = 0
+        exchanges = 0
+
+        def swap_after_check(path: Path) -> tuple[int, int] | None:
+            nonlocal destination_checks
+            result = original_identity(path)
+            if Path(path) == destination:
+                destination_checks += 1
+                if destination_checks == 2:
+                    destination.unlink()
+                    destination.hardlink_to(source)
+            return result
+
+        def fail_a_rollback(first: Path, second: Path) -> None:
+            nonlocal exchanges
+            exchanges += 1
+            if exchanges > 1:
+                raise OSError("forced rollback failure")
+            original_exchange(first, second)
+
+        with (
+            patch("validate_synastry._path_identity", side_effect=swap_after_check),
+            patch("validate_synastry._exchange_paths", side_effect=fail_a_rollback),
+            self.assertRaisesRegex(ValueError, "source JSON"),
+        ):
+            write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
+
+        self.assertTrue(destination.samefile(source))
+        self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
+
+    def test_failed_rollback_retains_the_displaced_regular_file(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        previous_identity = validate_synastry._path_identity(destination)
+        original_identity = validate_synastry._path_identity
+        original_exchange = validate_synastry._exchange_paths
+        exchanges = 0
+
+        def report_changed_displaced_identity(path: Path) -> tuple[int, int] | None:
+            result = original_identity(path)
+            if Path(path).name.startswith(".synastry-reading-") and result == previous_identity:
+                return (0, 0)
+            return result
+
+        def fail_a_second_exchange(first: Path, second: Path) -> None:
+            nonlocal exchanges
+            exchanges += 1
+            if exchanges > 1:
+                raise OSError("forced rollback exchange failure")
+            original_exchange(first, second)
+
+        with (
+            patch("validate_synastry._path_identity", side_effect=report_changed_displaced_identity),
+            patch("validate_synastry._exchange_paths", side_effect=fail_a_second_exchange),
+            patch("validate_synastry.os.replace", side_effect=OSError("forced restore failure")),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        retained = [
+            path
+            for path in self.directory.iterdir()
+            if path.is_file() and path.read_text(encoding="utf-8") == "previous reading"
+        ]
+        self.assertTrue(retained)
+
+    def test_unsupported_atomic_overwrite_fails_without_mutating_the_destination(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+
+        with (
+            patch(
+                "validate_synastry._exchange_paths",
+                side_effect=OSError("atomic overwrite unsupported"),
+            ),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertEqual(destination.read_text(encoding="utf-8"), "previous reading")
+        self.assertEqual(list(self.directory.glob(".synastry-*")), [])
 
     def test_output_collision_cli_error_does_not_echo_destination(self) -> None:
         destination = self.directory / "secret-reading-name.md"

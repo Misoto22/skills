@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import io
 import json
+import os
 import stat
 import subprocess
 import sys
@@ -139,6 +140,27 @@ class SourceValidatorCliTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(stderr.getvalue(), "error: could not write ledger output\n")
         self.assertNotIn("sensitive", stderr.getvalue())
+
+    def test_real_closed_pipe_is_flushed_and_quarantined_before_process_exit(self) -> None:
+        script = SKILL / "scripts" / "validate_synastry.py"
+        read_descriptor, write_descriptor = os.pipe()
+        os.close(read_descriptor)
+        try:
+            process = subprocess.Popen(
+                [sys.executable, str(script), str(FIXTURES / "neutral.json")],
+                cwd=SKILL,
+                stdout=write_descriptor,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        finally:
+            os.close(write_descriptor)
+        _, stderr = process.communicate()
+
+        self.assertEqual(process.returncode, 2)
+        self.assertEqual(stderr, "error: could not write ledger output\n")
+        self.assertNotIn("Exception ignored", stderr)
+        self.assertNotIn("BrokenPipeError", stderr)
 
     def test_script_runs_directly_from_the_skill_directory(self) -> None:
         script = SKILL / "scripts" / "validate_synastry.py"

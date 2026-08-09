@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import secrets
+import stat
 import sys
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
@@ -195,6 +196,7 @@ def _write_atomic_bytes(
     destination = destination.expanduser()
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
+    backup: Path | None = None
     descriptor: int | None = None
     try:
         for _ in range(32):
@@ -234,17 +236,50 @@ def _write_atomic_bytes(
                 temporary.unlink()
                 temporary = None
             else:
+                regular_identity = _regular_file_identity(destination)
+                if regular_identity != existing_identity:
+                    if forbidden_identity is not None and regular_identity == forbidden_identity:
+                        raise SourceIdentityError("output must not replace the source JSON")
+                    raise OSError(errno.EBUSY, "output changed during installation")
+                backup = _pin_destination(destination, temporary_prefix)
+                pinned_identity = _regular_file_identity(backup)
+                current_identity = _regular_file_identity(destination)
+                if pinned_identity != existing_identity or current_identity != existing_identity:
+                    if forbidden_identity is not None and (
+                        pinned_identity == forbidden_identity or current_identity == forbidden_identity
+                    ):
+                        raise SourceIdentityError("output must not replace the source JSON")
+                    raise OSError(errno.EBUSY, "output changed during installation")
                 _exchange_paths(temporary, destination)
                 displaced_identity = _path_identity(temporary)
-                if displaced_identity != existing_identity or (
-                    forbidden_identity is not None and displaced_identity == forbidden_identity
-                ):
-                    _exchange_paths(temporary, destination)
-                    if displaced_identity == forbidden_identity:
+                displaced_regular_identity = _regular_file_identity(temporary)
+                changed = (
+                    displaced_identity != existing_identity or displaced_regular_identity != existing_identity
+                )
+                source_alias = forbidden_identity is not None and (
+                    displaced_identity == forbidden_identity
+                    or displaced_regular_identity == forbidden_identity
+                )
+                if changed or source_alias:
+                    try:
+                        os.replace(temporary, destination)
+                    except OSError:
+                        # The exchanged entry and its pinned predecessor are recovery data.
+                        # Never let generic temporary cleanup unlink either after restore failure.
+                        temporary = None
+                        backup = None
+                        raise
+                    temporary = None
+                    if backup is not None:
+                        backup.unlink()
+                        backup = None
+                    if source_alias:
                         raise SourceIdentityError("output must not replace the source JSON")
                     raise OSError(errno.EBUSY, "output changed during installation")
                 temporary.unlink()
                 temporary = None
+                backup.unlink()
+                backup = None
         else:
             try:
                 os.link(temporary, destination)
@@ -263,10 +298,52 @@ def _write_atomic_bytes(
         if temporary is not None:
             with suppress(FileNotFoundError):
                 temporary.unlink()
+        if backup is not None:
+            with suppress(FileNotFoundError):
+                backup.unlink()
+
+
+def _regular_file_identity(path: Path) -> tuple[int, int] | None:
+    """Return one non-symlink regular-file identity, rejecting other entry types."""
+
+    try:
+        link_status = os.lstat(path)
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(link_status.st_mode):
+        raise OSError(errno.EINVAL, "overwrite destination must be a regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags)
+    try:
+        opened_status = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    identity = (opened_status.st_dev, opened_status.st_ino)
+    if not stat.S_ISREG(opened_status.st_mode) or identity != (link_status.st_dev, link_status.st_ino):
+        raise OSError(errno.EBUSY, "output changed during installation")
+    return identity
+
+
+def _pin_destination(destination: Path, temporary_prefix: str) -> Path:
+    """Create an exclusive hard-link backup that pins the pre-install inode."""
+
+    for _ in range(32):
+        backup = destination.parent / f".{temporary_prefix}-backup-{secrets.token_hex(8)}.tmp"
+        try:
+            os.link(destination, backup, follow_symlinks=False)
+        except FileExistsError:
+            continue
+        return backup
+    raise FileExistsError(errno.EEXIST, "could not allocate an exclusive backup link")
 
 
 def _exchange_paths(first: Path, second: Path) -> None:
-    """Atomically exchange two directory entries or fail closed."""
+    """Atomically exchange entries only where the OS exposes a reviewed primitive.
+
+    There is deliberately no ``os.replace`` fallback: a check followed by an
+    unconditional replacement cannot defend the opened source identity from a
+    hostile destination swap. Unsupported systems fail before either entry moves.
+    """
 
     library = ctypes.CDLL(None, use_errno=True)
     encoded_first = os.fsencode(first)
@@ -320,6 +397,30 @@ def _ledger_bytes(ledger: EvidenceLedger) -> bytes:
     return canonical_json(ledger.to_dict()) + b"\n"
 
 
+def _write_stdout(payload: bytes) -> bool:
+    """Write and flush stdout, quarantining a failed real pipe before finalization."""
+
+    try:
+        sys.stdout.write(payload.decode("utf-8"))
+        sys.stdout.flush()
+        return True
+    except (OSError, ValueError):
+        _quarantine_stdout()
+        return False
+
+
+def _quarantine_stdout() -> None:
+    try:
+        stdout_descriptor = sys.stdout.fileno()
+        null_descriptor = os.open(os.devnull, os.O_WRONLY)
+    except (AttributeError, OSError, ValueError):
+        return
+    try:
+        os.dup2(null_descriptor, stdout_descriptor)
+    finally:
+        os.close(null_descriptor)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", help="validated synastry v2 .json artifact")
@@ -349,12 +450,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     payload = _ledger_bytes(ledger)
     if arguments.out is None:
-        try:
-            sys.stdout.write(payload.decode("utf-8"))
+        if _write_stdout(payload):
             return 0
-        except OSError:
-            print("error: could not write ledger output", file=sys.stderr)
-            return 2
+        print("error: could not write ledger output", file=sys.stderr)
+        return 2
     try:
         if arguments.out.suffix != ".json":
             raise ValueError("ledger output must end in .json")
