@@ -18,7 +18,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
 
-from synastry_schema import canonical_json, validate_artifact
+from synastry_schema import SchemaError, canonical_json, validate_artifact
+
+
+class SourceIdentityError(ValueError):
+    """An output path names the opened source artifact."""
+
+
+class OutputExistsError(FileExistsError):
+    """An exclusive output destination already exists."""
 
 
 @dataclass(frozen=True)
@@ -52,26 +60,32 @@ class EvidenceLedger:
     provenance: Mapping[str, object] = field(default_factory=dict)
     limitations: tuple[Mapping[str, object], ...] = ()
     source_path: str | None = None
+    source_device: int | None = field(default=None, compare=False, repr=False)
+    source_inode: int | None = field(default=None, compare=False, repr=False)
     source_digest: str = ""
     schema_version: str = "2.0"
 
     def to_dict(self) -> dict[str, object]:
         """Return the canonical JSON-ready ledger representation."""
 
-        return asdict(self)
+        result = asdict(self)
+        result.pop("source_device")
+        result.pop("source_inode")
+        return result
 
 
 def load_ledger(path_or_payload: str | os.PathLike[str] | Mapping[str, object]) -> EvidenceLedger:
     """Validate one JSON artifact path or in-memory JSON object and normalize its evidence."""
 
     source_path: Path | None = None
+    source_identity: tuple[int, int] | None = None
     if isinstance(path_or_payload, Mapping):
         payload: object = path_or_payload
     elif isinstance(path_or_payload, (str, os.PathLike)):
         source_path = Path(path_or_payload).expanduser()
         if source_path.suffix != ".json":
             raise ValueError("source must be a JSON object or a path ending in .json; TXT is not supported")
-        payload = json.loads(source_path.read_text(encoding="utf-8"))
+        payload, source_identity = _read_json_source(source_path)
     else:
         raise TypeError("source must be a JSON object or a path ending in .json")
 
@@ -94,10 +108,27 @@ def load_ledger(path_or_payload: str | os.PathLike[str] | Mapping[str, object]) 
         configuration=configuration,  # type: ignore[arg-type]
         provenance=copy.deepcopy(validated["provenance"]),  # type: ignore[arg-type]
         limitations=tuple(copy.deepcopy(validated["limitations"])),  # type: ignore[arg-type]
-        source_path=str(source_path.resolve()) if source_path is not None else None,
+        source_path=str(source_path.absolute()) if source_path is not None else None,
+        source_device=source_identity[0] if source_identity is not None else None,
+        source_inode=source_identity[1] if source_identity is not None else None,
         source_digest=str(validated["integrity"]["digest"]),  # type: ignore[index]
         schema_version=str(validated["schema_version"]),
     )
+
+
+def _read_json_source(source_path: Path) -> tuple[object, tuple[int, int]]:
+    descriptor = os.open(source_path, os.O_RDONLY)
+    stream = None
+    try:
+        status = os.fstat(descriptor)
+        stream = os.fdopen(descriptor, encoding="utf-8")
+        descriptor = -1
+        return json.load(stream), (status.st_dev, status.st_ino)
+    finally:
+        if stream is not None:
+            stream.close()
+        elif descriptor >= 0:
+            os.close(descriptor)
 
 
 def _evidence(artifact: Mapping[str, object]) -> tuple[EvidenceItem, ...]:
@@ -158,6 +189,7 @@ def _write_atomic_bytes(
     *,
     overwrite: bool,
     temporary_prefix: str,
+    forbidden_identity: tuple[int, int] | None = None,
 ) -> Path:
     destination = destination.expanduser()
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -188,6 +220,9 @@ def _write_atomic_bytes(
         os.close(descriptor)
         descriptor = None
 
+        if forbidden_identity is not None and _path_identity(destination) == forbidden_identity:
+            raise SourceIdentityError("output must not replace the source JSON")
+
         if overwrite:
             os.replace(temporary, destination)
             temporary = None
@@ -195,7 +230,7 @@ def _write_atomic_bytes(
             try:
                 os.link(temporary, destination)
             except FileExistsError as error:
-                raise FileExistsError(
+                raise OutputExistsError(
                     errno.EEXIST,
                     f"output already exists: {destination}",
                     destination,
@@ -209,6 +244,30 @@ def _write_atomic_bytes(
         if temporary is not None:
             with suppress(FileNotFoundError):
                 temporary.unlink()
+
+
+def _path_identity(path: Path) -> tuple[int, int] | None:
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path, os.O_RDONLY)
+        status = os.fstat(descriptor)
+        return status.st_dev, status.st_ino
+    except OSError:
+        return None
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _source_identity(ledger: EvidenceLedger) -> tuple[int, int] | None:
+    if ledger.source_device is None or ledger.source_inode is None:
+        return None
+    return ledger.source_device, ledger.source_inode
+
+
+def _is_source_path(path: Path, ledger: EvidenceLedger) -> bool:
+    identity = _source_identity(ledger)
+    return identity is not None and _path_identity(path) == identity
 
 
 def _ledger_bytes(ledger: EvidenceLedger) -> bytes:
@@ -226,27 +285,46 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the source validator CLI and return zero or two."""
 
+    arguments = _parser().parse_args(argv)
     try:
-        arguments = _parser().parse_args(argv)
         ledger = load_ledger(arguments.source)
-        payload = _ledger_bytes(ledger)
-        if arguments.out is None:
-            sys.stdout.write(payload.decode("utf-8"))
-        else:
-            if arguments.out.suffix != ".json":
-                raise ValueError("ledger output must end in .json")
-            if ledger.source_path is not None and arguments.out.resolve() == Path(ledger.source_path):
-                raise ValueError("ledger output must not replace the source JSON")
-            _write_atomic_bytes(
-                payload,
-                arguments.out,
-                overwrite=arguments.overwrite,
-                temporary_prefix="synastry-ledger",
-            )
-        return 0
-    except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
-        print(f"error: {error}", file=sys.stderr)
+    except json.JSONDecodeError:
+        print("error: source is not valid JSON", file=sys.stderr)
         return 2
+    except SchemaError:
+        print("error: source JSON failed synastry v2 validation", file=sys.stderr)
+        return 2
+    except OSError:
+        print("error: could not read source JSON", file=sys.stderr)
+        return 2
+    except (TypeError, ValueError):
+        print("error: source must be a synastry v2 JSON object or .json file", file=sys.stderr)
+        return 2
+
+    payload = _ledger_bytes(ledger)
+    if arguments.out is None:
+        sys.stdout.write(payload.decode("utf-8"))
+        return 0
+    try:
+        if arguments.out.suffix != ".json":
+            raise ValueError("ledger output must end in .json")
+        if _is_source_path(arguments.out, ledger):
+            raise SourceIdentityError("ledger output must not replace the source JSON")
+        _write_atomic_bytes(
+            payload,
+            arguments.out,
+            overwrite=arguments.overwrite,
+            temporary_prefix="synastry-ledger",
+            forbidden_identity=_source_identity(ledger),
+        )
+        return 0
+    except SourceIdentityError:
+        print("error: ledger output must not replace the source JSON", file=sys.stderr)
+    except OutputExistsError:
+        print("error: ledger output already exists; use --overwrite", file=sys.stderr)
+    except (OSError, TypeError, ValueError):
+        print("error: could not write ledger output", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

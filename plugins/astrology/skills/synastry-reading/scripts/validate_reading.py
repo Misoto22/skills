@@ -9,27 +9,93 @@ import os
 import re
 import sys
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
-from validate_synastry import EvidenceLedger, _write_atomic_bytes, load_ledger
+from validate_synastry import (
+    EvidenceItem,
+    EvidenceLedger,
+    OutputExistsError,
+    SchemaError,
+    SourceIdentityError,
+    _is_source_path,
+    _source_identity,
+    _write_atomic_bytes,
+    load_ledger,
+)
 
 _EVIDENCE_TOKEN = re.compile(r"\[E-(?:ASPECT|OVERLAY)-[0-9A-F]{4}\]")
 _EVIDENCE_LIKE = re.compile(r"\[E-(?:ASPECT|OVERLAY)-[^\]\s]+\]", re.IGNORECASE)
-_HEADING = re.compile(r"^(#{2,6})[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _PLACEHOLDER = re.compile(r"<[^<>\n]+>")
-_ORB = re.compile(
-    r"\borb(?:[ \t]+range)?[ \t]+\d+(?:\.\d+)?°(?:[ \t]*-[ \t]*\d+(?:\.\d+)?°)?",
+_DEGREE_CLAIM = re.compile(
+    r"(?P<first>\d+(?:\.\d+)?)[ \t]*(?:°|degrees?)"
+    r"(?:[ \t]*(?:-|\N{EN DASH}|\N{EM DASH}|to)[ \t]*"
+    r"(?P<second>\d+(?:\.\d+)?)[ \t]*(?:°|degrees?))?",
     re.IGNORECASE,
 )
 _SCORE = re.compile(
     r"compatibility[ \t]+(?:score|rating)|(?:score|rating)[ \t]*[:=][ \t]*\d|"
-    r"\b\d+(?:\.\d+)?[ \t]*(?:%|/[ \t]*(?:5|10|100))|[★⭐]{2,}",
+    r"\b\d+(?:\.\d+)?[ \t]*(?:%|points?\b|/[ \t]*(?:5|10|100))|[★⭐]{2,}",
     re.IGNORECASE,
 )
 _PREDICTION = re.compile(
     r"\b(?:will|guarantees?|guaranteed|destined|definitely|inevitably|certain to|must happen)\b|"
+    r"\bgoing[ \t]+to(?:[ \t]+\w+){1,4}\b|"
     r"必然|注定|保证|一定会|肯定会|必定",
     re.IGNORECASE,
+)
+_CONDITIONAL = {
+    "en": re.compile(
+        r"\b(?:can|could|may|might|tends?|often|suggests?|appears?|possibly|perhaps|potentially)\b",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(r"可能|也许|或许|倾向|往往|通常|可以|可(?:能)?|有时|似乎"),
+}
+_FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
+_ATX_HEADING = re.compile(r"^[ \t]{0,3}(?P<marker>#{1,6})[ \t]+(?P<title>.*?)[ \t]*#*[ \t]*$")
+_INLINE_CODE = re.compile(r"(`+).*?\1")
+_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_LIST_PREFIX = re.compile(r"^[ \t]{0,3}(?:(?:>[ \t]*)+)?(?:[-+*]|\d+[.)])[ \t]+")
+_QUOTE_PREFIX = re.compile(r"^[ \t]{0,3}(?:>[ \t]*)+")
+_ASPECT_KINDS = frozenset(
+    {
+        "conjunction",
+        "opposition",
+        "trine",
+        "square",
+        "sextile",
+        "semi-sextile",
+        "semi-square",
+        "quintile",
+        "sesquiquadrate",
+        "biquintile",
+        "quincunx",
+    }
+)
+_BODY_NAMES = frozenset(
+    {
+        "sun",
+        "moon",
+        "mercury",
+        "venus",
+        "mars",
+        "jupiter",
+        "saturn",
+        "uranus",
+        "neptune",
+        "pluto",
+        "chiron",
+        "ceres",
+        "pallas",
+        "juno",
+        "vesta",
+        "ascendant",
+        "descendant",
+        "medium_coeli",
+        "imum_coeli",
+        "vertex",
+        "east_point",
+    }
 )
 
 _UNIVERSAL_HEADINGS = {
@@ -57,43 +123,37 @@ _UNIVERSAL_HEADINGS = {
     ),
 }
 
-_CONDITIONAL_MODULE_ALIASES = (
-    frozenset(
-        {
-            "romance and intimacy",
-            "attraction, romance, and intimacy",
-            "浪漫与亲密关系",
-            "吸引力、浪漫与亲密关系",
-        }
+_CANONICAL_MODULES = {
+    "en": (
+        "Romance and intimacy",
+        "Friendship and community",
+        "Family and care",
+        "Work and creative collaboration",
+        "Money and shared resources",
     ),
-    frozenset(
-        {
-            "friendship and community",
-            "friendship, community, and social networks",
-            "友谊与社群",
-            "友谊、社群与社交网络",
-        }
-    ),
-    frozenset(
-        {"family and care", "daily life, home, family, and care", "家庭与照护", "日常生活、家庭与照护"}
-    ),
-    frozenset(
-        {
-            "work and creative collaboration",
-            "career, business, and creative collaboration",
-            "工作与创意协作",
-            "事业、商业与创意协作",
-        }
-    ),
-    frozenset(
-        {
-            "money and shared resources",
-            "money, shared resources, and risk tolerance",
-            "金钱与共同资源",
-            "金钱、共同资源与风险承受",
-        }
-    ),
+    "zh": ("浪漫与亲密关系", "友谊与社群", "家庭与照护", "工作与创意协作", "金钱与共同资源"),
+}
+_NONCANONICAL_MODULE_ALIASES = frozenset(
+    {
+        "attraction, romance, and intimacy",
+        "friendship, community, and social networks",
+        "daily life, home, family, and care",
+        "career, business, and creative collaboration",
+        "money, shared resources, and risk tolerance",
+        "吸引力、浪漫与亲密关系",
+        "友谊、社群与社交网络",
+        "日常生活、家庭与照护",
+        "事业、商业与创意协作",
+        "金钱、共同资源与风险承受",
+    }
 )
+
+
+@dataclass(frozen=True)
+class _Block:
+    kind: str
+    text: str
+    level: int = 0
 
 
 class ReadingError(ValueError):
@@ -116,32 +176,35 @@ def validate_markdown(
     if not isinstance(markdown, str):
         return ["markdown: expected text"]
 
+    blocks = _rendered_blocks(markdown)
+    rendered = "\n".join(block.text for block in blocks)
     language_key = _language_key(language)
     if language_key is None:
-        problems.append(f"language: unsupported value {language!r}")
+        problems.append("language: unsupported value")
     else:
-        _validate_headings(markdown, language_key, selected_modules, problems)
+        _validate_headings(blocks, language_key, selected_modules, problems)
 
-    placeholders = _PLACEHOLDER.findall(markdown)
+    placeholders = _PLACEHOLDER.findall(rendered)
     if placeholders:
-        problems.append(f"template placeholder remains: {placeholders[0]}")
-    if _SCORE.search(markdown):
+        problems.append("template placeholder remains")
+    if _SCORE.search(rendered):
         problems.append("compatibility score or rating language is forbidden")
-    if _PREDICTION.search(markdown):
+    if _PREDICTION.search(rendered):
         problems.append("deterministic prediction language is forbidden")
 
-    _validate_evidence(markdown, ledger, problems)
+    if language_key is not None:
+        _validate_evidence(blocks, ledger, language_key, problems)
     return _deduplicate(problems)
 
 
 def _validate_headings(
-    markdown: str,
+    blocks: Sequence[_Block],
     language: str,
     selected_modules: Sequence[str],
     problems: list[str],
 ) -> None:
-    headings = [(marker, title.strip()) for marker, title in _HEADING.findall(markdown)]
-    level_two = [title for marker, title in headings if marker == "##"]
+    headings = [block for block in blocks if block.kind == "heading"]
+    level_two = [block.text for block in headings if block.level == 2]
     required = _UNIVERSAL_HEADINGS[language]
     missing = [heading for heading in required if heading not in level_two]
     for heading in missing:
@@ -150,52 +213,281 @@ def _validate_headings(
     if present_positions != sorted(present_positions):
         problems.append("required universal heading order is incorrect")
 
-    normalized_headings = {_normalize_heading(title) for _, title in headings}
+    domains = _normalize_heading(required[6])
+    canonical = {_normalize_heading(module): module for module in _CANONICAL_MODULES[language]}
     selected = {_normalize_heading(module) for module in selected_modules}
-    for aliases in _CONDITIONAL_MODULE_ALIASES:
-        present_aliases = normalized_headings & aliases
-        selected_aliases = selected & aliases
-        if present_aliases and not selected_aliases:
-            problems.append(f"unselected module is present: {sorted(present_aliases)[0]}")
-        if selected_aliases and not present_aliases:
-            problems.append(f"selected module is missing: {sorted(selected_aliases)[0]}")
+    invalid_selected = selected - canonical.keys()
+    if invalid_selected:
+        problems.append("selected module is not a canonical module heading")
+    selected &= canonical.keys()
 
-    known_selected = set().union(*_CONDITIONAL_MODULE_ALIASES) & selected
-    for module in sorted(selected - known_selected):
-        if module not in normalized_headings:
-            problems.append(f"selected module is missing: {module}")
+    current_level_two: str | None = None
+    present: set[str] = set()
+    for heading in headings:
+        normalized = _normalize_heading(heading.text)
+        if heading.level == 2:
+            current_level_two = normalized
+            continue
+        if normalized in _NONCANONICAL_MODULE_ALIASES:
+            problems.append("noncanonical module heading is forbidden")
+        if heading.level != 3:
+            continue
+        if current_level_two == domains:
+            if normalized not in canonical or normalized not in selected:
+                problems.append("unselected module is present in the domains section")
+            else:
+                present.add(normalized)
+        elif normalized in canonical:
+            problems.append("selected module appears outside the domains section")
+
+    for module in sorted(selected - present):
+        problems.append(f"selected module is missing: {canonical[module]}")
 
 
-def _validate_evidence(markdown: str, ledger: EvidenceLedger, problems: list[str]) -> None:
+def _rendered_blocks(markdown: str) -> list[_Block]:
+    masked = _COMMENT.sub(lambda match: re.sub(r"[^\n]", " ", match.group(0)), markdown)
+    blocks: list[_Block] = []
+    paragraph: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+
+    def flush() -> None:
+        if paragraph:
+            blocks.append(_Block("paragraph", " ".join(paragraph).strip()))
+            paragraph.clear()
+
+    for raw_line in masked.splitlines():
+        fence = _FENCE.match(raw_line)
+        if fence_character is not None:
+            if fence is not None:
+                marker = fence.group("marker")
+                if marker[0] == fence_character and len(marker) >= fence_length:
+                    fence_character = None
+                    fence_length = 0
+            continue
+        if fence is not None:
+            flush()
+            marker = fence.group("marker")
+            fence_character = marker[0]
+            fence_length = len(marker)
+            continue
+        if raw_line.startswith("    ") or raw_line.startswith("\t"):
+            flush()
+            continue
+
+        line = _strip_inline_nonrendered(raw_line)
+        heading = _ATX_HEADING.match(line)
+        if heading is not None:
+            flush()
+            title = heading.group("title").strip()
+            blocks.append(_Block("heading", title, len(heading.group("marker"))))
+            continue
+        if not line.strip():
+            flush()
+            continue
+        if _LIST_PREFIX.match(line):
+            flush()
+            line = _LIST_PREFIX.sub("", line, count=1)
+            blocks.append(_Block("paragraph", line.strip()))
+            continue
+        line = _QUOTE_PREFIX.sub("", line, count=1)
+        paragraph.append(line.strip())
+    flush()
+    return blocks
+
+
+def _strip_inline_nonrendered(line: str) -> str:
+    line = _INLINE_CODE.sub(lambda match: " " * len(match.group(0)), line)
+    line = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", line)
+    return line
+
+
+def _validate_evidence(
+    blocks: Sequence[_Block],
+    ledger: EvidenceLedger,
+    language: str,
+    problems: list[str],
+) -> None:
     known = {f"[{item.id}]": item for item in ledger.evidence}
-    tokens = _EVIDENCE_TOKEN.findall(markdown)
-    malformed = sorted(set(_EVIDENCE_LIKE.findall(markdown)) - set(tokens))
-    for token in malformed:
-        problems.append(f"malformed evidence token: {token}")
+    rendered = "\n".join(block.text for block in blocks)
+    tokens = _EVIDENCE_TOKEN.findall(rendered)
+    malformed = sorted(set(_EVIDENCE_LIKE.findall(rendered)) - set(tokens))
+    if malformed:
+        problems.append("malformed evidence token")
     if ledger.evidence and not tokens:
         problems.append("reading contains no inline evidence tokens")
 
     for token in sorted(set(tokens)):
-        item = known.get(token)
-        if item is None:
-            problems.append(f"unknown evidence token: {token}")
-        elif item.citation not in markdown:
-            problems.append(f"evidence measurement does not match ledger display: {token}")
+        if token not in known:
+            problems.append("unknown evidence token")
 
-    for line in markdown.splitlines():
-        if "aspect:" not in line.casefold() and "overlay:" not in line.casefold():
+    keys = _section_keys(blocks, language)
+    section_evidence: dict[tuple[str, str | None], dict[str, EvidenceItem]] = {}
+    for index, block in enumerate(blocks):
+        if block.kind != "paragraph" or keys[index] is None:
             continue
-        for token in _EVIDENCE_TOKEN.findall(line):
+        for token in _EVIDENCE_TOKEN.findall(block.text):
             item = known.get(token)
-            if item is not None and item.citation not in line:
-                problems.append(f"evidence measurement does not match ledger display: {token}")
+            if item is not None and (block.text.startswith(item.citation) or block.text == item.display):
+                section_evidence.setdefault(keys[index], {})[item.id] = item
 
-    exact_measurements = {
-        match.group(0) for item in ledger.evidence for match in _ORB.finditer(item.citation)
+    for index, block in enumerate(blocks):
+        if block.kind != "paragraph":
+            continue
+        direct = [known[token] for token in _EVIDENCE_TOKEN.findall(block.text) if token in known]
+        section = list(section_evidence.get(keys[index], {}).values()) if keys[index] else []
+        bound = direct or section
+        top_section = keys[index][0] if keys[index] else ""
+        substantive = _is_substantive(block.text, top_section, ledger, language)
+        if substantive and not bound:
+            problems.append("substantive paragraph lacks valid evidence")
+        if substantive and not _CONDITIONAL[language].search(block.text):
+            problems.append("substantive paragraph requires conditional language")
+        if bound:
+            _validate_claims(block.text, bound, ledger, problems)
+        elif _DEGREE_CLAIM.search(block.text):
+            problems.append("measurement does not match paragraph evidence")
+
+
+def _section_keys(blocks: Sequence[_Block], language: str) -> list[tuple[str, str | None] | None]:
+    domains = _normalize_heading(_UNIVERSAL_HEADINGS[language][6])
+    current_level_two: str | None = None
+    current_module: str | None = None
+    result: list[tuple[str, str | None] | None] = []
+    for block in blocks:
+        if block.kind == "heading":
+            if block.level == 2:
+                current_level_two = _normalize_heading(block.text)
+                current_module = None
+            elif block.level == 3 and current_level_two == domains:
+                current_module = _normalize_heading(block.text)
+        result.append((current_level_two, current_module) if current_level_two is not None else None)
+    return result
+
+
+def _is_substantive(
+    text: str,
+    top_section: str,
+    ledger: EvidenceLedger,
+    language: str,
+) -> bool:
+    exempt_sections = {
+        _normalize_heading(_UNIVERSAL_HEADINGS[language][0]),
+        _normalize_heading(_UNIVERSAL_HEADINGS[language][-1]),
     }
-    for measurement in sorted(set(_ORB.findall(markdown))):
-        if measurement not in exact_measurements:
-            problems.append(f"measurement does not match evidence ledger: {measurement}")
+    if top_section in exempt_sections:
+        return False
+    if any(text == item.citation or text == item.display for item in ledger.evidence):
+        return False
+    if re.match(
+        r"^(?:Source|House system|Aspect orbs|Relationship context|Data limitations|"
+        r"数据来源|宫位系统|相位容许度|用户提供的关系背景|数据限制)[ \t]*:",
+        text,
+        re.IGNORECASE,
+    ):
+        return False
+    if re.match(
+        r"^(?:No directly relevant measurement|The source does not support|Evidence is insufficient|"
+        r"No unrequested domain met|没有直接相关证据|源数据不足)",
+        text,
+        re.IGNORECASE,
+    ):
+        return False
+    return bool(re.search(r"[A-Za-z\u3400-\u9fff]", text))
+
+
+def _validate_claims(
+    text: str,
+    evidence: Sequence[EvidenceItem],
+    ledger: EvidenceLedger,
+    problems: list[str],
+) -> None:
+    claim_mismatch = False
+    measurement_mismatch = False
+    allowed_pairs: set[tuple[str, str]] = set()
+    allowed_directions: set[tuple[str, str]] = set()
+    allowed_certainties: set[str] = set()
+    allowed_houses: set[int] = set()
+    allowed_aspects: set[str] = set()
+    allowed_measurements: set[tuple[float, float | None]] = set()
+    uncertain_ranges: set[tuple[float, float]] = set()
+    for item in evidence:
+        data = item.data
+        source = str(data["source_subject_id"])
+        target = str(data["target_subject_id"])
+        allowed_directions.add((source, target))
+        allowed_pairs.add((source, str(data["source_body"])))
+        certainty = str(data.get("certainty", "exact"))
+        allowed_certainties.add(certainty)
+        if item.kind == "aspect":
+            allowed_pairs.add((target, str(data["target_body"])))
+            allowed_aspects.add(str(data["kind"]))
+            if certainty == "exact":
+                allowed_measurements.add((float(data["orb_degrees"]), None))
+            else:
+                orb_range = data["orb_range_degrees"]
+                minimum = float(orb_range["minimum_degrees"])  # type: ignore[index]
+                maximum = float(orb_range["maximum_degrees"])  # type: ignore[index]
+                allowed_measurements.add((minimum, maximum))
+                uncertain_ranges.add((minimum, maximum))
+        else:
+            allowed_houses.add(int(data["target_house"]))
+
+    subject_ids = [subject.id for subject in ledger.subjects]
+    evidence_body_names = {body.casefold() for _, body in allowed_pairs}
+    for subject_id in subject_ids:
+        pattern = re.compile(rf"(?<![\w-]){re.escape(subject_id)}(?:'s)?[ \t]+([\w-]+)", re.IGNORECASE)
+        for body in pattern.findall(text):
+            if body.casefold() not in _BODY_NAMES and body.casefold() not in evidence_body_names:
+                continue
+            if not any(
+                subject_id.casefold() == owner.casefold() and body.casefold() == known_body.casefold()
+                for owner, known_body in allowed_pairs
+            ):
+                claim_mismatch = True
+        for other_id in subject_ids:
+            if subject_id == other_id:
+                continue
+            direction = re.compile(
+                rf"(?<![\w-]){re.escape(subject_id)}[ \t]*(?:->|→)[ \t]*"
+                rf"{re.escape(other_id)}(?![\w-])",
+                re.IGNORECASE,
+            )
+            if direction.search(text) and (subject_id, other_id) not in allowed_directions:
+                claim_mismatch = True
+
+    for certainty in re.findall(r"\b(?:exact|confirmed|possible)\b", text, re.IGNORECASE):
+        if certainty.casefold() not in {item.casefold() for item in allowed_certainties}:
+            claim_mismatch = True
+    for house in re.findall(r"\bhouse[ \t]+(\d{1,2})\b", text, re.IGNORECASE):
+        if int(house) not in allowed_houses:
+            measurement_mismatch = True
+    for house in re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)[ \t]+house\b", text, re.IGNORECASE):
+        if int(house) not in allowed_houses:
+            measurement_mismatch = True
+    for aspect in re.findall(r"\b[\w-]+\b", text.casefold()):
+        if aspect in _ASPECT_KINDS and aspect not in {item.casefold() for item in allowed_aspects}:
+            claim_mismatch = True
+        if aspect in _BODY_NAMES and aspect not in {body.casefold() for _, body in allowed_pairs}:
+            claim_mismatch = True
+
+    for match in _DEGREE_CLAIM.finditer(text):
+        measurement = (
+            float(match.group("first")),
+            float(match.group("second")) if match.group("second") is not None else None,
+        )
+        if measurement not in allowed_measurements:
+            measurement_mismatch = True
+        elif measurement[1] is not None and (
+            measurement not in uncertain_ranges
+            or not any(certainty in text.casefold() for certainty in ("confirmed", "possible"))
+        ):
+            claim_mismatch = True
+
+    if claim_mismatch:
+        problems.append("claim does not match paragraph evidence")
+    if measurement_mismatch:
+        problems.append("measurement does not match paragraph evidence")
 
 
 def _language_key(language: str) -> str | None:
@@ -226,8 +518,8 @@ def write_validated_markdown(
     """Validate and atomically write Markdown with exclusive, user-only defaults."""
 
     target = Path(destination).expanduser()
-    if ledger.source_path is not None and target.resolve() == Path(ledger.source_path).resolve():
-        raise ValueError("reading destination must not replace the source JSON")
+    if _is_source_path(target, ledger):
+        raise SourceIdentityError("reading destination must not replace the source JSON")
     if target.suffix.lower() != ".md":
         raise ValueError("reading destination must end in .md and must not be the source JSON")
     problems = validate_markdown(markdown, ledger, language, selected_modules)
@@ -238,6 +530,7 @@ def write_validated_markdown(
         target,
         overwrite=overwrite,
         temporary_prefix="synastry-reading",
+        forbidden_identity=_source_identity(ledger),
     )
 
 
@@ -255,11 +548,30 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the Markdown validator CLI and return zero or two."""
 
+    arguments = _parser().parse_args(argv)
     try:
-        arguments = _parser().parse_args(argv)
         ledger = load_ledger(arguments.source)
+    except json.JSONDecodeError:
+        print("error: source is not valid JSON", file=sys.stderr)
+        return 2
+    except SchemaError:
+        print("error: source JSON failed synastry v2 validation", file=sys.stderr)
+        return 2
+    except OSError:
+        print("error: could not read source JSON", file=sys.stderr)
+        return 2
+    except (TypeError, ValueError):
+        print("error: source must be a synastry v2 JSON object or .json file", file=sys.stderr)
+        return 2
+
+    try:
         markdown = arguments.reading.read_text(encoding="utf-8")
-        language = arguments.language or ledger.language
+    except (OSError, UnicodeError):
+        print("error: could not read draft Markdown", file=sys.stderr)
+        return 2
+
+    language = arguments.language or ledger.language
+    try:
         if arguments.out is not None:
             write_validated_markdown(
                 markdown,
@@ -274,13 +586,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             if problems:
                 raise ReadingError(problems)
         return 0
-    except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
-        if isinstance(error, ReadingError):
-            for problem in error.problems:
-                print(f"error: {problem}", file=sys.stderr)
-        else:
-            print(f"error: {error}", file=sys.stderr)
-        return 2
+    except ReadingError:
+        print("error: reading validation failed", file=sys.stderr)
+    except SourceIdentityError:
+        print("error: reading output must not replace the source JSON", file=sys.stderr)
+    except OutputExistsError:
+        print("error: reading output already exists; use --overwrite", file=sys.stderr)
+    except (OSError, TypeError, ValueError):
+        print("error: could not write validated reading", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

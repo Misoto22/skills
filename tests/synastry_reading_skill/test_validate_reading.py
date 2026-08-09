@@ -4,6 +4,7 @@ import io
 import json
 import re
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -162,12 +163,18 @@ class MarkdownValidationTests(unittest.TestCase):
         uncertain_report = valid_report().replace(
             ledger().evidence[0].citation, uncertain.evidence[0].citation
         )
+        changed_range = uncertain_report.replace("0.2°-0.8°", "0.2°\N{EN DASH}0.9°", 1)
+        changed_certainty = uncertain_report.replace("certainty confirmed", "certainty possible", 1)
 
         changed_problems = validate_markdown(changed, ledger(), "en", ())
         accepted = validate_markdown(uncertain_report, uncertain, "en", ())
+        range_problems = validate_markdown(changed_range, uncertain, "en", ())
+        certainty_problems = validate_markdown(changed_certainty, uncertain, "en", ())
 
         self.assertTrue(any("measurement does not match" in item for item in changed_problems))
         self.assertEqual(accepted, [])
+        self.assertTrue(any("measurement does not match" in item for item in range_problems))
+        self.assertTrue(any("claim does not match" in item for item in certainty_problems))
 
     def test_correct_index_entry_does_not_mask_an_altered_directional_display(self) -> None:
         overlay = next(item for item in ledger().evidence if item.kind == "overlay")
@@ -177,6 +184,139 @@ class MarkdownValidationTests(unittest.TestCase):
         problems = validate_markdown(report, ledger(), "en", ())
 
         self.assertTrue(any("measurement does not match" in item for item in problems))
+
+    def test_valid_directional_overlay_display_is_accepted(self) -> None:
+        overlay = next(item for item in ledger().evidence if item.kind == "overlay")
+        aspect = ledger().evidence[0]
+        report = valid_report().replace(aspect.citation, overlay.citation)
+
+        self.assertEqual(validate_markdown(report, ledger(), "en", ()), [])
+
+    def test_evidence_index_does_not_mask_an_uncited_substantive_section(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            "## Repeated interaction patterns\n\nThis may create an easier rhythm.",
+        )
+
+        problems = validate_markdown(report, ledger(), "en", ())
+
+        self.assertTrue(any("substantive paragraph" in item for item in problems))
+
+    def test_section_evidence_can_bind_a_conditional_paragraph(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis may create an easier rhythm.\n\n{citation}",
+        )
+
+        self.assertEqual(validate_markdown(report, ledger(), "en", ()), [])
+
+    def test_fenced_and_inline_content_cannot_supply_structure_or_evidence(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace("## Reciprocity and asymmetry", "## Missing section")
+        report = report.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            "## Repeated interaction patterns\n\nThis may create an easier rhythm. `" + citation + "`",
+        )
+        report += f"\n```markdown\n## Reciprocity and asymmetry\n{citation}\n```\n"
+
+        problems = validate_markdown(report, ledger(), "en", ())
+
+        self.assertTrue(any("required universal heading" in item for item in problems))
+        self.assertTrue(any("substantive paragraph" in item for item in problems))
+
+    def test_indented_code_cannot_supply_section_evidence(self) -> None:
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis may create an easier rhythm.\n\n    {citation}",
+        )
+
+        problems = validate_markdown(report, ledger(), "en", ())
+
+        self.assertTrue(any("substantive paragraph" in item for item in problems))
+
+    def test_paragraph_claim_fields_must_match_its_bound_evidence(self) -> None:
+        aspect = next(item for item in ledger().evidence if item.kind == "aspect")
+        data = aspect.data
+        wrong_direction = (
+            f"This may show {data['target_subject_id']} {data['source_body']} -> "
+            f"{data['source_subject_id']} {data['target_body']} as confirmed, {aspect.id}. "
+            f"[{aspect.id}]"
+        )
+        citation = ledger().evidence[0].citation
+        report = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\n{wrong_direction}\n\n{citation}",
+        )
+
+        problems = validate_markdown(report, ledger(), "en", ())
+
+        altered_body = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis may emphasize Venus. [{aspect.id}]\n\n{citation}",
+        )
+        body_problems = validate_markdown(altered_body, ledger(), "en", ())
+
+        self.assertTrue(any("claim does not match paragraph evidence" in item for item in problems))
+        self.assertTrue(any("claim does not match paragraph evidence" in item for item in body_problems))
+
+    def test_modules_must_be_selected_canonical_headings_inside_the_domains_section(self) -> None:
+        citation = ledger().evidence[0].citation
+        fenced = valid_report() + f"\n```\n### Romance and intimacy\n{citation}\n```\n"
+        misplaced = valid_report().replace(
+            "## Repeated interaction patterns",
+            f"### Romance and intimacy\n\n{citation}\n\n## Repeated interaction patterns",
+        )
+        alias = valid_report(("Attraction, romance, and intimacy",))
+
+        fenced_problems = validate_markdown(fenced, ledger(), "en", ("Romance and intimacy",))
+        misplaced_problems = validate_markdown(misplaced, ledger(), "en", ("Romance and intimacy",))
+        alias_problems = validate_markdown(alias, ledger(), "en", ("Attraction, romance, and intimacy",))
+
+        self.assertTrue(any("selected module is missing" in item for item in fenced_problems))
+        self.assertTrue(any("outside" in item for item in misplaced_problems))
+        self.assertTrue(any("canonical module" in item for item in alias_problems))
+
+    def test_precision_language_and_conditional_wording_bypasses_are_rejected(self) -> None:
+        aspect = next(item for item in ledger().evidence if item.kind == "aspect")
+        overlay = next(item for item in ledger().evidence if item.kind == "overlay")
+        base = valid_report()
+        score = base + f"\nThis may rate compatibility at 92 points. [{aspect.id}]\n"
+        prediction = base + f"\nThey are going to marry. [{aspect.id}]\n"
+        measurement = base + f"\nThis may be exact at 1.234 degrees. [{aspect.id}]\n"
+        house = base + f"\nThis may activate house 12. [{overlay.id}]\n"
+        citation = ledger().evidence[0].citation
+        unconditional = base.replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\nThis creates emotional ease. [{aspect.id}]\n\n{citation}",
+        )
+
+        self.assertTrue(
+            any("compatibility score" in item for item in validate_markdown(score, ledger(), "en", ()))
+        )
+        self.assertTrue(
+            any(
+                "deterministic prediction" in item
+                for item in validate_markdown(prediction, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any(
+                "measurement does not match" in item
+                for item in validate_markdown(measurement, ledger(), "en", ())
+            )
+        )
+        self.assertTrue(
+            any("measurement does not match" in item for item in validate_markdown(house, ledger(), "en", ()))
+        )
+        self.assertTrue(
+            any(
+                "conditional language" in item
+                for item in validate_markdown(unconditional, ledger(), "en", ())
+            )
+        )
 
 
 class ValidatedWriteTests(unittest.TestCase):
@@ -230,6 +370,67 @@ class ValidatedWriteTests(unittest.TestCase):
 
         self.assertEqual((valid_code, invalid_code), (0, 0))
         self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_cli_errors_do_not_echo_paths_or_untrusted_reading_text(self) -> None:
+        secret = "birth_1990-03-14_delete-files"
+        missing = self.directory / f"{secret}.md"
+        source = FIXTURES / "neutral.json"
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            missing_code = main([str(source), str(missing)])
+
+        draft = self.directory / "draft.md"
+        draft.write_text(f"# {secret}\n\n[E-ASPECT-FFFF]", encoding="utf-8")
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            invalid_code = main([str(source), str(draft)])
+
+        self.assertEqual((missing_code, invalid_code), (2, 2))
+        self.assertNotIn(secret, stderr.getvalue())
+        self.assertNotIn(str(missing), stderr.getvalue())
+
+    def test_source_identity_rejects_hard_links_and_survives_source_symlink_swap(self) -> None:
+        source = self.directory / "source.json"
+        source.write_bytes((FIXTURES / "neutral.json").read_bytes())
+        source_link = self.directory / "source-link.json"
+        source_link.symlink_to(source)
+        selected = load_ledger(source_link)
+        source_link.unlink()
+        decoy = self.directory / "decoy.json"
+        decoy.write_bytes((FIXTURES / "neutral.json").read_bytes())
+        source_link.symlink_to(decoy)
+        destination = self.directory / "reading.md"
+        destination.hardlink_to(source)
+
+        with self.assertRaisesRegex(ValueError, "source JSON"):
+            write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
+
+    def test_output_collision_cli_error_does_not_echo_destination(self) -> None:
+        destination = self.directory / "secret-reading-name.md"
+        destination.write_text("existing", encoding="utf-8")
+        draft = self.directory / "draft.md"
+        draft.write_text(valid_report(), encoding="utf-8")
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            code = main([str(FIXTURES / "neutral.json"), str(draft), "--out", str(destination)])
+
+        self.assertEqual(code, 2)
+        self.assertNotIn(str(destination), stderr.getvalue())
+
+    def test_reading_validator_script_runs_directly_from_the_skill_directory(self) -> None:
+        draft = self.directory / "draft.md"
+        draft.write_text(valid_report(), encoding="utf-8")
+        script = SKILL / "scripts" / "validate_reading.py"
+
+        completed = subprocess.run(
+            [sys.executable, str(script), str(FIXTURES / "neutral.json"), str(draft)],
+            cwd=SKILL,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
 
 if __name__ == "__main__":

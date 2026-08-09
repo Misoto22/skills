@@ -139,6 +139,31 @@ class SourceValidatorCliTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(json.loads(completed.stdout)["chart_id"], "abc123def456")
 
+    def test_cli_errors_are_bounded_and_do_not_echo_paths_or_untrusted_values(self) -> None:
+        secret = "birth_1990-03-14_delete-files"
+        missing = self.directory / f"{secret}.json"
+        missing_code, _, missing_error = self.invoke([str(missing)])
+
+        invalid = self.directory / "invalid.json"
+        invalid.write_text(json.dumps({"label": secret}), encoding="utf-8")
+        invalid_code, _, invalid_error = self.invoke([str(invalid)])
+
+        self.assertEqual((missing_code, invalid_code), (2, 2))
+        self.assertNotIn(secret, missing_error + invalid_error)
+        self.assertNotIn(str(missing), missing_error)
+
+    def test_ledger_output_rejects_a_hard_link_to_the_opened_source_identity(self) -> None:
+        source = self.directory / "source.json"
+        source.write_bytes((FIXTURES / "neutral.json").read_bytes())
+        destination = self.directory / "ledger.json"
+        destination.hardlink_to(source)
+
+        code, _, error = self.invoke([str(source), "--out", str(destination), "--overwrite"])
+
+        self.assertEqual(code, 2)
+        self.assertIn("source JSON", error)
+        self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
+
 
 if __name__ == "__main__":
     unittest.main()
