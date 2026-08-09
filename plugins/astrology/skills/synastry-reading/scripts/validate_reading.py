@@ -635,6 +635,25 @@ def write_validated_markdown(
 ) -> Path:
     """Validate and atomically write Markdown with exclusive, user-only defaults."""
 
+    target, payload = prepare_validated_markdown(
+        markdown,
+        ledger,
+        destination,
+        language,
+        selected_modules,
+    )
+    return install_validated_markdown(payload, ledger, target, overwrite=overwrite)
+
+
+def prepare_validated_markdown(
+    markdown: str,
+    ledger: EvidenceLedger,
+    destination: str | os.PathLike[str],
+    language: str,
+    selected_modules: Sequence[str],
+) -> tuple[Path, bytes]:
+    """Validate Markdown and return its checked destination and bytes without writing."""
+
     target = Path(destination).expanduser()
     if _is_source_path(target, ledger):
         raise SourceIdentityError("reading destination must not replace the source JSON")
@@ -643,8 +662,23 @@ def write_validated_markdown(
     problems = validate_markdown(markdown, ledger, language, selected_modules)
     if problems:
         raise ReadingError(problems)
+    return target, markdown.encode("utf-8")
+
+
+def install_validated_markdown(
+    payload: bytes,
+    ledger: EvidenceLedger,
+    destination: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """Atomically install already-validated Markdown bytes."""
+
+    target = Path(destination).expanduser()
+    if _is_source_path(target, ledger):
+        raise SourceIdentityError("reading destination must not replace the source JSON")
     return _write_atomic_bytes(
-        markdown.encode("utf-8"),
+        payload,
         target,
         overwrite=overwrite,
         temporary_prefix="synastry-reading",

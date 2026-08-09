@@ -9,16 +9,21 @@ import os
 import re
 import secrets
 import shutil
+import signal
 import stat
 import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Mapping, Sequence
-from contextlib import suppress
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager, suppress
 from pathlib import Path
 
-from validate_reading import ReadingError, write_validated_markdown
+from validate_reading import (
+    ReadingError,
+    install_validated_markdown,
+    prepare_validated_markdown,
+)
 from validate_synastry import (
     OutputExistsError,
     SchemaError,
@@ -33,6 +38,14 @@ MAX_TTL_SECONDS = 3600
 PAGE_BYTES = 16_384
 _TOKEN = re.compile(r"\A[0-9a-f]{32}\Z")
 _ROOT_ENV = "SYNASTRY_READING_SESSION_ROOT"
+
+
+class _SignalInterruption(BaseException):
+    """A catchable process signal that preserves conventional shell status."""
+
+    def __init__(self, signum: int):
+        self.signum = signum
+        super().__init__(signum)
 
 
 def _root(*, create: bool) -> Path:
@@ -59,6 +72,16 @@ def _session_path(root: Path, token: str) -> Path:
     if not _TOKEN.fullmatch(token):
         raise ValueError("invalid session token")
     return root / token
+
+
+def _staging_path(root: Path, token: str) -> Path:
+    _session_path(root, token)
+    return root / f".staging-{token}"
+
+
+def _finalizing_path(root: Path, token: str) -> Path:
+    _session_path(root, token)
+    return root / f".finalizing-{token}"
 
 
 def _write_private(path: Path, payload: bytes) -> None:
@@ -99,12 +122,41 @@ def _read_metadata(session: Path) -> dict[str, object]:
     return payload
 
 
-def _remove_session(root: Path, token: str) -> None:
-    session = _session_path(root, token)
-    if session.exists():
-        shutil.rmtree(session)
+def _entry_exists(path: Path) -> bool:
+    return os.path.lexists(path)
+
+
+def _remove_private_tree(path: Path) -> None:
+    """Remove one private tree idempotently when another cleanup may win."""
+
+    for _ in range(2):
+        if not _entry_exists(path):
+            return
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            continue
+        if not _entry_exists(path):
+            return
+    if _entry_exists(path):
+        raise OSError("private session cleanup did not complete")
+
+
+def _prune_root(root: Path) -> None:
     with suppress(OSError):
         root.rmdir()
+
+
+def _remove_session(root: Path, token: str, *, prune_root: bool = True) -> None:
+    _remove_private_tree(_session_path(root, token))
+    if prune_root:
+        _prune_root(root)
+
+
+def _remove_start_state(root: Path, token: str) -> None:
+    _remove_private_tree(_staging_path(root, token))
+    _remove_private_tree(_session_path(root, token))
+    _prune_root(root)
 
 
 def _sweep_expired(root: Path) -> None:
@@ -119,7 +171,7 @@ def _sweep_expired(root: Path) -> None:
         except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
             expires_at = 0
         if expires_at <= now:
-            _remove_session(root, candidate.name)
+            _remove_session(root, candidate.name, prune_root=False)
 
 
 def _spawn_watchdog(token: str, expires_at: int) -> None:
@@ -140,6 +192,31 @@ def _spawn_watchdog(token: str, expires_at: int) -> None:
         start_new_session=True,
         env=environment,
     )
+
+
+@contextmanager
+def _cleanup_signal_handlers() -> Iterator[None]:
+    """Turn common interactive termination signals into cleanup-safe exceptions."""
+
+    previous: dict[int, object] = {}
+
+    def interrupt(signum: int, _frame: object) -> None:
+        raise _SignalInterruption(signum)
+
+    for name in ("SIGINT", "SIGTERM", "SIGHUP"):
+        signum = getattr(signal, name, None)
+        if signum is None or signum in previous:
+            continue
+        try:
+            previous[signum] = signal.getsignal(signum)
+            signal.signal(signum, interrupt)
+        except (OSError, ValueError):
+            previous.pop(signum, None)
+    try:
+        yield
+    finally:
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
 
 
 def _emit(payload: Mapping[str, object]) -> None:
@@ -167,90 +244,131 @@ def _start(arguments: argparse.Namespace) -> int:
         source_kind = "attached"
         source_value = str(source_path)
 
-    root = _root(create=True)
-    _sweep_expired(root)
-    while True:
-        token = secrets.token_hex(16)
-        session = root / token
+    root: Path | None = None
+    token: str | None = None
+    complete = False
+    with _cleanup_signal_handlers():
         try:
-            session.mkdir(mode=0o700)
-            break
-        except FileExistsError:
-            continue
+            root = _root(create=True)
+            _sweep_expired(root)
+            while True:
+                token = secrets.token_hex(16)
+                session = _session_path(root, token)
+                staging = _staging_path(root, token)
+                try:
+                    staging.mkdir(mode=0o700)
+                except FileNotFoundError:
+                    _root(create=True)
+                    continue
+                except FileExistsError:
+                    continue
+                if _entry_exists(session) or _entry_exists(_finalizing_path(root, token)):
+                    _remove_private_tree(staging)
+                    continue
+                break
 
-    expires_at = int(time.time()) + arguments.ttl_seconds
-    try:
-        if source_kind == "pasted":
-            source_file = session / "source.json"
-            _write_private(
-                source_file,
-                json.dumps(source_value, ensure_ascii=False, sort_keys=True).encode("utf-8"),
-            )
-            stored_source = "source.json"
-        else:
-            stored_source = source_value
-        ledger_payload = _ledger_bytes(ledger)
-        pages_path, page_count = _write_ledger_pages(session, ledger_payload)
-        metadata = {
-            "expires_at": expires_at,
-            "source": stored_source,
-            "source_digest": ledger.source_digest,
-            "source_kind": source_kind,
-        }
-        _write_private(
-            session / "session.json",
-            json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8"),
-        )
-        _spawn_watchdog(token, expires_at)
-        _emit(
-            {
+            expires_at = int(time.time()) + arguments.ttl_seconds
+            # Arm bounded cleanup before writing any source or ledger bytes.
+            _spawn_watchdog(token, expires_at)
+            if source_kind == "pasted":
+                source_file = staging / "source.json"
+                _write_private(
+                    source_file,
+                    json.dumps(source_value, ensure_ascii=False, sort_keys=True).encode("utf-8"),
+                )
+                stored_source = "source.json"
+            else:
+                stored_source = source_value
+            ledger_payload = _ledger_bytes(ledger)
+            _, page_count = _write_ledger_pages(staging, ledger_payload)
+            metadata = {
                 "expires_at": expires_at,
-                "ledger_bytes": len(ledger_payload),
-                "page_bytes": PAGE_BYTES,
-                "page_count": page_count,
-                "pages_path": str(pages_path),
-                "status": "ready",
-                "token": token,
+                "source": stored_source,
+                "source_digest": ledger.source_digest,
+                "source_kind": source_kind,
             }
-        )
-    except Exception:
-        _remove_session(root, token)
-        raise
+            _write_private(
+                staging / "session.json",
+                json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8"),
+            )
+            os.rename(staging, session)
+            pages_path = session / "ledger-pages"
+            _emit(
+                {
+                    "expires_at": expires_at,
+                    "ledger_bytes": len(ledger_payload),
+                    "page_bytes": PAGE_BYTES,
+                    "page_count": page_count,
+                    "pages_path": str(pages_path),
+                    "status": "ready",
+                    "token": token,
+                }
+            )
+            complete = True
+        finally:
+            if not complete and root is not None and token is not None:
+                _remove_start_state(root, token)
     return 0
+
+
+def _claim_session(root: Path, token: str) -> Path:
+    session = _session_path(root, token)
+    claimed = _finalizing_path(root, token)
+    if _entry_exists(claimed):
+        raise ValueError("session is already finalizing")
+    try:
+        os.rename(session, claimed)
+    except FileNotFoundError as error:
+        raise ValueError("session is unavailable") from error
+    return claimed
+
+
+def _cleanup_claim(root: Path, claimed: Path) -> None:
+    _remove_private_tree(claimed)
+    _prune_root(root)
 
 
 def _finalize(arguments: argparse.Namespace) -> int:
     root = _root(create=False)
-    token = arguments.token
-    session = _session_path(root, token)
-    try:
-        metadata = _read_metadata(session)
-        if int(metadata["expires_at"]) <= int(time.time()):
-            raise ValueError("session expired")
-        if metadata["source_kind"] == "pasted":
-            source: str | Path = session / str(metadata["source"])
-        elif metadata["source_kind"] == "attached":
-            source = str(metadata["source"])
-        else:
-            raise ValueError("invalid source kind")
-        ledger = load_ledger(source)
-        if ledger.source_digest != metadata["source_digest"]:
-            raise ValueError("source changed")
-        destination = arguments.out.expanduser().resolve(strict=False)
-        if destination.is_relative_to(root.resolve(strict=False)):
-            raise ValueError("final output must be outside the private session")
-        markdown = sys.stdin.read()
-        write_validated_markdown(
-            markdown,
-            ledger,
-            destination,
-            arguments.language or ledger.language,
-            arguments.modules,
-        )
-        _emit({"status": "complete"})
-        return 0
-    finally:
-        _remove_session(root, token)
+    claimed = _claim_session(root, arguments.token)
+    prepared = False
+    with _cleanup_signal_handlers():
+        try:
+            metadata = _read_metadata(claimed)
+            expires_at = int(metadata["expires_at"])
+            if expires_at <= int(time.time()):
+                raise ValueError("session expired")
+            if metadata["source_kind"] == "pasted":
+                source: str | Path = claimed / str(metadata["source"])
+            elif metadata["source_kind"] == "attached":
+                source = str(metadata["source"])
+            else:
+                raise ValueError("invalid source kind")
+            ledger = load_ledger(source)
+            if ledger.source_digest != metadata["source_digest"]:
+                raise ValueError("source changed")
+            destination = arguments.out.expanduser().resolve(strict=False)
+            if destination.is_relative_to(root.resolve(strict=False)):
+                raise ValueError("final output must be outside the private session")
+            markdown = sys.stdin.read()
+            target, payload = prepare_validated_markdown(
+                markdown,
+                ledger,
+                destination,
+                arguments.language or ledger.language,
+                arguments.modules,
+            )
+            if expires_at <= int(time.time()):
+                raise ValueError("session expired")
+            _cleanup_claim(root, claimed)
+            prepared = True
+        finally:
+            if not prepared:
+                _cleanup_claim(root, claimed)
+
+    # Installation is the terminal operation: no status write or session cleanup follows it.
+    install_validated_markdown(payload, ledger, target)
+    return 0
 
 
 def _cancel(arguments: argparse.Namespace) -> int:
@@ -261,23 +379,31 @@ def _cancel(arguments: argparse.Namespace) -> int:
 
 
 def _expire(arguments: argparse.Namespace) -> int:
+    root = _root(create=False)
+    session = _session_path(root, arguments.token)
+    staging = _staging_path(root, arguments.token)
+    finalizing = _finalizing_path(root, arguments.token)
+    states = (staging, session, finalizing)
     while True:
-        root = _root(create=False)
-        if not root.exists():
-            return 0
-        session = _session_path(root, arguments.token)
-        if not session.exists():
+        if not root.exists() or not any(_entry_exists(path) for path in states):
             return 0
         delay = arguments.expires_at - int(time.time())
         if delay <= 0:
             break
         time.sleep(min(delay, 1))
-    try:
-        metadata = _read_metadata(session)
-        if int(metadata["expires_at"]) <= int(time.time()):
-            _remove_session(root, arguments.token)
-    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
-        _remove_session(root, arguments.token)
+    for state in states:
+        if not _entry_exists(state):
+            continue
+        if state == staging:
+            _remove_private_tree(state)
+            continue
+        try:
+            expires_at = int(_read_metadata(state)["expires_at"])
+        except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+            expires_at = 0
+        if expires_at <= int(time.time()):
+            _remove_private_tree(state)
+    _prune_root(root)
     return 0
 
 
@@ -308,6 +434,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     try:
         return int(arguments.handler(arguments))
+    except _SignalInterruption as error:
+        return 128 + error.signum
     except (
         json.JSONDecodeError,
         KeyError,

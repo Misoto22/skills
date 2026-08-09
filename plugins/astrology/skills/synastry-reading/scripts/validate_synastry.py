@@ -71,6 +71,9 @@ class EvidenceLedger:
         result = asdict(self)
         result.pop("source_device")
         result.pop("source_inode")
+        provenance = result["provenance"]
+        assert isinstance(provenance, dict)
+        provenance.pop("data_path", None)
         return result
 
 

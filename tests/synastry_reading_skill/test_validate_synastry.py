@@ -64,6 +64,24 @@ class SourceValidationTests(unittest.TestCase):
         self.assertNotIn("display_name", ledger.to_dict()["subjects"][0])
         self.assertNotIn("source_path", ledger.to_dict())
 
+    def test_model_projection_omits_local_data_path_but_keeps_safe_provenance(self) -> None:
+        secret_path = "/Users/private-user/ephemeris-data"
+        source = fixture()
+        source["provenance"]["data_path"] = secret_path  # type: ignore[index]
+
+        ledger = load_ledger(attach_integrity(source))
+        projected = ledger.to_dict()["provenance"]
+
+        self.assertEqual(ledger.provenance["data_path"], secret_path)
+        self.assertNotIn("data_path", projected)
+        self.assertEqual(projected["actual_backend"], "swiss")
+        self.assertEqual(projected["return_flags"], [2])
+
+        invalid = fixture()
+        invalid["provenance"]["data_path"] = 42  # type: ignore[index]
+        with self.assertRaisesRegex(SchemaError, "provenance.data_path"):
+            load_ledger(attach_integrity(invalid))
+
     def test_broken_digest_and_unknown_schema_are_rejected(self) -> None:
         broken = fixture()
         broken["chart_id"] = "changed"
