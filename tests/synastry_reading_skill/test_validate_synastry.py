@@ -4,6 +4,7 @@ import copy
 import io
 import json
 import os
+import socket
 import stat
 import subprocess
 import sys
@@ -17,6 +18,7 @@ SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
 sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
+import validate_synastry  # type: ignore[import-not-found]
 from synastry_schema import SchemaError, attach_integrity  # type: ignore[import-not-found]
 from validate_synastry import load_ledger, main  # type: ignore[import-not-found]
 
@@ -200,6 +202,63 @@ class SourceValidatorCliTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("source JSON", error)
         self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO paths require POSIX mkfifo")
+    def test_fifo_output_is_rejected_without_blocking_or_mutation(self) -> None:
+        destination = self.directory / "ledger.json"
+        os.mkfifo(destination, 0o600)
+        before = os.lstat(destination)
+        script = SKILL / "scripts" / "validate_synastry.py"
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                str(FIXTURES / "neutral.json"),
+                "--out",
+                str(destination),
+                "--overwrite",
+            ],
+            cwd=SKILL,
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=2,
+        )
+
+        after = os.lstat(destination)
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stderr, "error: could not write ledger output\n")
+        self.assertTrue(stat.S_ISFIFO(after.st_mode))
+        self.assertEqual((after.st_dev, after.st_ino), (before.st_dev, before.st_ino))
+
+    @unittest.skipUnless(os.name == "posix", "special path entries require POSIX semantics")
+    def test_path_identity_rejects_special_entries_without_following_or_opening_them(self) -> None:
+        directory = self.directory / "directory"
+        directory.mkdir()
+        target = self.directory / "target"
+        target.write_text("keep", encoding="utf-8")
+        symlink = self.directory / "symlink"
+        symlink.symlink_to(target)
+        special_paths = [directory, symlink]
+
+        device = Path(os.devnull)
+        if device.exists() and not stat.S_ISREG(os.lstat(device).st_mode):
+            special_paths.append(device)
+
+        unix_socket: socket.socket | None = None
+        if hasattr(socket, "AF_UNIX"):
+            socket_path = self.directory / "socket"
+            unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            unix_socket.bind(str(socket_path))
+            special_paths.append(socket_path)
+        try:
+            for path in special_paths:
+                with self.subTest(path=path), self.assertRaises(OSError):
+                    validate_synastry._path_identity(path)
+        finally:
+            if unix_socket is not None:
+                unix_socket.close()
 
 
 if __name__ == "__main__":

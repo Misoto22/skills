@@ -197,7 +197,9 @@ def _write_atomic_bytes(
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
     backup: Path | None = None
+    recovery_directory: Path | None = None
     descriptor: int | None = None
+    prepared_identity: tuple[int, int] | None = None
     try:
         for _ in range(32):
             candidate = destination.parent / f".{temporary_prefix}-{secrets.token_hex(8)}.tmp"
@@ -220,6 +222,8 @@ def _write_atomic_bytes(
                 raise OSError("could not complete file write")
             view = view[written:]
         os.fsync(descriptor)
+        prepared_status = os.fstat(descriptor)
+        prepared_identity = (prepared_status.st_dev, prepared_status.st_ino)
         os.close(descriptor)
         descriptor = None
 
@@ -250,36 +254,64 @@ def _write_atomic_bytes(
                     ):
                         raise SourceIdentityError("output must not replace the source JSON")
                     raise OSError(errno.EBUSY, "output changed during installation")
-                _exchange_paths(temporary, destination)
-                displaced_identity = _path_identity(temporary)
-                displaced_regular_identity = _regular_file_identity(temporary)
-                changed = (
-                    displaced_identity != existing_identity or displaced_regular_identity != existing_identity
+                recovery_directory = _allocate_recovery_directory(
+                    destination.parent,
+                    temporary_prefix,
                 )
-                source_alias = forbidden_identity is not None and (
-                    displaced_identity == forbidden_identity
-                    or displaced_regular_identity == forbidden_identity
+                _exchange_paths(temporary, destination)
+                inspection_error: OSError | None = None
+                try:
+                    displaced_identity = _path_identity(temporary)
+                    displaced_regular_identity = _regular_file_identity(temporary)
+                except OSError as error:
+                    inspection_error = error
+                    displaced_identity = None
+                    displaced_regular_identity = None
+                changed = (
+                    inspection_error is not None
+                    or displaced_identity != existing_identity
+                    or displaced_regular_identity != existing_identity
+                )
+                source_alias = (
+                    inspection_error is None
+                    and forbidden_identity is not None
+                    and (
+                        displaced_identity == forbidden_identity
+                        or displaced_regular_identity == forbidden_identity
+                    )
                 )
                 if changed or source_alias:
                     try:
-                        os.replace(temporary, destination)
+                        if prepared_identity is None:
+                            raise OSError(errno.EIO, "prepared output identity is unavailable")
+                        _restore_displaced_entry(
+                            temporary,
+                            destination,
+                            prepared_identity,
+                            recovery_directory,
+                        )
                     except OSError:
                         # The exchanged entry and its pinned predecessor are recovery data.
                         # Never let generic temporary cleanup unlink either after restore failure.
                         temporary = None
                         backup = None
+                        recovery_directory = None
                         raise
                     temporary = None
+                    recovery_directory.rmdir()
+                    recovery_directory = None
                     if backup is not None:
                         backup.unlink()
                         backup = None
                     if source_alias:
                         raise SourceIdentityError("output must not replace the source JSON")
-                    raise OSError(errno.EBUSY, "output changed during installation")
+                    raise OSError(errno.EBUSY, "output changed during installation") from inspection_error
                 temporary.unlink()
                 temporary = None
                 backup.unlink()
                 backup = None
+                recovery_directory.rmdir()
+                recovery_directory = None
         else:
             try:
                 os.link(temporary, destination)
@@ -301,6 +333,63 @@ def _write_atomic_bytes(
         if backup is not None:
             with suppress(FileNotFoundError):
                 backup.unlink()
+        if recovery_directory is not None:
+            with suppress(FileNotFoundError):
+                recovery_directory.rmdir()
+
+
+def _restore_displaced_entry(
+    displaced: Path,
+    destination: Path,
+    prepared_identity: tuple[int, int],
+    recovery_directory: Path,
+) -> None:
+    """Restore any displaced entry type and quarantine the installed output if needed."""
+
+    if _regular_file_identity(destination) != prepared_identity:
+        raise OSError(errno.EBUSY, "installed output changed during recovery")
+    try:
+        os.replace(displaced, destination)
+        return
+    except OSError:
+        pass
+
+    installed_output = recovery_directory / "installed-output"
+    installed_moved = False
+    try:
+        os.rename(destination, installed_output)
+        installed_moved = True
+        os.rename(displaced, destination)
+        if _regular_file_identity(installed_output) != prepared_identity:
+            raise OSError(errno.EBUSY, "installed output changed during recovery")
+        installed_output.unlink()
+    except OSError as recovery_error:
+        if not installed_moved:
+            try:
+                _exchange_paths(displaced, destination)
+                if _regular_file_identity(displaced) != prepared_identity:
+                    raise OSError(errno.EBUSY, "installed output changed during recovery")
+                displaced.unlink()
+            except OSError as fallback_error:
+                raise recovery_error from fallback_error
+            return
+        # Once the installed output moves, every remaining path is recovery data:
+        # the displaced entry, the quarantined output, or the restored destination.
+        # The caller deliberately excludes them from generic cleanup on this error.
+        raise
+
+
+def _allocate_recovery_directory(parent: Path, temporary_prefix: str) -> Path:
+    """Reserve a private sibling directory for a failed post-exchange recovery."""
+
+    for _ in range(32):
+        recovery = parent / f".{temporary_prefix}-recovery-{secrets.token_hex(8)}.tmp"
+        try:
+            recovery.mkdir(mode=0o700)
+        except FileExistsError:
+            continue
+        return recovery
+    raise FileExistsError(errno.EEXIST, "could not allocate an exclusive recovery directory")
 
 
 def _regular_file_identity(path: Path) -> tuple[int, int] | None:
@@ -312,7 +401,7 @@ def _regular_file_identity(path: Path) -> tuple[int, int] | None:
         return None
     if not stat.S_ISREG(link_status.st_mode):
         raise OSError(errno.EINVAL, "overwrite destination must be a regular file")
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags)
     try:
         opened_status = os.fstat(descriptor)
@@ -370,16 +459,9 @@ def _exchange_paths(first: Path, second: Path) -> None:
 
 
 def _path_identity(path: Path) -> tuple[int, int] | None:
-    descriptor: int | None = None
-    try:
-        descriptor = os.open(path, os.O_RDONLY)
-        status = os.fstat(descriptor)
-        return status.st_dev, status.st_ino
-    except OSError:
-        return None
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
+    """Return one regular-file identity without blocking on or following special entries."""
+
+    return _regular_file_identity(path)
 
 
 def _source_identity(ledger: EvidenceLedger) -> tuple[int, int] | None:

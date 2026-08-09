@@ -563,6 +563,59 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertTrue(destination.samefile(source))
         self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
 
+    def test_symlink_swapped_at_exchange_boundary_is_restored_after_rejection(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        symlink_target = self.directory / "raced-reading.md"
+        symlink_target.write_text("raced reading", encoding="utf-8")
+        original_exchange = validate_synastry._exchange_paths
+        exchanges = 0
+
+        def swap_then_exchange(first: Path, second: Path) -> None:
+            nonlocal exchanges
+            exchanges += 1
+            if exchanges == 1:
+                destination.unlink()
+                destination.symlink_to(symlink_target)
+            original_exchange(first, second)
+
+        with (
+            patch("validate_synastry._exchange_paths", side_effect=swap_then_exchange),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertTrue(destination.is_symlink())
+        self.assertEqual(destination.readlink(), symlink_target)
+        self.assertEqual(symlink_target.read_text(encoding="utf-8"), "raced reading")
+
+    def test_directory_swapped_at_exchange_boundary_is_restored_after_rejection(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        raced_directory = self.directory / "raced-directory"
+        raced_directory.mkdir()
+        sentinel = raced_directory / "keep.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+        original_exchange = validate_synastry._exchange_paths
+        exchanges = 0
+
+        def swap_then_exchange(first: Path, second: Path) -> None:
+            nonlocal exchanges
+            exchanges += 1
+            if exchanges == 1:
+                destination.unlink()
+                raced_directory.rename(destination)
+            original_exchange(first, second)
+
+        with (
+            patch("validate_synastry._exchange_paths", side_effect=swap_then_exchange),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertTrue(destination.is_dir())
+        self.assertEqual((destination / "keep.txt").read_text(encoding="utf-8"), "keep")
+
     def test_overwrite_never_exchanges_or_replaces_a_directory(self) -> None:
         destination = self.directory / "reading.md"
         destination.mkdir()
@@ -648,6 +701,46 @@ class ValidatedWriteTests(unittest.TestCase):
             if path.is_file() and path.read_text(encoding="utf-8") == "previous reading"
         ]
         self.assertTrue(retained)
+        installed = destination.read_bytes() if destination.is_file() else None
+        self.assertNotEqual(installed, valid_report().encode("utf-8"))
+
+    def test_failed_recovery_move_restores_the_displaced_file_by_exchange(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+        previous_identity = validate_synastry._path_identity(destination)
+        original_identity = validate_synastry._path_identity
+
+        def report_changed_displaced_identity(path: Path) -> tuple[int, int] | None:
+            result = original_identity(path)
+            if Path(path).name.startswith(".synastry-reading-") and result == previous_identity:
+                return (0, 0)
+            return result
+
+        with (
+            patch("validate_synastry._path_identity", side_effect=report_changed_displaced_identity),
+            patch("validate_synastry.os.replace", side_effect=OSError("forced direct restore failure")),
+            patch("validate_synastry.os.rename", side_effect=OSError("forced recovery move failure")),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertEqual(destination.read_text(encoding="utf-8"), "previous reading")
+
+    def test_recovery_storage_failure_occurs_before_exchange_without_mutation(self) -> None:
+        destination = self.directory / "reading.md"
+        destination.write_text("previous reading", encoding="utf-8")
+
+        with (
+            patch(
+                "validate_synastry._allocate_recovery_directory",
+                side_effect=OSError("forced recovery allocation failure"),
+            ),
+            self.assertRaises(OSError),
+        ):
+            write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
+
+        self.assertEqual(destination.read_text(encoding="utf-8"), "previous reading")
+        self.assertEqual(list(self.directory.glob(".synastry-*")), [])
 
     def test_unsupported_atomic_overwrite_fails_without_mutating_the_destination(self) -> None:
         destination = self.directory / "reading.md"
