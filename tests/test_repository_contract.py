@@ -59,6 +59,18 @@ def declared_bundle() -> str:
     return match.group(1)
 
 
+def copy_repository_fixture(destination: Path) -> Path:
+    """Copy the checkout without VCS or generated state for script behavior tests."""
+
+    copied = destination / "repository"
+    shutil.copytree(
+        ROOT,
+        copied,
+        ignore=shutil.ignore_patterns(".git", ".superpowers", "__pycache__", "*.pyc", ".coverage"),
+    )
+    return copied
+
+
 class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
@@ -285,6 +297,42 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn(expected, result.stderr, f"{field} was not the rule that fired")
         finally:
             manifest.write_bytes(original)
+
+    def test_validator_rejects_astrology_license_downgrades(self) -> None:
+        """MIT in either astrology metadata layer must not silently weaken the plugin license."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            cases = (
+                (
+                    copied / "plugins" / "astrology" / ".claude-plugin" / "plugin.json",
+                    "plugin license must be 'AGPL-3.0-or-later'",
+                ),
+                (
+                    copied / "plugins" / "astrology" / "skills" / "synastry" / "SKILL.md",
+                    "license must be 'AGPL-3.0-or-later'",
+                ),
+            )
+            for target, expected in cases:
+                with self.subTest(target=target.relative_to(copied)):
+                    original = target.read_bytes()
+                    try:
+                        target.write_text(
+                            original.decode("utf-8").replace("AGPL-3.0-or-later", "MIT", 1),
+                            encoding="utf-8",
+                        )
+                        result = subprocess.run(
+                            [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                            cwd=copied,
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )
+                    finally:
+                        target.write_bytes(original)
+
+                    self.assertNotEqual(result.returncode, 0, str(target))
+                    self.assertIn(expected, result.stderr)
 
     def test_verify_install_rejects_a_half_installed_plugin(self) -> None:
         """A plugin root carrying one manifest and not the other is half a plugin."""
@@ -542,6 +590,59 @@ class RepositoryContractTests(unittest.TestCase):
                 moved.rename(suite)
             suite.write_text(original, encoding="utf-8")
 
+    def test_behavior_fixtures_stay_in_their_suite_and_validate_as_v2_json(self) -> None:
+        """A missing, escaping, or malformed artifact must fail before model billing."""
+
+        suite = ROOT / "evals" / "synastry-reading" / "evals.json"
+        invalid = suite.parent / "invalid-behavior-fixture.json"
+        stale = suite.parent / "stale-integrity-behavior-fixture.json"
+        escaping_link = suite.parent / "escaping-behavior-fixture.json"
+        original = suite.read_text(encoding="utf-8")
+
+        def run_with(fixture: str) -> subprocess.CompletedProcess[str]:
+            document = json.loads(original)
+            document["behaviors"][0]["fixture"] = fixture
+            document["behaviors"][0]["language"] = "en"
+            suite.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+            return subprocess.run(
+                [sys.executable, "scripts/run-evals.py", "--check"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        try:
+            missing = run_with("fixtures/does-not-exist.json")
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("does not exist", missing.stderr)
+
+            escaping = run_with("../synastry/evals.json")
+            self.assertNotEqual(escaping.returncode, 0)
+            self.assertIn("inside its eval suite", escaping.stderr)
+
+            invalid.write_text("{}\n", encoding="utf-8")
+            malformed = run_with(invalid.name)
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertIn("synastry v2 validation", malformed.stderr)
+
+            escaping_link.symlink_to(ROOT / "evals" / "synastry" / "evals.json")
+            symlink_escape = run_with(escaping_link.name)
+            self.assertNotEqual(symlink_escape.returncode, 0)
+            self.assertIn("inside its eval suite", symlink_escape.stderr)
+
+            fixture = json.loads((suite.parent / "fixtures" / "neutral.json").read_text(encoding="utf-8"))
+            fixture["chart_id"] = "aaaaaaaaaaaa"
+            stale.write_text(json.dumps(fixture), encoding="utf-8")
+            integrity_mismatch = run_with(stale.name)
+            self.assertNotEqual(integrity_mismatch.returncode, 0)
+            self.assertIn("synastry v2 validation", integrity_mismatch.stderr)
+        finally:
+            invalid.unlink(missing_ok=True)
+            stale.unlink(missing_ok=True)
+            escaping_link.unlink(missing_ok=True)
+            suite.write_text(original, encoding="utf-8")
+
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/check-descriptions.py"],
@@ -620,6 +721,156 @@ class RepositoryContractTests(unittest.TestCase):
         # every push, and only that half is allowed in the gate.
         self.assertIn("run-evals.py --check", validate)
         self.assertNotIn("--run", validate)
+
+    def test_behavior_fixtures_are_validated_and_executable(self) -> None:
+        """Reading behavior cases have their own paid execution path."""
+
+        runner = (ROOT / "scripts" / "run-evals.py").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+
+        self.assertIn("--run-behaviors", runner)
+        self.assertIn("--run-behaviors synastry-reading", workflow)
+
+    def test_a_reading_behavior_runs_mechanical_and_semantic_checks(self) -> None:
+        """A valid draft still fails once for each expectation the judge rejects."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        run_behavior_case = getattr(module, "run_behavior_case", None)
+        self.assertIsNotNone(run_behavior_case, "run_behavior_case is not implemented")
+        if run_behavior_case is None:
+            return
+
+        citation = (
+            "[E-ASPECT-9DAF] aspect: subject-b Moon -> subject-a Sun; "
+            "direction subject-b->subject-a; kind square; certainty exact; orb 1.1°"
+        )
+        headings = (
+            "Basis, provenance, and limitations",
+            "Repeated interaction patterns",
+            "Reciprocity and asymmetry",
+            "Communication and coordination",
+            "Tension, boundaries, and repair",
+            "Growth and shared direction",
+            "Requested or context-specific domains",
+            "Overall synthesis",
+            "Evidence index",
+        )
+        report = "# Synthetic synastry reading\n\n" + "\n\n".join(
+            f"## {heading}\n\n{citation}" for heading in headings
+        )
+        judge = json.dumps(
+            {
+                "evaluations": [
+                    {"expectation": 1, "passed": True, "reason": "All headings are present."},
+                    {
+                        "expectation": 2,
+                        "passed": False,
+                        "reason": "The requested constraint is not demonstrated.\n" + "x" * 6000,
+                    },
+                ]
+            }
+        )
+        responses = [report, judge]
+        requests: list[dict] = []
+
+        class Messages:
+            @staticmethod
+            def create(**kwargs):
+                requests.append(kwargs)
+                text = responses.pop(0)
+                block = type("Block", (), {"type": "text", "text": text})()
+                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+
+        class Client:
+            messages = Messages()
+
+        failures = run_behavior_case(
+            Client(),
+            "synastry-reading",
+            {
+                "id": "mechanical-and-semantic",
+                "prompt": "Write a neutral reading from the supplied artifact.",
+                "fixture": "fixtures/neutral.json",
+                "language": "en",
+                "expectations": ["Uses all headings.", "Demonstrates the requested constraint."],
+            },
+        )
+
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("expectation 2", failures[0])
+        self.assertNotIn("\n", failures[0])
+        self.assertLessEqual(len(failures[0]), 512)
+        self.assertEqual(len(requests), 2)
+        self.assertNotIn("json_schema", json.dumps(requests[0]))
+        self.assertIn("[E-ASPECT-9DAF]", requests[0]["messages"][0]["content"])
+        self.assertEqual(requests[1]["output_config"]["effort"], "low")
+        self.assertEqual(requests[1]["output_config"]["format"]["type"], "json_schema")
+        self.assertIn("output-template.md", requests[0]["system"][0]["text"])
+        self.assertIn("usage:", requests[0]["system"][0]["text"])
+
+    def test_a_reading_behavior_reports_every_mechanical_validator_problem(self) -> None:
+        """Removing or collapsing mechanical validation must make this test fail."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        invalid_report = (
+            "# Invalid reading\n\nCompatibility score: 99%\n\nThis relationship will definitely last.\n"
+        )
+        judge = json.dumps(
+            {"evaluations": [{"expectation": 1, "passed": True, "reason": "Semantic expectation passes."}]}
+        )
+        responses = [invalid_report, judge]
+
+        class Messages:
+            @staticmethod
+            def create(**kwargs):
+                del kwargs
+                block = type("Block", (), {"type": "text", "text": responses.pop(0)})()
+                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+
+        class Client:
+            messages = Messages()
+
+        failures = module.run_behavior_case(
+            Client(),
+            "synastry-reading",
+            {
+                "id": "multiple-mechanical-problems",
+                "prompt": "Write a neutral reading from the supplied artifact.",
+                "fixture": "fixtures/neutral.json",
+                "language": "en",
+                "expectations": ["Uses valid reading mechanics."],
+            },
+        )
+
+        self.assertGreaterEqual(len(failures), 4, failures)
+        self.assertTrue(all(failure.startswith("mechanical violation: ") for failure in failures))
+        self.assertTrue(all("\n" not in failure and len(failure) <= 512 for failure in failures))
+        self.assertTrue(any("compatibility score" in failure for failure in failures))
+        self.assertTrue(any("required universal heading" in failure for failure in failures))
+
+    def test_model_text_response_joins_every_text_block(self) -> None:
+        """A split Markdown response must not be silently truncated after its first block."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        first = type("Block", (), {"type": "text", "text": "first"})()
+        ignored = type("Block", (), {"type": "tool_use", "text": "ignored"})()
+        second = type("Block", (), {"type": "text", "text": " second"})()
+        response = type("Response", (), {"stop_reason": "end_turn", "content": [first, ignored, second]})()
+
+        self.assertEqual(module._response_text(response), "first second")
 
     def test_the_scoring_mode_stays_out_of_the_standard_library_path(self) -> None:
         """--check and --report run everywhere; only --run may need a dependency."""
@@ -1120,10 +1371,52 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn("scaffoldtest/skills/probe/SKILL.md", line)
                 self.assertIn("placeholder", line.lower())
             self.assertTrue((scaffolded / "skills" / "probe" / "agents" / "openai.yaml").is_file())
+            self.assertIn(
+                "license: MIT",
+                (scaffolded / "skills" / "probe" / "SKILL.md").read_text(encoding="utf-8"),
+            )
+            for manifest in (
+                scaffolded / "plugin.json",
+                scaffolded / ".claude-plugin" / "plugin.json",
+            ):
+                self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["license"], "MIT")
         finally:
             shutil.rmtree(scaffolded, ignore_errors=True)
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
+
+    def test_new_skill_inherits_an_existing_plugin_license(self) -> None:
+        """A new astrology skill must not be scaffolded under a conflicting MIT license."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            created = subprocess.run(
+                [sys.executable, "scripts/new-skill.py", "astrology", "license-probe"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(created.returncode, 0, created.stderr)
+            skill = copied / "plugins" / "astrology" / "skills" / "license-probe" / "SKILL.md"
+            self.assertIn("license: AGPL-3.0-or-later", skill.read_text(encoding="utf-8"))
+
+            subprocess.run(
+                [sys.executable, "scripts/sync-shared.py"],
+                cwd=copied,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            validated = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotIn("license must be", validated.stderr)
 
     def test_remove_skill_is_the_exact_inverse_of_new_skill(self) -> None:
         """Scaffold then retire has to leave every registry byte-identical."""

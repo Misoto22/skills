@@ -2,62 +2,76 @@
   "skill": "synastry",
   "triggers": [
     {
-      "id": "two-charts-explicit",
-      "prompt": "Run a synastry between me (1990-03-14 07:42, Shanghai) and my partner (1988-11-02 21:05, New York).",
-      "expected": "Fires, resolves both places to coordinates and zones, and writes the data file."
+      "id": "two-exact-birth-records",
+      "prompt": "Calculate a synastry JSON v2 artifact for two people. Both supplied exact birth times, accuracy in minutes, IANA timezones, and coordinates.",
+      "expected": "Fires, prepares a strict v2 request, and calculates one JSON artifact without assuming either identity or location."
     },
     {
-      "id": "chinese-hepan",
-      "prompt": "帮我和她合个盘，我 1990-03-14 07:42 上海出生，她 1992-06-08 14:20 深圳出生",
-      "expected": "Fires on the Chinese phrasing and treats neither person as a fixed reference."
+      "id": "date-only-birth-record",
+      "prompt": "Run synastry for us, but I know only one person's birth date and timezone; preserve that uncertainty instead of inventing a time.",
+      "expected": "Fires and uses date-only mode for the uncertain subject rather than substituting noon or refusing all calculation."
     },
     {
-      "id": "informal-second-person",
-      "prompt": "她的生日是 1992 年 6 月 8 号 14:20，深圳。我的你已经知道了。",
-      "expected": "Fires, taking the first person's details from earlier in the conversation."
+      "id": "bounded-time-window",
+      "prompt": "合盘：其中一人的出生时间只知道在 09:00 到 11:00 之间，请把这个时间范围保留下来。",
+      "expected": "Fires and uses window mode, producing sampled ranges and no houses or overlays for the uncertain chart."
     },
     {
-      "id": "hour-only-time",
-      "prompt": "Compare our charts — I was born 1990-03-14 around 7am in Shanghai, he was born 1988-11-02 at 21:05 in New York.",
-      "expected": "Fires, then stops and asks for the first person's birth minute rather than assuming one."
+      "id": "uncertainty-aware-json-request",
+      "prompt": "Build a privacy-minimal, uncertainty-aware synastry v2 request and calculate it with the strict Swiss Ephemeris backend.",
+      "expected": "Fires on the explicit calculator request and records the selected privacy, precision, and backend policy."
     }
   ],
   "non_triggers": [
     {
       "id": "single-natal-chart",
-      "prompt": "What's my rising sign? Born 1990-03-14 07:42 in Shanghai.",
-      "expected": "Does not fire. One person's chart is not a synastry."
+      "prompt": "What's my rising sign from this one birth record?",
+      "expected": "Does not fire. One person's natal chart is not synastry."
     },
     {
-      "id": "horoscope",
-      "prompt": "What does this week look like for a Pisces?",
-      "expected": "Does not fire. Transits and forecasts are outside this skill."
+      "id": "forecast-request",
+      "prompt": "Use astrology to predict whether I will begin a relationship next month.",
+      "expected": "Does not fire. Forecasts and predictions are outside this calculator."
     },
     {
-      "id": "reading-an-existing-file",
-      "prompt": "Look at the synastry file we generated yesterday and tell me what the Venus square means.",
+      "id": "read-existing-v2-json",
+      "prompt": "Interpret the attached validated synastry v2 JSON artifact and save the reading.",
       "routes_to": "synastry-reading",
-      "expected": "Does not fire. The file exists and must be interpreted by synastry-reading rather than recomputed."
+      "expected": "Does not fire. An existing v2 artifact belongs to synastry-reading and must not be recalculated."
+    },
+    {
+      "id": "legacy-txt-input-refusal",
+      "prompt": "Use this legacy synastry_A_B.txt as the calculator request.",
+      "expected": "Does not fire. TXT is unsupported and is not a calculator request or compatibility input."
     }
   ],
   "behaviors": [
     {
-      "id": "refuses-imprecise-time",
-      "prompt": "合盘：我 1990-03-14 早上七点多上海，她 1992-06-08 14:20 深圳",
+      "id": "rejects-ambiguous-dst-exact-time",
+      "prompt": "Calculate an exact chart whose local birth time occurs twice during the daylight-saving transition; no fold or offset evidence was supplied.",
       "expectations": [
-        "States that the first birth time is needed to the minute before anything is computed.",
-        "Does not substitute noon, and does not offer an early and a late version.",
-        "Does not run the script."
+        "Stops and explains that the exact civil time is ambiguous.",
+        "Requests timezone_fold or a reasoned UTC-offset override.",
+        "Does not choose a fold silently or write an artifact."
       ]
     },
     {
-      "id": "hands-off-after-writing-data",
-      "prompt": "Synastry for A (1990-03-14 07:42 Shanghai) and B (1988-11-02 21:05 New York).",
+      "id": "strict-backend-refusal",
+      "prompt": "The Swiss files are unavailable and the request sets ephemeris_policy to swiss-only. Continue the calculation.",
       "expectations": [
-        "Names the raw synastry data file it wrote and keeps that file free of interpretation.",
-        "Immediately invokes synastry-reading with the exact written path without waiting for another user request.",
-        "Does not invoke the reading skill if calculation failed.",
-        "After the hand-off succeeds, reports both the raw data path and the Markdown reading path."
+        "Refuses fallback output rather than accepting Moshier silently.",
+        "Offers an ephemeris path or explicit allow-moshier request as remediation.",
+        "Does not write a mislabeled JSON artifact."
+      ]
+    },
+    {
+      "id": "json-only-hand-off",
+      "prompt": "Calculate the supplied valid v2 request and continue the configured workflow.",
+      "expectations": [
+        "Writes exactly one synastry_<labels>_<chart-id>.json calculation artifact.",
+        "Does not create a TXT companion or include interpretive prose in the JSON.",
+        "Immediately invokes synastry-reading with the exact JSON path after a successful write.",
+        "Reports the JSON and validated Markdown paths after the hand-off."
       ]
     }
   ]

@@ -1,350 +1,145 @@
-# Structured output template
+# Adaptive output template
+
+Use the selected language's universal headings exactly and in order. Replace every angle-bracketed slot in the draft. Insert only explicitly authorized canonical modules.
 
 ## Contents
 
-- [English](#english)
-- [Chinese](#chinese)
+1. [English universal report](#english-universal-report)
+2. [English conditional modules](#english-conditional-modules)
+3. [Chinese universal report](#chinese-universal-report)
+4. [Chinese conditional modules](#chinese-conditional-modules)
+5. [Evidence-limit form](#evidence-limit-form)
 
-Use every fixed heading in the selected language and preserve its order. Replace angle-bracketed fields; never leave one in the finished report. Keep a fixed core section when evidence is weak and state the limit without adding generic astrology.
-
-Under `Applied life domains` or `现实领域`, add every explicitly requested domain. Add an unrequested domain only when it passes the evidence threshold in `SKILL.md`. Repeat the domain module once per selected domain; if none qualifies, state that no unrequested domain met the threshold.
-
-## English
+## English universal report
 
 ```markdown
-# Synastry Reading: <Name A> × <Name B>
+# Synastry Reading: <validated display labels or subject IDs>
 
-## Basis and limitations
+## Basis, provenance, and limitations
 
-- Source: `<source path or pasted data>`
-- House system: <house system>
-- Aspect orbs: <major and minor orbs>
-- Relationship context supplied by the user: <context, or "Not stated">
-- Data limitations: <limitations, or "None stated in the source">
+- Source: validated synastry JSON v2, chart ID <chart-id>
+- Calculation and aspect profiles: calculation <configuration.calculation_profile>; aspects <configuration.aspect_profile>.
+- House system and configured orbs: <configuration.house_system or "not configured">; major <configuration.major_orb>°; minor <configuration.minor_orb>°.
+- Backend provenance: requested <provenance.requested_backend>; actual <provenance.actual_backend>; software <provenance.software_version>; binding <provenance.binding_version>; timezone <provenance.timezone_source>; return flags <comma-separated provenance.return_flags or "none">; warnings <pipe-separated provenance.warnings or "none">.
+- Explicit relationship context: Not stated
+- Data limitations: <copy one exact limitation.message per line, or "None recorded">
 
-## Relationship signature
+## Repeated interaction patterns
 
-### Recurring pattern
-
-### Main support and tension
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
+<Conditional synthesis with inline evidence ID(s).>
 
 ## Reciprocity and asymmetry
 
-### What <Name A> activates for <Name B>
+<Conditional comparison preserving subject ownership and direction with inline evidence ID(s).>
 
-### What <Name B> activates for <Name A>
+## Communication and coordination
 
-### Shared and unequal effects
+<Conditional interpretation with inline evidence ID(s).>
 
-### Evidence
+## Tension, boundaries, and repair
 
-- <Exact aspect or directional overlay and the interpretation it supports>
+<Conditional interpretation with inline evidence ID(s).>
 
-## Emotional bond and security
+## Growth and shared direction
 
-### Core dynamic
+<Conditional interpretation with inline evidence ID(s).>
 
-### Sources of support
+## Requested or context-specific domains
 
-### Vulnerabilities
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Attraction, romance, and intimacy
-
-### Attraction pattern
-
-### Affection and closeness
-
-### Friction, pacing, and consent
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Communication and mental rhythm
-
-### How understanding forms
-
-### Decision and feedback pattern
-
-### Misunderstanding risks
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Conflict, power, and repair
-
-### Trigger pattern
-
-### Power and escalation risks
-
-### Repair resources
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Trust, boundaries, and commitment
-
-### Trust-building pattern
-
-### Boundaries and obligations
-
-### Sustainability factors
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Growth, values, and shared direction
-
-### Values and worldview
-
-### Mutual development
-
-### Directional differences
-
-### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-### Practical guidance
-
-## Applied life domains
-
-### <Selected domain>
-
-#### What is activated
-
-#### Opportunities
-
-#### Risks and boundaries
-
-#### Evidence
-
-- <Exact aspect or directional overlay and the interpretation it supports>
-
-#### Practical guidance
+<Insert only selected level-three canonical modules; leave this section without a module when none is authorized.>
 
 ## Overall synthesis
 
-### Strongest connection
-
-### Primary challenge
-
-### What <Name A> should watch
-
-### What <Name B> should watch
-
-### Practical actions
-
-1. <Action grounded in cited evidence>
-2. <Action grounded in cited evidence>
-3. <Action grounded in cited evidence>
+<Conditional synthesis with inline evidence ID(s).>
 
 ## Evidence index
 
-- <Exact measurement> — used in: <section names>
+- <Exact ledger citation, including evidence token and display string.>
 ```
 
-For a requested domain whose evidence is weak, replace its normal module body with:
+## English conditional modules
+
+Insert a selected module as a level-three heading under `Requested or context-specific domains`. Use only these canonical headings:
+
+- `### Romance and intimacy`
+- `### Friendship and community`
+- `### Family and care`
+- `### Work and creative collaboration`
+- `### Money and shared resources`
+
+Under each selected heading, write only conditional, evidence-linked paragraphs. Do not add a generic domain heading or any unselected module.
+
+## Chinese universal report
 
 ```markdown
-### <Requested domain>
+# 双方合盘分析：<已验证的显示标签或主体 ID>
 
-#### Evidence limit
+## 分析基础、数据来源与限制
 
-<Explain which relevant measurements are absent or insufficient and why no confident domain-specific reading is possible.>
+- 数据来源：已验证的合盘 JSON v2；图表 ID <chart-id>
+- 计算与相位配置：计算 <configuration.calculation_profile>；相位 <configuration.aspect_profile>。
+- 宫位系统与相位容许度：<configuration.house_system；未配置时写“未配置”>；主要相位 <configuration.major_orb>°；次要相位 <configuration.minor_orb>°。
+- 星历数据来源：请求 <provenance.requested_backend>；实际 <provenance.actual_backend>；软件 <provenance.software_version>；绑定 <provenance.binding_version>；时区 <provenance.timezone_source>；返回标志 <以英文逗号分隔 provenance.return_flags；为空时写“无”>；警告 <以竖线分隔 provenance.warnings；为空时写“无”>。
+- 用户明确提供的关系背景：未说明
+- 数据限制：<每个 limitation.message 原样复制为单独一行；没有时写“未记录限制”>
 
-#### Available evidence
+## 反复出现的互动模式
 
-- <Exact measurement, or "No directly relevant measurement in the supplied source">
-```
-
-## Chinese
-
-```markdown
-# 双方合盘分析：<姓名 A> × <姓名 B>
-
-## 分析基础与限制
-
-- 数据来源：`<源文件路径或粘贴的数据>`
-- 宫位系统：<宫位系统>
-- 相位容许度：<主相位和次相位容许度>
-- 用户提供的关系背景：<背景；如果没有说明，则写“未说明”>
-- 数据限制：<限制；如果源数据没有注明，则写“源数据未注明限制”>
-
-## 关系主轴
-
-### 反复出现的模式
-
-### 主要支持与张力
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
+<使用条件式措辞并在段内引用证据 ID。>
 
 ## 双向影响与不对称性
 
-### <姓名 A> 为 <姓名 B> 激活的体验
+<保留主体归属和方向，并在段内引用证据 ID。>
 
-### <姓名 B> 为 <姓名 A> 激活的体验
+## 沟通与协作
 
-### 共同作用与不对等感受
+<使用条件式措辞并在段内引用证据 ID。>
 
-### 星盘证据
+## 张力、边界与修复
 
-- <准确相位或有方向的宫位互入，以及它支持的解读>
+<使用条件式措辞并在段内引用证据 ID。>
 
-## 情绪连接与安全感
+## 成长与共同方向
 
-### 核心互动
+<使用条件式措辞并在段内引用证据 ID。>
 
-### 支持来源
+## 用户要求或关系背景领域
 
-### 脆弱点
+<只插入已明确授权的三级规范模块；没有授权模块时不添加模块。>
 
-### 星盘证据
+## 整体总结
 
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 相处建议
-
-## 吸引力、浪漫与亲密关系
-
-### 吸引模式
-
-### 情感表达与亲近方式
-
-### 摩擦、节奏与同意边界
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 相处建议
-
-## 沟通与思维节奏
-
-### 理解如何形成
-
-### 决策与反馈模式
-
-### 误解风险
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 沟通建议
-
-## 冲突、权力与修复能力
-
-### 触发模式
-
-### 权力与升级风险
-
-### 修复资源
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 修复建议
-
-## 信任、边界与承诺
-
-### 信任建立模式
-
-### 边界与责任
-
-### 长期稳定因素
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 相处建议
-
-## 共同成长、价值观与人生方向
-
-### 价值观与世界观
-
-### 彼此促进的成长
-
-### 方向差异
-
-### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-### 实践建议
-
-## 现实领域
-
-### <选定领域>
-
-#### 被激活的主题
-
-#### 机会
-
-#### 风险与边界
-
-#### 星盘证据
-
-- <准确相位或有方向的宫位互入，以及它支持的解读>
-
-#### 实践建议
-
-## 综合结论
-
-### 最强连接点
-
-### 核心挑战
-
-### <姓名 A> 需要注意什么
-
-### <姓名 B> 需要注意什么
-
-### 可执行建议
-
-1. <基于已引用证据的行动>
-2. <基于已引用证据的行动>
-3. <基于已引用证据的行动>
+<使用条件式措辞并在段内引用证据 ID。>
 
 ## 证据索引
 
-- <准确测量结果> —— 用于：<章节名称>
+- <完整复制证据账本中的证据标记和显示字符串。>
 ```
 
-如果用户要求的领域缺少充分证据，将该领域的常规模块替换为：
+## Chinese conditional modules
+
+Only use these level-three headings under `用户要求或关系背景领域`:
+
+- `### 浪漫与亲密关系`
+- `### 友谊与社群`
+- `### 家庭与照护`
+- `### 工作与创意协作`
+- `### 金钱与共同资源`
+
+## Evidence-limit form
+
+Keep an explicitly selected weak-evidence module, but replace interpretation with this shape:
 
 ```markdown
-### <用户要求的领域>
+### <Selected canonical module>
 
-#### 证据限制
+The source does not support a confident domain-specific interpretation because <specific evidence limitation>. <Cite any directly relevant available evidence ID; omit advice presented as chart-supported.>
+```
 
-<说明缺少或不足的相关测量，以及为什么无法做出可靠的领域解读。>
+Chinese form:
 
-#### 现有证据
+```markdown
+### <已选择的规范模块>
 
-- <准确测量结果；如果没有，则写“所提供的数据中没有直接相关的测量结果”>
+源数据不足以支持有把握的领域解读，因为<具体证据限制>。<引用任何直接相关的现有证据 ID；不提供声称由星盘支持的建议。>
 ```

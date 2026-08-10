@@ -51,8 +51,8 @@ Eight skills in four plugins. The plugin name is the command prefix, and each pl
 
 #### `astrology` — positions computed from birth data
 
-- **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — computes two natal charts, every aspect between them, and both directions of house overlay. It refuses a birth time that is not given to the minute, writes the raw data, then starts the separate reading automatically.
-- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — reads completed synastry data and writes a mechanism-first, evidence-linked Markdown report with only requested or strongly supported real-life domains.
+- **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — validates two supplied birth records and writes one uncertainty-aware JSON v2 chart artifact with recorded backend provenance. It is privacy-minimal by default; only an explicitly requested archival mode retains supplied local birth and location provenance. Exact records can include house overlays, then it starts the separate reading automatically.
+- **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — privately validates a JSON v2 chart artifact before writing an adaptive, evidence-linked Markdown report with only explicitly requested relationship domains.
 
 ---
 

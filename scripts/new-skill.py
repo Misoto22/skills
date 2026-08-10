@@ -37,7 +37,7 @@ KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 SKILL_TEMPLATE = """---
 name: {skill}
 description: PLACEHOLDER, rewrite before committing — say in concrete terms when to use this skill, name the artefacts and phrasings that should trigger it, and end with what it is not for. One line; the frontmatter parser does not fold. Triggering depends entirely on this field.
-license: MIT
+license: {license_name}
 metadata:
   version: "{version}"
 ---
@@ -108,11 +108,17 @@ def main() -> int:
 
     plugin_manifest = PLUGINS_ROOT / args.plugin / ".claude-plugin" / "plugin.json"
     new_plugin = not plugin_manifest.is_file()
+    license_name = "MIT" if new_plugin else json.loads(plugin_manifest.read_text(encoding="utf-8"))["license"]
 
     (skill_dir / "agents").mkdir(parents=True)
     _write(
         skill_dir / "SKILL.md",
-        SKILL_TEMPLATE.format(skill=args.skill, title=title, version=version),
+        SKILL_TEMPLATE.format(
+            skill=args.skill,
+            title=title,
+            version=version,
+            license_name=license_name,
+        ),
         created,
     )
     _write(

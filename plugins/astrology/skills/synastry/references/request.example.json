@@ -1,24 +1,40 @@
 {
+  "schema_version": "2.0",
   "people": [
     {
-      "name": "Person A",
-      "date": "1990-03-14",
-      "time": "07:42",
-      "timezone": "Asia/Shanghai",
-      "latitude": 31.23,
-      "longitude": 121.47,
-      "birth_place": "Shanghai",
-      "residence": "Shanghai"
+      "id": "subject-1",
+      "birth": {
+        "date": "2000-01-01",
+        "time_mode": "exact",
+        "time": "00:00",
+        "time_accuracy_minutes": 0,
+        "timezone": "UTC",
+        "latitude": 0.0,
+        "longitude": 0.0
+      }
     },
     {
-      "name": "Person B",
-      "date": "1988-11-02",
-      "time": "21:05",
-      "timezone": "America/New_York",
-      "latitude": 40.71,
-      "longitude": -74.01,
-      "birth_place": "New York",
-      "residence": "Shanghai"
+      "id": "subject-2",
+      "birth": {
+        "date": "2000-01-02",
+        "time_mode": "date-only",
+        "timezone": "UTC"
+      }
     }
-  ]
+  ],
+  "options": {
+    "language": "en",
+    "house_system": "whole-sign",
+    "major_orb": 8.0,
+    "minor_orb": 3.0,
+    "ephemeris_policy": "swiss-only",
+    "calculation_profile": "western-tropical-v1",
+    "aspect_profile": "ptolemaic-minor-v1",
+    "include_derived": false,
+    "privacy": "minimal"
+  },
+  "relationship_context": {
+    "description": "unspecified",
+    "requested_domains": []
+  }
 }

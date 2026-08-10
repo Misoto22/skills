@@ -2,11 +2,11 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "astrology",
   "version": "0.8.3",
-  "description": "Two-person synastry calculated as auditable position data, then interpreted in a separate evidence-linked reading.",
+  "description": "Two-person synastry that produces one validated JSON v2 chart artifact with uncertainty and backend provenance, then a separate adaptive evidence-linked reading.",
   "author": {
     "name": "skills contributors"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "keywords": [
     "natal-chart",
     "synastry",

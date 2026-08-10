@@ -1,6 +1,6 @@
 interface:
   display_name: "Synastry"
-  short_description: "Chart two people and the aspects between them"
-  default_prompt: "Use $synastry to compute a synastry data file for two people from their birth details; refuse any birth time that is not given to the minute, then hand a successful result to $synastry-reading automatically."
+  short_description: "Calculate uncertainty-aware synastry JSON v2"
+  default_prompt: "Use $synastry to calculate an uncertainty-aware synastry JSON v2 artifact from two supplied birth records and hand a successful result to $synastry-reading."
 policy:
   allow_implicit_invocation: true

@@ -1,0 +1,132 @@
+{
+  "aspects": [
+    {
+      "certainty": "possible",
+      "kind": "trine",
+      "orb_range_degrees": {
+        "maximum_degrees": 9.1,
+        "minimum_degrees": 0.4
+      },
+      "source_body": "Sun",
+      "source_subject_id": "subject-a",
+      "target_body": "Moon",
+      "target_subject_id": "subject-b"
+    }
+  ],
+  "chart_id": "333333333333",
+  "charts": [
+    {
+      "derived": {},
+      "positions": {
+        "Sun": {
+          "longitude_range": {
+            "end_degrees": 11.0,
+            "start_degrees": 9.0,
+            "wraps_zero": false
+          },
+          "max_span_degrees": 2.0,
+          "retrograde_states": [
+            false
+          ],
+          "signs": [
+            "Ari"
+          ]
+        }
+      },
+      "precision_mode": "date-only",
+      "subject_id": "subject-a"
+    },
+    {
+      "derived": {},
+      "houses": [
+        0.0,
+        30.0,
+        60.0,
+        90.0,
+        120.0,
+        150.0,
+        180.0,
+        210.0,
+        240.0,
+        270.0,
+        300.0,
+        330.0
+      ],
+      "positions": {
+        "Moon": {
+          "distance_au": 1.0,
+          "house": 5,
+          "latitude_degrees": 0.0,
+          "longitude_degrees": 130.0,
+          "longitudinal_speed_degrees_per_day": 12.0,
+          "retrograde": false,
+          "sign": "Leo"
+        }
+      },
+      "precision_mode": "exact",
+      "subject_id": "subject-b"
+    }
+  ],
+  "configuration": {
+    "aspect_profile": "ptolemaic-minor-v1",
+    "calculation_profile": "western-tropical-v1",
+    "derived_profile": null,
+    "ephemeris_policy": "swiss-only",
+    "evidence_policy": "editorial-v1",
+    "house_system": "whole-sign",
+    "include_derived": false,
+    "language": "en",
+    "major_orb": 8.0,
+    "minor_orb": 3.0,
+    "privacy": "minimal"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "digest": "dbbf7d8ff1b37817024666095bc31950639bf8cad9944e2f14faac76c2f1c043"
+  },
+  "kind": "synastry-chart",
+  "limitations": [
+    {
+      "affected_fields": [
+        "charts[0].houses",
+        "overlays"
+      ],
+      "code": "date-only-precision",
+      "message": "One synthetic subject has date-only precision."
+    }
+  ],
+  "overlays": [],
+  "provenance": {
+    "actual_backend": "swiss",
+    "binding_version": "synthetic-eval",
+    "requested_backend": "swiss",
+    "return_flags": [
+      2
+    ],
+    "software_version": "synthetic-eval",
+    "timezone_source": "synthetic",
+    "warnings": []
+  },
+  "schema_version": "2.0",
+  "subjects": [
+    {
+      "birth": {
+        "mode": "date-only",
+        "utc_end": "2000-01-02T00:00:00Z",
+        "utc_start": "2000-01-01T00:00:00Z"
+      },
+      "display_name": "Synthetic Date-only Subject",
+      "id": "subject-a"
+    },
+    {
+      "birth": {
+        "latitude": 30.0,
+        "longitude": 30.0,
+        "mode": "exact",
+        "utc": "2001-02-02T02:00:00Z"
+      },
+      "display_name": "Synthetic Exact Subject",
+      "id": "subject-b"
+    }
+  ]
+}
