@@ -34,7 +34,7 @@ class SkillContractTests(unittest.TestCase):
         text = SKILL_PATH.read_text(encoding="utf-8")
 
         self.assertRegex(text, r"\A---\nname: synastry\n")
-        self.assertIn('version: "0.8.2"', text)
+        self.assertIn('version: "0.8.3"', text)
         self.assertLess(len(text.splitlines()), 500)
 
     def test_the_precondition_and_the_refusal_are_both_written_down(self) -> None:

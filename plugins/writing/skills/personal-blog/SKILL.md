@@ -3,7 +3,7 @@ name: personal-blog
 description: Use when researching, outlining, drafting, revising, or polishing a personal blog article—an explainer, idea essay, personal essay, cultural review, or technical post—or when asked to preserve voice in a personal blog draft, turn notes into a personal blog post, 写博客, or 写一篇博客. Not for newsletters, magazine profiles, manuscript editing, email, chat, repository documentation, marketing copy, fiction, academic papers, or generic grammar cleanup.
 license: MIT
 metadata:
-  version: "0.8.2"
+  version: "0.8.3"
 ---
 
 # Personal Blog

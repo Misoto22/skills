@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+## 0.8.3 — 2026-08-10
+
+- BaZi natal and compatibility readings now write a short reader report with a compact model data card and one link to a separate evidence artifact. The audit file retains exact scores, source IDs, checksums, directional ownership, arithmetic, and sensitivity records, so technical proof no longer interrupts the human reading flow.
+
 ## 0.8.2 — 2026-08-10
 
 - Improved the BaZi natal and compatibility reading reports so their conclusions, evidence, and practical guidance are easier to scan while preserving the auditable calculation contracts.

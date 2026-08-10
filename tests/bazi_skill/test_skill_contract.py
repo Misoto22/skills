@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "plugins" / "chinese-metaphysics"
-VERSION = "0.8.2"
+VERSION = "0.8.3"
 SKILLS = {
     "bazi-chart": ("bazi_<name>.json", "bazi-reading"),
     "bazi-reading": ("bazi_reading_<name>.md", None),
@@ -50,6 +50,27 @@ class SkillContractTests(unittest.TestCase):
         for path in sorted((PLUGIN / "skills").rglob("*")):
             if path.is_file() and path.suffix in {".md", ".json", ".yaml", ".py"}:
                 self.assertEqual(BIRTH_DATE.findall(path.read_text(encoding="utf-8")), [], str(path))
+
+    def test_reading_skills_separate_reader_reports_from_evidence_artifacts(self) -> None:
+        """Reader reports stay human-first; machine audit trails are separate files."""
+        for skill, reader_name, evidence_name in (
+            ("bazi-reading", "bazi_reading_<name>.md", "bazi_reading_evidence_<name>.md"),
+            (
+                "bazi-compatibility-reading",
+                "bazi_compatibility_reading_<name-a>_<name-b>.md",
+                "bazi_compatibility_evidence_<name-a>_<name-b>.md",
+            ),
+        ):
+            with self.subTest(skill=skill):
+                skill_root = PLUGIN / "skills" / skill
+                instruction = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+                template = (skill_root / "references" / "output-template.md").read_text(encoding="utf-8")
+
+                self.assertIn(reader_name, instruction)
+                self.assertIn(evidence_name, instruction)
+                self.assertIn("separate evidence artifact", instruction.lower())
+                self.assertIn("Model data card", template)
+                self.assertNotIn(chr(0x3014), template)
 
 
 if __name__ == "__main__":

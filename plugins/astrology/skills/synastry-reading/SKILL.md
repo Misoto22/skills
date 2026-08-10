@@ -3,7 +3,7 @@ name: synastry-reading
 description: Use when the synastry calculator hands off a completed two-person data file, or when someone supplies equivalent natal blocks, cross-chart aspects with orbs, and both house-overlay directions and asks for 解读, 分析, a relationship reading, significant dynamics, or what the pattern means. Not for calculating birth details, single natal charts, transits, forecasts, compatibility scores, or files missing required synastry sections.
 license: MIT
 metadata:
-  version: "0.8.2"
+  version: "0.8.3"
 argument-hint: "[synastry-data-file] [--out=source-directory]"
 ---
 

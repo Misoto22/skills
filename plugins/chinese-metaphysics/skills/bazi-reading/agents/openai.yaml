@@ -1,6 +1,6 @@
 interface:
   display_name: "BaZi Reading"
   short_description: "Interpret a completed BaZi chart"
-  default_prompt: "Use $bazi-reading to turn a verified single-person BaZi chart into an evidence-linked static natal report."
+  default_prompt: "Use $bazi-reading to turn a verified single-person BaZi chart into a reader-first natal report with separate evidence."
 policy:
   allow_implicit_invocation: true
