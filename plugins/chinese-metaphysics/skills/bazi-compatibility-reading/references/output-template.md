@@ -1,53 +1,76 @@
-# 八字关系解读 / BaZi Compatibility Reading
+# BaZi compatibility reading template
 
-## 1. 依据与范围 / Basis and scope
+Follow `shared/report-presentation.md` for localization, compact citations, rounded display values, and the technical-appendix boundary. This template defines the compatibility report structure. The Chinese and English headings below are semantic examples for translation, not fixed output labels.
 
-- Two identities and source chart checksums
-- Compatibility checksum and model
-- Relationship context or neutral default
-- Confidence and sensitivity
-- Heuristic, non-probability disclaimer
+| Section | Chinese example | English example |
+|---|---|---|
+| 1 | 结论速览 | Conclusion at a glance |
+| 2 | 双方命盘概览 | Two-chart overview |
+| 3 | 关系评分卡 | Relationship scorecard |
+| 4 | 三项核心发现 | Three core findings |
+| 5 | 双方可能的体验 | Each person's likely experience |
+| 6 | 优势、摩擦与修复 | Strengths, friction, and repair |
+| 7 | 实践提示 | Practical prompts |
+| 8 | 技术依据与证据 | Technical basis and evidence |
 
-## 2. 五维评分卡 / Five-dimension scorecard
+## 1. 结论速览
 
-| Dimension | Weight | Score | Main positive evidence | Main friction evidence |
-|---|---:|---:|---|---|
+- State the main conditional reading, material uncertainty, and heuristic scope disclaimer first.
 
-Show the general weighted arithmetic. Do not reduce it to a binary label.
+## 2. 双方命盘概览
 
-## 3. 五行互补与消耗 / Element complement and drain
+| 人物 | 日主或相关命盘摘要 | 本报告的阅读范围 |
+|---|---|---|
+| ... | ... | ... |
 
-Explain combined coverage, concentrations, deficits, and what each chart may supply or draw, with exact ledger ids.
+- Introduce both people and their verified charts in plain language.
 
-## 4. 定向支持与不对称 / Directional support and asymmetry
+## 3. 关系评分卡
 
-Keep A-receives-from-B and B-receives-from-A as separate evidence.
+| 项目 | 展示分数 | 简要说明 |
+|---|---:|---|
+| 指定关系情境 | ... | ... |
+| 总体参考 | ... | ... |
+| 五行互补 | ... | ... |
+| 定向支持 | ... | ... |
+| 互动 | ... | ... |
+| 日柱核心 | ... | ... |
+| 稳定性 | ... | ... |
 
-## 5. 亲和与日柱核心 / Affinity and day-pillar core
+- When the source selects a relationship context, show that contextual score before the general score and label the latter as a secondary reference.
+- When no context is selected, show the general score and write that no relationship context was selected.
+- State that every score is a heuristic model output, not a probability or verdict.
 
-Explain day-stem relation and day-branch linkage or friction without destiny language.
+## 4. 三项核心发现
 
-## 6. 沟通与协作 / Communication and coordination
+- Present three separate evidence-linked findings, including material disagreement between dimensions.
+- Treat day-pillar linkage and cross-chart combinations as hypotheses of ease or linkage; treat clashes, harms, and breaks as friction hypotheses, not destiny.
 
-Translate supported cross-chart interactions into observable coordination hypotheses.
+## 5. 双方可能的体验
 
-## 7. 摩擦、冲突与修复 / Friction, conflict, and repair
+- Describe each direction separately in plain language, for example `甲 → 乙：甲可能提供……；乙可能感受到……。〔1〕`
+- Use display names, never `left` or `right`, in the reader layer.
+- Describe unequal support without blame, rank, dependency, or a moral judgment.
 
-Pair each friction ledger entry with a specific low-risk repair or discussion prompt.
+## 6. 优势、摩擦与修复
 
-## 8. 稳定性、信心与边界敏感度 / Stability, confidence, and boundary sensitivity
+- Pair each material strength or friction with a specific low-risk repair or discussion hypothesis.
+- Preserve high affinity and low stability, or other mixed results, as distinct findings.
+- Explain boundary sensitivity in plain language and withhold claims that change materially; retain exact variants in the appendix.
 
-State source confidence, unresolved structures, alternate variants, range, and any claims that should be withheld.
+## 7. 实践提示
 
-## 9. 指定关系情境 / Selected relationship context
+- Offer three to five observable, reversible conversations or observations tied to compact markers.
+- Do not give medical, legal, financial, employment, or relationship commands.
 
-Name the explicit profile and its separate weighted arithmetic, or write “not selected.”
+## 8. 技术依据与证据
 
-## 10. 综合与实践提示 / Synthesis and practical prompts
+In addition to the shared appendix requirements, include source status, both source-chart checksums, the comparison checksum when available, exact five-dimensional weights and values, general and contextual weighted arithmetic, confidence, sensitivity variants, and the stored owner or direction for compatibility evidence.
 
-Preserve mixed dimensions. Offer three to five reversible observations or conversations tied to evidence.
+`[D-support]` is the aggregate across both direction-specific support entries. Describe it in the user's language as a both-directions aggregate; never assign this dimension summary to a one-way owner. The ownership descriptions in the example table are Chinese structural examples and must be translated with the other labels.
 
-## 11. 证据索引 / Evidence index
-
-| Evidence id | Exact source value | Owner/direction | Evidence class |
-|---|---|---|---|
+| 标记 | 原始证据标识 | 精确来源值 | 存储归属／方向 | 证据类别 |
+|---|---|---|---|---|
+| `〔1〕` | `[D-support]` | ... | 双向支持汇总（非单向归属） | 启发式维度汇总 |
+| `〔2〕` | `[support.received.left]` | ... | 存储左侧接收自存储右侧 | 定向支持账本 |
+| `〔3〕` | `[S-primary-alternate]` | ... | ... | 备选边界计算 |

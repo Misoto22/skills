@@ -3,7 +3,7 @@ name: readme
 description: Use when writing, restructuring, auditing, or polishing a repository README — creating one for a new project, rewriting one that has gone stale or bloated, checking whether it tells a newcomer what they actually need, or bringing an inherited repository in line with the house style. Triggers on 写个 readme, 更新一下 readme, readme 太乱了, readme 写得怎么样, 帮我整理 readme, write a readme, polish the readme, the readme is out of date, does this readme make sense. Not for API reference documentation, changelogs, contribution guides, blog posts, or marketing landing pages.
 license: MIT
 metadata:
-  version: "0.8.1"
+  version: "0.8.2"
 ---
 
 # Readme

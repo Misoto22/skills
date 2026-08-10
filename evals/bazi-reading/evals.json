@@ -65,9 +65,18 @@
       "id": "evidence-linked-output",
       "prompt": "Give me a complete reading of this valid chart artifact.",
       "expectations": [
-        "Uses the required ten-section order and inline evidence ids.",
+        "Uses the required seven-section reader-first order and compact `〔n〕` citations in reader prose.",
         "Calls percentages and strength scores heuristic outputs, not probabilities.",
         "Keeps Shen Sha secondary and avoids deterministic claims."
+      ]
+    },
+    {
+      "id": "reader-first-chinese-report",
+      "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
+      "expectations": [
+        "Uses Chinese only in the reader-facing layer, with the conclusion before the technical basis.",
+        "Uses compact `〔n〕` citations instead of raw evidence ids in reader prose.",
+        "Shows rounded display scores in the reader layer and confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."
       ]
     }
   ]

@@ -3,7 +3,7 @@ name: email
 description: Draft, reply to, forward, format, send, or verify outbound email under a policy — drafting is the default, and sending stays blocked until a narrow local scope authorizes that exact message. Use when recipients, external disclosure, attachments, authorization, HTML bodies, or Sent-folder confirmation matter, and on requests such as write an email to, reply to this thread, draft a note to the client, forward this with a cover note, send it and confirm it arrived, 写封邮件给, 回一下这个, 帮我发出去, 这封邮件再改改. Not for triaging or summarising a mailbox you are not answering, chat and internal notes, or rewriting how a message sounds without sending it.
 license: MIT
 metadata:
-  version: "0.8.1"
+  version: "0.8.2"
 ---
 
 # Email

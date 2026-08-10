@@ -3,7 +3,7 @@ name: synastry
 description: Compute a synastry data file for two people from their birth details — both natal charts, cross-chart aspects under separate Ptolemaic and minor orbs, and house overlays in both directions — then hand the completed file to the separate reading skill. Use when two sets of birth details arrive and the ask is 合盘, synastry, a compatibility or relationship chart, 星盘配对, 看看我俩的盘, or the details turn up informally as a name plus a date, a time, and a city. Not for one person's natal chart on its own, not for transits, horoscopes, or predictions, and not for reading back a chart file that already exists.
 license: MIT
 metadata:
-  version: "0.8.1"
+  version: "0.8.2"
 argument-hint: "[--language=en|zh] [--house-system=placidus]"
 ---
 

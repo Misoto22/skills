@@ -1,6 +1,6 @@
 {
   "name": "all",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Installs every plugin this marketplace publishes and every plugin it bookmarks.",
   "author": {
     "name": "skills contributors"

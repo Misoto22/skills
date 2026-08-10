@@ -1,53 +1,63 @@
-# 八字静态命局解读 / Static BaZi Natal Reading
+# BaZi static natal reading template
 
-## 1. 依据与边界 / Basis and boundaries
+Follow `shared/report-presentation.md` for localization, compact citations, rounded display values, and the technical-appendix boundary. This template defines the natal report structure. The Chinese and English headings below are semantic examples for translation, not fixed output labels.
 
-- Source status and checksum
-- Primary four pillars
-- Civil, true-solar, solar-term, and day-boundary basis
-- Rule and scoring model ids
-- Confidence and alternate sensitivity
-- Scope disclaimer
-
-## 2. 分数概览 / Score overview
-
-- Base and adjusted five-element percentages
-- Day-master score, classification, and component ledger
-- Explicit statement: heuristic model output, not probability
-
-## 3. 日主与月令 / Day master and month command
-
-Explain the day stem, seasonal state, roots, visible resources/peers, output, wealth load, and control with inline evidence ids.
-
-## 4. 结构与喜忌倾向 / Structure and favorable tendencies
-
-Separate formed relations from candidates. State balancing tendencies conditionally. A numeric threshold alone cannot establish a special structure.
-
-## 5. 优势与张力 / Strengths and tensions
-
-Present supported capacities and countervailing pressures as paired evidence, not a one-sided verdict.
-
-## 6. 行为模式 / Behavioral patterns
-
-Translate repeated structural signals into cautious reflection hypotheses. Do not diagnose.
-
-## 7. 关系模式 / Relationship patterns
-
-Discuss general interaction tendencies only. Do not claim compatibility with a person who is not in the source.
-
-## 8. 工作与贡献方式 / Work and contribution
-
-Describe conditions and contribution styles suggested by the chart; do not predict occupation, income, or promotion dates.
-
-## 9. 实践反思建议 / Practical reflection prompts
-
-Offer three to five low-risk, observable prompts tied to evidence. Mark materially alternate-sensitive prompts.
-
-## 10. 证据索引 / Evidence index
-
-| Evidence id | Exact source value | Evidence class |
+| Section | Chinese example | English example |
 |---|---|---|
-| `[P-day]` | ... | primary calculated fact |
-| `[component]` | ... | heuristic score ledger |
-| `[ALT-...]` | ... | alternate-boundary calculation |
-| `[SS-...]` | ... | secondary Shen Sha |
+| 1 | 结论速览 | Conclusion at a glance |
+| 2 | 命盘概览 | Chart overview |
+| 3 | 五行与日主摘要 | Element and day-master summary |
+| 4 | 核心结构 | Core structure |
+| 5 | 优势与张力 | Strengths and tensions |
+| 6 | 关系、工作与反思提示 | Relationship, work, and reflection prompts |
+| 7 | 技术依据与证据 | Technical basis and evidence |
+
+## 1. 结论速览
+
+- State the main conditional reading, material uncertainty, and scope disclaimer first.
+
+## 2. 命盘概览
+
+| 四柱 | 年柱 | 月柱 | 日柱 | 时柱 |
+|---|---|---|---|---|
+| 干支 | ... | ... | ... | ... |
+
+- Summarize the applicable civil, true-solar, solar-term, and day-boundary basis in plain language.
+
+## 3. 五行与日主摘要
+
+| 项目 | 展示值 | 简要说明 |
+|---|---:|---|
+| 调整后五行 | ...% | ... |
+| 日主强弱分数 | ... | ... |
+
+- State that they are heuristic model outputs, not probabilities.
+- Explain the day stem, month command, roots, visible support or control, and score components.
+
+## 4. 核心结构
+
+- Distinguish formed relations from candidates.
+- State balancing tendencies conditionally; a numeric threshold alone cannot establish a special structure.
+- Describe alternate-boundary effects separately, withholding conclusions that change materially.
+
+## 5. 优势与张力
+
+- Present supported capacities and countervailing pressures as paired evidence, not a one-sided verdict.
+- Keep Shen Sha secondary and label it as such when mentioned.
+
+## 6. 关系、工作与反思提示
+
+- Discuss general relationship tendencies only; do not claim compatibility with an absent person.
+- Describe conditions and contribution styles, not occupation, income, promotion, or outcomes.
+- Offer three to five low-risk, observable reflection prompts tied to compact markers. Mark materially alternate-sensitive prompts.
+
+## 7. 技术依据与证据
+
+In addition to the shared appendix requirements, include the source status, natal boundary rules, scoring details, component ledger, alternate calculations, and whether each evidence item is primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
+
+| 标记 | 原始证据标识 | 精确来源值 | 证据类别 |
+|---|---|---|---|
+| `〔1〕` | `[P-day]` | ... | 主要计算事实 |
+| `〔2〕` | `[component]` | ... | 启发式分数账本 |
+| `〔3〕` | `[ALT-...]` | ... | 备选边界计算 |
+| `〔4〕` | `[SS-...]` | ... | 次要神煞证据 |
