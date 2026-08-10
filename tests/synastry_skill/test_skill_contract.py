@@ -33,20 +33,52 @@ class CalculatorSkillContractTests(unittest.TestCase):
             self.assertIn("license: AGPL-3.0-or-later", frontmatter)
             self.assertTrue((skill / "shared" / "LICENSE").is_file())
 
+        english_readme = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()
+        chinese_readme = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8").splitlines()
+        skills_readme = (PLUGIN / "skills" / "README.md").read_text(encoding="utf-8").splitlines()
+        english_entries = {
+            skill: next(line for line in english_readme if f"**[{skill}]" in line)
+            for skill in ("synastry", "synastry-reading")
+        }
+        chinese_entries = {
+            skill: next(line for line in chinese_readme if f"**[{skill}]" in line)
+            for skill in ("synastry", "synastry-reading")
+        }
+        skills_entries = {
+            skill: next(line for line in skills_readme if line.startswith(f"- [{skill}]("))
+            for skill in ("synastry", "synastry-reading")
+        }
+        groupings = json.loads((ROOT / "skills.sh.json").read_text(encoding="utf-8"))["groupings"]
+        astrology_group = next(group for group in groupings if group["title"] == "Astrology")
+        unreleased_entry = next(
+            line
+            for line in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+            if line.startswith("- **Breaking:** The `astrology` plugin")
+        )
         publication_descriptions = (
             json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["description"],
             json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))[
                 "description"
             ],
-            (ROOT / "README.md").read_text(encoding="utf-8"),
-            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
-            json.loads((ROOT / "skills.sh.json").read_text(encoding="utf-8"))["groupings"][3]["description"],
-            (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## 0.7.0", 1)[0],
+            *english_entries.values(),
+            *chinese_entries.values(),
+            *skills_entries.values(),
+            astrology_group["description"],
+            unreleased_entry,
         )
         for description in publication_descriptions:
             self.assertIn("JSON", description)
             self.assertNotIn("minute-only", description)
             self.assertNotIn("raw TXT", description)
+            self.assertNotIn("raw data file", description)
+            self.assertNotIn("fixed relationship mechanisms", description)
+
+        self.assertIn("default", english_entries["synastry"])
+        self.assertIn("archival", english_entries["synastry"])
+        self.assertIn("默认", chinese_entries["synastry"])
+        self.assertIn("归档", chinese_entries["synastry"])
+        self.assertIn("default", astrology_group["description"])
+        self.assertIn("archival", astrology_group["description"])
 
         conventions = CONVENTIONS.read_text(encoding="utf-8")
         self.assertIn("## Licensing", conventions)

@@ -59,6 +59,18 @@ def declared_bundle() -> str:
     return match.group(1)
 
 
+def copy_repository_fixture(destination: Path) -> Path:
+    """Copy the checkout without VCS or generated state for script behavior tests."""
+
+    copied = destination / "repository"
+    shutil.copytree(
+        ROOT,
+        copied,
+        ignore=shutil.ignore_patterns(".git", ".superpowers", "__pycache__", "*.pyc", ".coverage"),
+    )
+    return copied
+
+
 class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
@@ -285,6 +297,42 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn(expected, result.stderr, f"{field} was not the rule that fired")
         finally:
             manifest.write_bytes(original)
+
+    def test_validator_rejects_astrology_license_downgrades(self) -> None:
+        """MIT in either astrology metadata layer must not silently weaken the plugin license."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            cases = (
+                (
+                    copied / "plugins" / "astrology" / ".claude-plugin" / "plugin.json",
+                    "plugin license must be 'AGPL-3.0-or-later'",
+                ),
+                (
+                    copied / "plugins" / "astrology" / "skills" / "synastry" / "SKILL.md",
+                    "license must be 'AGPL-3.0-or-later'",
+                ),
+            )
+            for target, expected in cases:
+                with self.subTest(target=target.relative_to(copied)):
+                    original = target.read_bytes()
+                    try:
+                        target.write_text(
+                            original.decode("utf-8").replace("AGPL-3.0-or-later", "MIT", 1),
+                            encoding="utf-8",
+                        )
+                        result = subprocess.run(
+                            [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                            cwd=copied,
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )
+                    finally:
+                        target.write_bytes(original)
+
+                    self.assertNotEqual(result.returncode, 0, str(target))
+                    self.assertIn(expected, result.stderr)
 
     def test_verify_install_rejects_a_half_installed_plugin(self) -> None:
         """A plugin root carrying one manifest and not the other is half a plugin."""
@@ -1323,10 +1371,52 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn("scaffoldtest/skills/probe/SKILL.md", line)
                 self.assertIn("placeholder", line.lower())
             self.assertTrue((scaffolded / "skills" / "probe" / "agents" / "openai.yaml").is_file())
+            self.assertIn(
+                "license: MIT",
+                (scaffolded / "skills" / "probe" / "SKILL.md").read_text(encoding="utf-8"),
+            )
+            for manifest in (
+                scaffolded / "plugin.json",
+                scaffolded / ".claude-plugin" / "plugin.json",
+            ):
+                self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["license"], "MIT")
         finally:
             shutil.rmtree(scaffolded, ignore_errors=True)
             for path, content in before.items():
                 (ROOT / path).write_bytes(content)
+
+    def test_new_skill_inherits_an_existing_plugin_license(self) -> None:
+        """A new astrology skill must not be scaffolded under a conflicting MIT license."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            created = subprocess.run(
+                [sys.executable, "scripts/new-skill.py", "astrology", "license-probe"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(created.returncode, 0, created.stderr)
+            skill = copied / "plugins" / "astrology" / "skills" / "license-probe" / "SKILL.md"
+            self.assertIn("license: AGPL-3.0-or-later", skill.read_text(encoding="utf-8"))
+
+            subprocess.run(
+                [sys.executable, "scripts/sync-shared.py"],
+                cwd=copied,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            validated = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotIn("license must be", validated.stderr)
 
     def test_remove_skill_is_the_exact_inverse_of_new_skill(self) -> None:
         """Scaffold then retire has to leave every registry byte-identical."""

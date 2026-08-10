@@ -51,7 +51,7 @@
 
 #### `astrology` —— 按出生时间和地点排盘
 
-- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 验证两份用户提供的出生记录，写出一个隐私最小化、能反映时间不确定性的 JSON v2 合盘文件，并记录实际使用的星历后端；仅在精确时间时计算宫位叠加，然后自动进入独立解读流程。
+- **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 验证两份用户提供的出生记录，写出一个能反映时间不确定性的 JSON v2 合盘文件，并记录实际使用的星历后端。默认只保留计算必需的最少隐私数据；只有用户明确要求归档模式时，才保留其提供的本地出生记录和地点来源。仅在精确时间时计算宫位叠加，然后自动进入独立解读流程。
 - **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 先私密验证 JSON v2 合盘文件，再写出自适应、逐条链接证据的 Markdown 报告；关系领域只按用户明确提出的内容展开。
 
 ---
