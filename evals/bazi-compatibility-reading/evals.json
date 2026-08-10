@@ -92,6 +92,15 @@
         "Refuses to convert a heuristic score into probability.",
         "Explains that the score only summarizes the declared model dimensions."
       ]
+    },
+    {
+      "id": "reader-first-chinese-report",
+      "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
+      "expectations": [
+        "Shows the selected relationship score before the general score when a relationship context is selected.",
+        "Uses Chinese scorecard labels and explicit `A → B` directions, with no `left` or `right` in reader prose.",
+        "Places technical identifiers only in the final technical appendix."
+      ]
     }
   ]
 }

@@ -69,6 +69,15 @@
         "Calls percentages and strength scores heuristic outputs, not probabilities.",
         "Keeps Shen Sha secondary and avoids deterministic claims."
       ]
+    },
+    {
+      "id": "reader-first-chinese-report",
+      "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
+      "expectations": [
+        "Uses Chinese only in the reader-facing layer, with the conclusion before the technical basis.",
+        "Uses compact `〔n〕` citations instead of raw evidence ids in reader prose.",
+        "Shows rounded display scores in the reader layer and preserves exact values in the final technical appendix."
+      ]
     }
   ]
 }
