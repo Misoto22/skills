@@ -26,16 +26,14 @@ Use the vendored `shared/bazi/artifacts.py` validator for a JSON artifact. Stop 
 
 ## Build an evidence ledger first
 
-Assign stable report references before writing prose:
+Assign stable raw evidence ids before writing prose:
 
-- `[P-year]`, `[P-month]`, `[P-day]`, `[P-hour]` for primary pillars.
-- `[B-year]`, `[B-month]`, `[B-day]`, `[B-hour]` for boundary and time basis.
-- Preserve each structural interaction id such as `[interaction-001]`.
-- Preserve scoring ids such as `[base.visible.month]`, `[adjust.seasonal.木]`, and strength component names.
-- Prefix alternate evidence with `[ALT-...]`.
-- Prefix Shen Sha with `[SS-...]` and label it secondary.
+- Collect `[P-year]`, `[P-month]`, `[P-day]`, and `[P-hour]` for primary pillars.
+- Collect `[B-year]`, `[B-month]`, `[B-day]`, and `[B-hour]` for boundary and time basis.
+- Preserve structural interaction ids such as `[interaction-001]`, scoring ids such as `[base.visible.month]` and `[adjust.seasonal.木]`, and strength component names.
+- Prefix alternate evidence with `[ALT-...]`; prefix Shen Sha with `[SS-...]` and label it secondary.
 
-Every substantive sentence must cite one or more of these references inline. Deduplicate the evidence index: one id, one source fact. If evidence conflicts, describe the tension instead of selecting the more flattering result.
+Then assign sequential compact markers `〔1〕`, `〔2〕`, and so on to the evidence used in reader prose. Cite every substantive reader-layer sentence with one or more compact markers; do not expose raw ids there. In the final appendix, map each used marker to the exact raw id, exact source value, and evidence class. Deduplicate the appendix: one raw id, one source fact. If evidence conflicts, describe the tension instead of selecting the more flattering result.
 
 ## Interpretation discipline
 
@@ -56,24 +54,23 @@ When a 00:00-boundary alternate exists, interpret primary and alternate independ
 - changed day/hour evidence and every conclusion it affects;
 - claims that should be withheld because the boundary choice changes them.
 
-Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material.
+Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material. Cite reader-layer sensitivity statements with compact markers and retain primary and alternate raw evidence separately in the final appendix.
 
 ## Required report order
 
-Use the user's language and the matching headings in `references/output-template.md`. Keep exactly these ten sections:
+Write the whole report in the user's language and render the matching localized headings in `references/output-template.md`. Keep exactly these seven sections:
 
-1. Basis and boundaries
-2. Score overview
-3. Day master and month command
-4. Structure and favorable tendencies
+1. Conclusion at a glance
+2. Chart overview
+3. Element and day-master summary
+4. Core structure
 5. Strengths and tensions
-6. Behavioral patterns
-7. Relationship patterns
-8. Work and contribution
-9. Practical reflection prompts
-10. Evidence index
+6. Relationship, work, and reflection prompts
+7. Technical basis and evidence
 
-Section 1 must name source status, primary pillars, true-solar and day-boundary rules, models, confidence, and alternate sensitivity. Section 2 must show the numeric outputs with the heuristic disclaimer. Sections 3-9 must cite evidence inline. Section 10 maps every used id to exact source data and says whether it is primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
+Make sections 1–6 the reader layer. Put the conditional conclusion, material uncertainty, and scope disclaimer first. Show a concise four-pillar table in section 2. In section 3, display five-element percentages and day-master scores as whole numbers, and state that they are heuristic model outputs, not probabilities. Keep raw ids, full checksums, model ids, exact arithmetic, and unrounded values out of sections 1–6. Use compact markers only in those sections.
+
+Make section 7 the final audit appendix. Include source status, full checksum when available, boundary rules, rule and scoring model ids, full unrounded values, component ledger, exact arithmetic, and separate alternate calculations. Map every marker used in the reader layer to its exact raw id and source value, and state whether it is primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 
 ## Write safely
 
