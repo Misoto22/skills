@@ -1,0 +1,6 @@
+interface:
+  display_name: "BaZi Compatibility"
+  short_description: "Calculate two-person BaZi compatibility"
+  default_prompt: "Use $bazi-compatibility to compare two birth records or reusable charts with transparent scores and directional evidence."
+policy:
+  allow_implicit_invocation: true

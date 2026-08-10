@@ -21,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 VENDORED_DIRNAME = "shared"
+EXCLUDED_PARTS = {"__pycache__", ".DS_Store"}
+EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
 
 
 def sync(*, check_only: bool) -> list[str]:
@@ -64,7 +66,15 @@ def _pairs() -> list[tuple[Path, Path]]:
 def _relative_files(directory: Path) -> set[Path]:
     if not directory.is_dir():
         return set()
-    return {path.relative_to(directory) for path in directory.rglob("*") if path.is_file()}
+    return {
+        relative
+        for path in directory.rglob("*")
+        if path.is_file() and not _excluded(relative := path.relative_to(directory))
+    }
+
+
+def _excluded(relative: Path) -> bool:
+    return any(part in EXCLUDED_PARTS for part in relative.parts) or relative.suffix in EXCLUDED_SUFFIXES
 
 
 def main() -> int:

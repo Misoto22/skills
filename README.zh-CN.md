@@ -171,6 +171,10 @@ claude plugin install obsidian@misoto22
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
+- **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)** (`/chinese-metaphysics:bazi-chart`) — 将单人出生资料计算为可复用的 JSON 命盘与纯数据 Markdown。
+- **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)** (`/chinese-metaphysics:bazi-reading`) — 把已验证的单人命盘解读为证据可追溯的静态命局报告。
+- **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility`) — 用双向证据和透明评分比较两份八字命盘。
+- **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility-reading`) — 解读已完成的双人比较，不改动原始数据或模型分数。
 
 Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面八个 skill。
 

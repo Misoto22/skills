@@ -1,0 +1,15 @@
+{
+  "name": "chinese-metaphysics",
+  "version": "0.8.2",
+  "description": "BaZi charts and relationship compatibility built from auditable calendar data, transparent scores, and separate evidence-linked readings.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "skills": [
+    "./skills/bazi-chart",
+    "./skills/bazi-compatibility",
+    "./skills/bazi-compatibility-reading",
+    "./skills/bazi-reading"
+  ]
+}

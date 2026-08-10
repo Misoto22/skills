@@ -13,12 +13,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 MARKETPLACE_NAME = "misoto22"
-VERSION = "0.8.1"
+VERSION = "0.8.2"
 
 # The published surface, asserted exactly: a plugin or skill that appears on disk
 # without being added here is unregistered somewhere, and one listed here without
 # appearing on disk has been dropped.
 PUBLISHED = {
+    "chinese-metaphysics": ["bazi-chart", "bazi-compatibility", "bazi-compatibility-reading", "bazi-reading"],
     "astrology": ["synastry", "synastry-reading"],
     "dev": ["cleanup", "ship", "sync"],
     "docs": ["readme"],

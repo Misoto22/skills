@@ -1,6 +1,6 @@
 {
   "name": "all",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Installs every plugin this marketplace publishes and every plugin it bookmarks.",
   "author": {
     "name": "skills contributors"
@@ -8,6 +8,7 @@
   "license": "MIT",
   "dependencies": [
     "astrology@misoto22",
+    "chinese-metaphysics@misoto22",
     "codex@misoto22",
     "dev@misoto22",
     "docs@misoto22",

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "chinese-metaphysics",
+  "version": "0.8.2",
+  "description": "BaZi charts and relationship compatibility built from auditable calendar data, transparent scores, and separate evidence-linked readings.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "bazi",
+    "four-pillars",
+    "chinese-calendar",
+    "compatibility",
+    "ten-gods"
+  ],
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}

@@ -96,6 +96,17 @@
         "./skills/synastry",
         "./skills/synastry-reading"
       ]
+    },
+    {
+      "name": "chinese-metaphysics",
+      "category": "learning",
+      "source": "./plugins/chinese-metaphysics",
+      "skills": [
+        "./skills/bazi-chart",
+        "./skills/bazi-compatibility",
+        "./skills/bazi-compatibility-reading",
+        "./skills/bazi-reading"
+      ]
     }
   ]
 }

@@ -1,0 +1,83 @@
+{
+  "skill": "bazi-reading",
+  "triggers": [
+    {
+      "id": "calculator-handoff",
+      "prompt": "Interpret the verified bazi_A.json that the calculator just created.",
+      "expected": "Fires, validates the artifact, and writes an evidence-linked natal reading without recalculation."
+    },
+    {
+      "id": "chinese-existing-chart",
+      "prompt": "这是我的八字 JSON，帮我解读日主强弱和命局结构。",
+      "expected": "Fires on a complete existing chart and explains score semantics."
+    },
+    {
+      "id": "complete-pasted-data",
+      "prompt": "I pasted all four pillars, fact ledger, score ledger, models, and boundary metadata below. Read the chart.",
+      "expected": "Fires after completeness validation and marks the source as pasted-complete."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "raw-birth-details",
+      "prompt": "I was born 1990-03-14 07:42 in Shanghai. Read my BaZi.",
+      "routes_to": "bazi-chart",
+      "expected": "Does not interpret raw details; routes through the chart calculator."
+    },
+    {
+      "id": "two-person-compatibility",
+      "prompt": "Compare my existing BaZi with my partner's chart.",
+      "routes_to": "bazi-compatibility",
+      "expected": "Does not fire; comparison belongs to the compatibility calculator."
+    },
+    {
+      "id": "dated-forecast",
+      "prompt": "Use this chart to tell me the exact date I will get married.",
+      "expected": "Does not produce a forecast; dated event prediction is outside scope."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "corrupt-checksum",
+      "prompt": "Read this bazi chart even though I manually changed one score after it was generated.",
+      "expectations": [
+        "Refuses because canonical content no longer matches the checksum.",
+        "Does not repair, recalculate, or interpret the modified artifact."
+      ]
+    },
+    {
+      "id": "missing-hour",
+      "prompt": "Here are my year, month, and day pillars plus scores; interpret them as a full BaZi.",
+      "expectations": [
+        "States that the source is incomplete because the hour pillar and its derived evidence are missing.",
+        "Does not infer an hour pillar or present a full reading."
+      ]
+    },
+    {
+      "id": "alternate-sensitivity",
+      "prompt": "Interpret this verified chart; it contains a different 00:00-boundary alternate.",
+      "expectations": [
+        "Interprets the primary and alternate independently.",
+        "Separates stable findings from changed conclusions and never averages scores."
+      ]
+    },
+    {
+      "id": "evidence-linked-output",
+      "prompt": "Give me a complete reading of this valid chart artifact.",
+      "expectations": [
+        "Uses the required seven-section reader-first order and compact `〔n〕` citations in reader prose.",
+        "Calls percentages and strength scores heuristic outputs, not probabilities.",
+        "Keeps Shen Sha secondary and avoids deterministic claims."
+      ]
+    },
+    {
+      "id": "reader-first-chinese-report",
+      "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
+      "expectations": [
+        "Uses Chinese only in the reader-facing layer, with the conclusion before the technical basis.",
+        "Uses compact `〔n〕` citations instead of raw evidence ids in reader prose.",
+        "Shows rounded display scores in the reader layer and confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."
+      ]
+    }
+  ]
+}
