@@ -66,6 +66,6 @@ Do not convert a general Venus contact into financial advice. Pass `--module "Mo
 
 ## 6. TXT refusal
 
-**Input:** `synastry_alpha_beta.txt`.
+**Input:** a legacy TXT synastry artifact.
 
 **Reply:** State that TXT is unsupported and cannot be interpreted or migrated. Ask the user to recalculate the underlying birth records with `$synastry` to produce a validated JSON v2 artifact. Write no draft or final Markdown.

@@ -6,8 +6,11 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry"
+PLUGIN = ROOT / "plugins" / "astrology"
+SKILL = PLUGIN / "skills" / "synastry"
 CALCULATOR_SKILL = SKILL / "SKILL.md"
+READER = PLUGIN / "skills" / "synastry-reading"
+READER_SKILL = READER / "SKILL.md"
 EXAMPLES = SKILL / "references" / "examples.md"
 CONVENTIONS = SKILL / "references" / "calculation-conventions.md"
 REQUEST_EXAMPLE = SKILL / "references" / "request.example.json"
@@ -19,6 +22,39 @@ from request_schema import parse_request  # type: ignore[import-not-found]
 
 
 class CalculatorSkillContractTests(unittest.TestCase):
+    def test_astrology_license_and_json_contract_are_published(self) -> None:
+        for manifest in (PLUGIN / "plugin.json", PLUGIN / ".claude-plugin" / "plugin.json"):
+            self.assertEqual(
+                json.loads(manifest.read_text(encoding="utf-8"))["license"],
+                "AGPL-3.0-or-later",
+            )
+        for skill in (SKILL, READER):
+            frontmatter = skill.joinpath("SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("license: AGPL-3.0-or-later", frontmatter)
+            self.assertTrue((skill / "shared" / "LICENSE").is_file())
+
+        publication_descriptions = (
+            json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["description"],
+            json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))[
+                "description"
+            ],
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
+            json.loads((ROOT / "skills.sh.json").read_text(encoding="utf-8"))["groupings"][3]["description"],
+            (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## 0.7.0", 1)[0],
+        )
+        for description in publication_descriptions:
+            self.assertIn("JSON", description)
+            self.assertNotIn("minute-only", description)
+            self.assertNotIn("raw TXT", description)
+
+        conventions = CONVENTIONS.read_text(encoding="utf-8")
+        self.assertIn("## Licensing", conventions)
+        self.assertIn("AGPL-3.0-or-later", conventions)
+        self.assertIn("Swiss Ephemeris professional license", conventions)
+        self.assertIn("Astrodienst", conventions)
+        self.assertIn("not granted by this repository", conventions)
+
     def test_frontmatter_names_the_skill_and_body_stays_short(self) -> None:
         text = CALCULATOR_SKILL.read_text(encoding="utf-8")
 

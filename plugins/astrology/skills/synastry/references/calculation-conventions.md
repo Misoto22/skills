@@ -11,6 +11,7 @@ These are versioned plugin conventions, not universal astrology rules or scienti
 5. [Aspect families and orb bounds](#aspect-families-and-orb-bounds)
 6. [Classical derived formulas](#classical-derived-formulas)
 7. [Backend policies](#backend-policies)
+8. [Licensing](#licensing)
 
 ## Profiles
 
@@ -113,3 +114,7 @@ Only calculate sect and Lots for an exact chart with the required houses, angle,
 `allow-moshier` is an explicit opt-in. Record `requested_backend`, `actual_backend`, numeric return flags, binding version, data path when available, and an `ephemeris-fallback` limitation. It never becomes an invisible default.
 
 Record the IANA zone database as the timezone source unless a reasoned UTC-offset override was used. Preserve the override and its reason in full archival provenance.
+
+## Licensing
+
+The astrology plugin code is licensed under `AGPL-3.0-or-later`. A Swiss Ephemeris professional license is a separate commercial option supplied by Astrodienst; it is not granted by this repository.

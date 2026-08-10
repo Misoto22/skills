@@ -24,6 +24,12 @@ PUBLISHED = {
     "docs": ["readme"],
     "writing": ["email", "personal-blog", "tempering"],
 }
+PLUGIN_LICENSES = {
+    "astrology": "AGPL-3.0-or-later",
+    "dev": "MIT",
+    "docs": "MIT",
+    "writing": "MIT",
+}
 
 # Other people's plugins, registered so they install from this marketplace too.
 # Nothing below the marketplace entry reaches them: no tree here, no plugin.json
@@ -208,6 +214,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     for plugin_name, expected_skills in sorted(PUBLISHED.items()):
         plugin_root = PLUGINS_ROOT / plugin_name
         skills_root = plugin_root / "skills"
+        plugin_license = PLUGIN_LICENSES.get(plugin_name, "MIT")
         skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
         names = [path.name for path in skill_paths]
         if names != expected_skills:
@@ -219,7 +226,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         for field, expected in (
             ("name", plugin_name),
             ("version", VERSION),
-            ("license", "MIT"),
+            ("license", plugin_license),
         ):
             if plugin.get(field) != expected:
                 errors.append(f"{plugin_name} plugin {field} must be {expected!r}")
@@ -244,7 +251,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
                 errors.append(f"{plugin_name} skills/README.md lists {reference}, which is gone")
 
         for skill_path in skill_paths:
-            _validate_skill(skill_path, errors)
+            _validate_skill(skill_path, plugin_license, errors)
 
         # shared/ ships inside every published skill, so it is held to the same
         # runtime-neutrality rule as the skills that read it.
@@ -444,13 +451,13 @@ def _validate_bookmark(name: str, entry: tuple[object, object], errors: list[str
         errors.append(f"{name} bookmark selects a subdirectory without naming one")
 
 
-def _validate_skill(skill_path: Path, errors: list[str]) -> None:
+def _validate_skill(skill_path: Path, license_name: str, errors: list[str]) -> None:
     skill_file = skill_path / "SKILL.md"
     text = _read_text(skill_file, errors)
     metadata = _parse_frontmatter(text, skill_file, errors)
     expected = {
         "name": skill_path.name,
-        "license": "MIT",
+        "license": license_name,
     }
     for field, value in expected.items():
         if metadata.get(field) != value:
