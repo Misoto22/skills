@@ -39,6 +39,17 @@ UNIVERSAL_HEADINGS = (
     "Overall synthesis",
     "Evidence index",
 )
+CHINESE_UNIVERSAL_HEADINGS = (
+    "分析基础、数据来源与限制",
+    "反复出现的互动模式",
+    "双向影响与不对称性",
+    "沟通与协作",
+    "张力、边界与修复",
+    "成长与共同方向",
+    "用户要求或关系背景领域",
+    "整体总结",
+    "证据索引",
+)
 
 
 def ledger() -> EvidenceLedger:
@@ -61,7 +72,153 @@ def report_with(replacement: str) -> str:
     return valid_report().replace(item.citation, replacement, 1)
 
 
+def ledger_with_limitations(language: str) -> EvidenceLedger:
+    source = json.loads((FIXTURES / "neutral.json").read_text(encoding="utf-8"))
+    source["configuration"]["language"] = language
+    source["configuration"]["ephemeris_policy"] = "allow-moshier"
+    source["provenance"].update(
+        {
+            "actual_backend": "moshier",
+            "binding_version": "binding-v2",
+            "return_flags": [2, 4],
+            "software_version": "software-v1",
+            "timezone_source": "timezone-source",
+            "warnings": ["first warning", "second warning"],
+        }
+    )
+    source["limitations"] = [
+        {
+            "affected_fields": ["charts[0].houses"],
+            "code": "timing-window",
+            "message": "Timing note: one source window crosses midnight.",
+        },
+        {
+            "affected_fields": ["overlays"],
+            "code": "missing-birth-time",
+            "message": "One subject lacks a verified birth time.",
+        },
+    ]
+    return load_ledger(attach_integrity(source))
+
+
+def basis_entries(selected: EvidenceLedger, language: str) -> tuple[str, ...]:
+    configuration = selected.configuration
+    provenance = selected.provenance
+    flags = ", ".join(str(value) for value in provenance["return_flags"])
+    warnings = " | ".join(str(value) for value in provenance["warnings"])
+    if language == "en":
+        entries = (
+            f"Source: validated synastry JSON v2, chart ID {selected.chart_id}",
+            "Calculation and aspect profiles: "
+            f"calculation {configuration['calculation_profile']}; "
+            f"aspects {configuration['aspect_profile']}.",
+            f"House system and configured orbs: {configuration['house_system']}; major 8°; minor 3°.",
+            "Backend provenance: "
+            f"requested {provenance['requested_backend']}; actual {provenance['actual_backend']}; "
+            f"software {provenance['software_version']}; binding {provenance['binding_version']}; "
+            f"timezone {provenance['timezone_source']}; return flags {flags}; "
+            f"warnings {warnings or 'none'}.",
+            "Explicit relationship context: Not stated",
+        )
+        limitation_label = "Data limitations: "
+    else:
+        entries = (
+            f"数据来源\N{FULLWIDTH COLON}已验证的合盘 JSON v2"
+            f"\N{FULLWIDTH SEMICOLON}图表 ID {selected.chart_id}",
+            "计算与相位配置\N{FULLWIDTH COLON}"
+            f"计算 {configuration['calculation_profile']}"
+            f"\N{FULLWIDTH SEMICOLON}相位 {configuration['aspect_profile']}。",
+            "宫位系统与相位容许度\N{FULLWIDTH COLON}"
+            f"{configuration['house_system']}\N{FULLWIDTH SEMICOLON}主要相位 8°"
+            f"\N{FULLWIDTH SEMICOLON}次要相位 3°。",
+            "星历数据来源\N{FULLWIDTH COLON}"
+            f"请求 {provenance['requested_backend']}"
+            f"\N{FULLWIDTH SEMICOLON}实际 {provenance['actual_backend']}"
+            f"\N{FULLWIDTH SEMICOLON}软件 {provenance['software_version']}"
+            f"\N{FULLWIDTH SEMICOLON}绑定 {provenance['binding_version']}"
+            f"\N{FULLWIDTH SEMICOLON}时区 {provenance['timezone_source']}"
+            f"\N{FULLWIDTH SEMICOLON}返回标志 {flags}\N{FULLWIDTH SEMICOLON}"
+            f"警告 {warnings or '无'}。",
+            "用户明确提供的关系背景\N{FULLWIDTH COLON}未说明",
+        )
+        limitation_label = "数据限制\N{FULLWIDTH COLON}"
+    return entries + tuple(
+        f"{limitation_label}{limitation['message']}" for limitation in selected.limitations
+    )
+
+
+def report_with_basis(
+    selected: EvidenceLedger,
+    language: str,
+    entries: tuple[str, ...],
+) -> str:
+    headings = UNIVERSAL_HEADINGS if language == "en" else CHINESE_UNIVERSAL_HEADINGS
+    title = "# Synastry reading" if language == "en" else "# 双方合盘分析"
+    lines = [title]
+    for index, heading in enumerate(headings):
+        content = (
+            "\n".join(f"- {entry}" for entry in entries) if index == 0 else selected.evidence[0].citation
+        )
+        lines.extend((f"## {heading}", content))
+    return "\n\n".join(lines) + "\n"
+
+
 class MarkdownValidationTests(unittest.TestCase):
+    def test_complete_ledger_derived_basis_blocks_are_structural_in_english_and_chinese(
+        self,
+    ) -> None:
+        for language in ("en", "zh"):
+            with self.subTest(language=language):
+                selected = ledger_with_limitations(language)
+                entries = basis_entries(selected, language)
+
+                problems = validate_markdown(
+                    report_with_basis(selected, language, entries),
+                    selected,
+                    language,
+                    (),
+                )
+
+                self.assertEqual(problems, [])
+
+    def test_non_source_metadata_appends_require_direct_evidence_in_both_languages(self) -> None:
+        append_variants = {
+            "en": (
+                ", this may create an unusually fluent emotional bond.",
+                " and this may create an unusually fluent emotional bond.",
+                "; this may create an unusually fluent emotional bond.",
+                ": this may create an unusually fluent emotional bond.",
+                " \N{EM DASH} this may create an unusually fluent emotional bond.",
+                "\n  This may create an unusually fluent emotional bond.",
+            ),
+            "zh": (
+                "\N{FULLWIDTH COMMA}这可能带来格外流畅的情感联结。",
+                "而且这可能带来格外流畅的情感联结。",
+                "并且这可能带来格外流畅的情感联结。",
+                "\N{FULLWIDTH SEMICOLON}这可能带来格外流畅的情感联结。",
+                "\N{FULLWIDTH COLON}这可能带来格外流畅的情感联结。",
+                "\N{EM DASH}这可能带来格外流畅的情感联结。",
+                "\n  这可能带来格外流畅的情感联结。",
+            ),
+        }
+        for language, suffixes in append_variants.items():
+            selected = ledger_with_limitations(language)
+            entries = basis_entries(selected, language)
+            for suffix in suffixes:
+                with self.subTest(language=language, suffix=suffix):
+                    appended = (entries[4] + suffix,)
+
+                    problems = validate_markdown(
+                        report_with_basis(selected, language, appended),
+                        selected,
+                        language,
+                        (),
+                    )
+
+                    self.assertTrue(
+                        any("substantive paragraph lacks valid evidence" in problem for problem in problems)
+                    )
+
     def test_unknown_evidence_and_changed_orb_are_rejected(self) -> None:
         problems = validate_markdown(
             report_with("[E-ASPECT-FFFF] orb 9.99°"),

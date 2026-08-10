@@ -168,6 +168,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         (committing / "commit.json").write_text(
             json.dumps(
                 {
+                    "chart_id": str(source["chart_id"]),
                     "destination": str(destination),
                     "expires_at": int(status["expires_at"]),
                     "format": "synastry-reading-session-v1",
@@ -379,10 +380,115 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         self.assertEqual((source_alias.stat().st_dev, source_alias.stat().st_ino), source_identity)
         self.assertTrue(committing.is_dir())
 
+    def test_live_commit_manifest_persists_validated_chart_id(self) -> None:
+        source = source_with()
+        status = self.start_without_watchdog(source)
+        destination = self.reading_destination("persisted-chart-id")
+
+        code, stdout, stderr = self.finalize_in_process(
+            str(status["token"]),
+            destination,
+            valid_report(source),
+            patch.object(
+                reading_session,
+                "_complete_known_commit",
+                side_effect=OSError("injected installation failure"),
+            ),
+        )
+
+        committing = self.session_root / f".committing-{status['token']}"
+        manifest = json.loads((committing / "commit.json").read_text(encoding="utf-8"))
+        self.assertEqual(code, 2, stderr)
+        self.assertEqual(stdout, "")
+        self.assertEqual(manifest["chart_id"], source["chart_id"])
+        self.assertNotIn("display_name", json.dumps(manifest))
+        self.assertFalse(destination.exists())
+
+    def test_recovery_requires_exact_persisted_chart_basename(self) -> None:
+        source = source_with()
+        payload = b"validated final bytes\n"
+        basenames = (
+            "reading.md",
+            "synastry_reading_deadbeefcafe.md",
+            "synastry_reading_..%2Foutside.md",
+        )
+        for index, basename in enumerate(basenames):
+            with self.subTest(basename=basename):
+                directory = self.directory / f"invalid-basename-{index}"
+                directory.mkdir()
+                destination = directory / basename
+                _, committing = self.make_committing_state(source, destination, payload=payload)
+
+                recovered = reading_session._recover_committing(self.session_root, committing)
+
+                self.assertIs(recovered, reading_session._RecoveryResult.MALFORMED)
+                self.assertTrue(committing.is_dir())
+                self.assertFalse(destination.exists())
+
+    def test_noncanonical_recovery_is_removed_only_after_malformed_fallback(self) -> None:
+        source = source_with()
+        destination = self.directory / "noncanonical-reading.md"
+        _, committing = self.make_committing_state(source, destination)
+        before_fallback = int(time.time())
+
+        with patch.object(reading_session.time, "time", return_value=before_fallback):
+            reading_session._sweep_expired(self.session_root)
+
+        self.assertTrue(committing.is_dir())
+        self.assertFalse(destination.exists())
+
+        after_fallback = reading_session._fallback_deadline(committing) + 1
+        with patch.object(reading_session.time, "time", return_value=after_fallback):
+            reading_session._sweep_expired(self.session_root)
+
+        self.assertFalse(committing.exists())
+        self.assertFalse(destination.exists())
+
+    def test_canonical_recovery_installs_committed_bytes(self) -> None:
+        source = source_with()
+        destination = self.reading_destination("canonical-recovery")
+        payload = b"validated final bytes\n"
+        _, committing = self.make_committing_state(source, destination, payload=payload)
+
+        recovered = reading_session._recover_committing(self.session_root, committing)
+
+        self.assertIs(recovered, reading_session._RecoveryResult.COMPLETED)
+        self.assertFalse(committing.exists())
+        self.assertEqual(destination.read_bytes(), payload)
+
+    def test_recovery_rejects_invalid_persisted_chart_ids(self) -> None:
+        source = source_with()
+        invalid_chart_ids: tuple[tuple[str, object], ...] = (
+            ("missing", None),
+            ("uppercase", "ABC123DEF456"),
+            ("nonhexadecimal", "gggggggggggg"),
+            ("traversal", "../outside"),
+            ("overlong", "a" * 13),
+        )
+        for name, chart_id in invalid_chart_ids:
+            with self.subTest(name=name):
+                destination = self.reading_destination(f"invalid-chart-id-{name}")
+                _, committing = self.make_committing_state(source, destination)
+                manifest_path = committing / "commit.json"
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                if chart_id is None:
+                    manifest.pop("chart_id")
+                else:
+                    manifest["chart_id"] = chart_id
+                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                manifest_path.chmod(0o600)
+
+                recovered = reading_session._recover_committing(self.session_root, committing)
+
+                self.assertIs(recovered, reading_session._RecoveryResult.MALFORMED)
+                self.assertTrue(committing.is_dir())
+                self.assertFalse(destination.exists())
+
     def test_restart_sweep_recovers_all_stale_owned_states_and_leaves_unrelated_directories(self) -> None:
         now = int(time.time())
         source = source_with()
         stale_states: list[Path] = []
+        committed_destination: Path | None = None
         for state in ("staging", "finalizing", "cancelling", "committing"):
             status = self.start_without_watchdog(source)
             public = Path(str(status["pages_path"])).parent
@@ -391,7 +497,8 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             self.rewrite_lease(hidden, created_at=now - 2, expires_at=now - 1)
             os.utime(hidden, (now - reading_session.MAX_TTL_SECONDS - 10,) * 2)
             if state == "committing":
-                destination = self.directory / "already-committed.md"
+                destination = self.reading_destination("already-committed")
+                committed_destination = destination
                 payload = b"already committed\n"
                 destination.write_bytes(payload)
                 destination.chmod(0o600)
@@ -401,6 +508,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
                 commit_manifest.write_text(
                     json.dumps(
                         {
+                            "chart_id": str(source["chart_id"]),
                             "destination": str(destination),
                             "expires_at": now - 1,
                             "format": "synastry-reading-session-v1",
@@ -436,7 +544,9 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
 
         self.assertTrue(all(not path.exists() for path in stale_states))
         self.assertTrue(all(path.is_dir() for path in unrelated))
-        self.assertEqual((self.directory / "already-committed.md").read_bytes(), b"already committed\n")
+        self.assertIsNotNone(committed_destination)
+        assert committed_destination is not None
+        self.assertEqual(committed_destination.read_bytes(), b"already committed\n")
 
     def test_stale_committing_recovery_completes_absent_output_and_refuses_different_output(self) -> None:
         source = source_with()
@@ -447,7 +557,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             public = Path(str(status["pages_path"])).parent
             committing = self.session_root / f".committing-{status['token']}"
             public.rename(committing)
-            destination = self.directory / f"{name}.md"
+            destination = self.reading_destination(f"stale-{name}")
             if existing is not None:
                 destination.write_bytes(existing)
                 destination.chmod(0o600)
@@ -457,6 +567,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             commit_manifest.write_text(
                 json.dumps(
                     {
+                        "chart_id": str(source["chart_id"]),
                         "destination": str(destination),
                         "expires_at": int(status["expires_at"]),
                         "format": "synastry-reading-session-v1",
@@ -486,7 +597,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         public = Path(str(status["pages_path"])).parent
         committing = self.session_root / f".committing-{status['token']}"
         public.rename(committing)
-        destination = self.directory / "recovered-concurrently.md"
+        destination = self.reading_destination("recovered-concurrently")
         payload = b"one committed payload\n"
         commit_payload = committing / "commit.md"
         commit_manifest = committing / "commit.json"
@@ -494,6 +605,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         commit_manifest.write_text(
             json.dumps(
                 {
+                    "chart_id": str(source["chart_id"]),
                     "destination": str(destination),
                     "expires_at": int(status["expires_at"]),
                     "format": "synastry-reading-session-v1",
@@ -542,12 +654,13 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         public = Path(str(status["pages_path"])).parent
         committing = self.session_root / f".committing-{status['token']}"
         public.rename(committing)
-        destination = self.directory / "readback-required.md"
+        destination = self.reading_destination("readback-required")
         payload = b"durable payload\n"
         (committing / "commit.md").write_bytes(payload)
         (committing / "commit.json").write_text(
             json.dumps(
                 {
+                    "chart_id": str(source["chart_id"]),
                     "destination": str(destination),
                     "expires_at": int(status["expires_at"]),
                     "format": "synastry-reading-session-v1",
@@ -720,7 +833,8 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         public.rename(committing)
         manifest = committing / "commit.json"
         base_manifest = {
-            "destination": str(self.directory / "bounded.md"),
+            "chart_id": str(source["chart_id"]),
+            "destination": str(self.directory / "synastry_reading_abc123def456.md"),
             "expires_at": int(status["expires_at"]),
             "format": "synastry-reading-session-v1",
             "payload_bytes": 1,
@@ -789,7 +903,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
 
     def test_well_formed_conflicting_commit_remains_recoverable(self) -> None:
         source = source_with()
-        destination = self.directory / "conflicting-output.md"
+        destination = self.reading_destination("conflicting-output")
         payload = b"validated final bytes\n"
         destination.write_bytes(b"different bytes\n")
         destination.chmod(0o600)
@@ -813,7 +927,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         loop_b = self.directory / "loop-b"
         loop_a.symlink_to(loop_b.name, target_is_directory=True)
         loop_b.symlink_to(loop_a.name, target_is_directory=True)
-        destination = loop_a / "unsafe.md"
+        destination = loop_a / "synastry_reading_abc123def456.md"
         _, committing = self.make_committing_state(source, destination)
 
         recovered = reading_session._recover_committing(self.session_root, committing)
@@ -845,7 +959,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         finalizing = self.session_root / f".finalizing-{status['token']}"
         committing = self.session_root / f".committing-{status['token']}"
         public.rename(finalizing)
-        destination = self.directory / "delayed-crash-recovery.md"
+        destination = self.reading_destination("delayed-crash-recovery")
         payload = b"validated delayed payload\n"
         ledger = reading_session.load_ledger(finalizing / "source.json")
         clock = {"value": int(time.time())}

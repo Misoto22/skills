@@ -44,6 +44,7 @@ DEFAULT_TTL_SECONDS = 900
 MAX_TTL_SECONDS = 3600
 PAGE_BYTES = 16_384
 _TOKEN = re.compile(r"\A[0-9a-f]{32}\Z")
+_CHART_ID = re.compile(r"\A[0-9a-f]{12}\Z")
 _HIDDEN_STATE = re.compile(r"\A\.(staging|finalizing|cancelling|committing)-([0-9a-f]{32})\Z")
 _ROOT_ENV = "SYNASTRY_READING_SESSION_ROOT"
 _SESSION_FORMAT = "synastry-reading-session-v1"
@@ -615,6 +616,7 @@ def _prepare_commit(
 ) -> None:
     _write_private(claimed / _COMMIT_PAYLOAD, payload)
     manifest = {
+        "chart_id": ledger.chart_id,
         "destination": str(target),
         "expires_at": expires_at,
         "format": _SESSION_FORMAT,
@@ -666,6 +668,22 @@ def _read_private_bytes(path: Path) -> bytes:
     return b"".join(chunks)
 
 
+def _commit_target(root: Path, manifest: dict[str, object]) -> Path:
+    chart_id = manifest.get("chart_id")
+    if not isinstance(chart_id, str) or _CHART_ID.fullmatch(chart_id) is None:
+        raise ValueError("invalid commit chart identity")
+    destination = manifest.get("destination")
+    if not isinstance(destination, str):
+        raise ValueError("invalid commit destination")
+    target = Path(destination)
+    if not target.is_absolute():
+        raise ValueError("invalid commit destination")
+    target = _absolute_output_path(target, root)
+    if target.name != f"synastry_reading_{chart_id}.md":
+        raise ValueError("commit destination basename does not match chart identity")
+    return target
+
+
 def _commit_material(root: Path, committing: Path) -> tuple[bytes, Path, tuple[int, int] | None]:
     owned = _owned_state(committing)
     if owned is None or owned[0] != "committing":
@@ -690,13 +708,7 @@ def _commit_material(root: Path, committing: Path) -> tuple[bytes, Path, tuple[i
         or payload_sha256 != hashlib.sha256(payload).hexdigest()
     ):
         raise ValueError("commit payload digest changed")
-    destination = manifest.get("destination")
-    if not isinstance(destination, str):
-        raise ValueError("invalid commit destination")
-    target = Path(destination)
-    if not target.is_absolute():
-        raise ValueError("invalid commit destination")
-    target = _absolute_output_path(target, root)
+    target = _commit_target(root, manifest)
     device = manifest["source_device"]
     inode = manifest["source_inode"]
     if device is None and inode is None:

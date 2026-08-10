@@ -18,11 +18,11 @@ Use the selected language's universal headings exactly and in order. Replace eve
 ## Basis, provenance, and limitations
 
 - Source: validated synastry JSON v2, chart ID <chart-id>
-- Calculation and aspect profiles: <ledger values>
-- House system and configured orbs: <ledger values>
-- Backend provenance: <ledger value>
-- Explicit relationship context: <supplied context or "Not stated">
-- Data limitations: <ledger limitations or "None recorded">
+- Calculation and aspect profiles: calculation <configuration.calculation_profile>; aspects <configuration.aspect_profile>.
+- House system and configured orbs: <configuration.house_system or "not configured">; major <configuration.major_orb>°; minor <configuration.minor_orb>°.
+- Backend provenance: requested <provenance.requested_backend>; actual <provenance.actual_backend>; software <provenance.software_version>; binding <provenance.binding_version>; timezone <provenance.timezone_source>; return flags <comma-separated provenance.return_flags or "none">; warnings <pipe-separated provenance.warnings or "none">.
+- Explicit relationship context: Not stated
+- Data limitations: <copy one exact limitation.message per line, or "None recorded">
 
 ## Repeated interaction patterns
 
@@ -77,11 +77,11 @@ Under each selected heading, write only conditional, evidence-linked paragraphs.
 ## 分析基础、数据来源与限制
 
 - 数据来源：已验证的合盘 JSON v2；图表 ID <chart-id>
-- 计算与相位配置：<证据账本中的值>
-- 宫位系统与相位容许度：<证据账本中的值>
-- 星历数据来源：<证据账本中的值>
-- 用户明确提供的关系背景：<已提供的背景；否则写“未说明”>
-- 数据限制：<证据账本中的限制；否则写“未记录限制”>
+- 计算与相位配置：计算 <configuration.calculation_profile>；相位 <configuration.aspect_profile>。
+- 宫位系统与相位容许度：<configuration.house_system；未配置时写“未配置”>；主要相位 <configuration.major_orb>°；次要相位 <configuration.minor_orb>°。
+- 星历数据来源：请求 <provenance.requested_backend>；实际 <provenance.actual_backend>；软件 <provenance.software_version>；绑定 <provenance.binding_version>；时区 <provenance.timezone_source>；返回标志 <以英文逗号分隔 provenance.return_flags；为空时写“无”>；警告 <以竖线分隔 provenance.warnings；为空时写“无”>。
+- 用户明确提供的关系背景：未说明
+- 数据限制：<每个 limitation.message 原样复制为单独一行；没有时写“未记录限制”>
 
 ## 反复出现的互动模式
 

@@ -69,37 +69,6 @@ _STRUCTURAL_LIMITATION = {
         r"\N{FULLWIDTH QUESTION MARK}])?(?=\s|\Z)"
     ),
 }
-_METADATA_ENTRY = {
-    "en": re.compile(
-        r"(?P<label>Source|Calculation and aspect profiles|House system and configured orbs|"
-        r"Backend provenance|Explicit relationship context|House system|Aspect orbs|"
-        r"Relationship context|Data limitations)[ \t]*:[ \t]*",
-        re.IGNORECASE,
-    ),
-    "zh": re.compile(
-        r"(?P<label>数据来源|计算与相位配置|宫位系统与相位容许度|星历数据来源|"
-        r"用户明确提供的关系背景|宫位系统|相位容许度|用户提供的关系背景|数据限制)"
-        r"[ \t]*(?::|\N{FULLWIDTH COLON})[ \t]*"
-    ),
-}
-_METADATA_APPEND_BOUNDARY = {
-    "en": re.compile(
-        r"(?:[.!?;:]|\N{EM DASH}|\N{EN DASH})(?=\s+\S)|"
-        r"\b(?:and|but|which|that)\b(?=\s+(?:this|these|those|it|they|both|the)\b)",
-        re.IGNORECASE,
-    ),
-    "zh": re.compile(
-        r"(?:\N{IDEOGRAPHIC FULL STOP}|\N{FULLWIDTH EXCLAMATION MARK}|"
-        r"\N{FULLWIDTH QUESTION MARK}|\N{FULLWIDTH SEMICOLON}|"
-        r"\N{FULLWIDTH COLON}|\N{EM DASH})(?=\s*\S)"
-    ),
-}
-_SOURCE_APPEND_SEPARATOR = re.compile(
-    r"^(?:[.!?;:]|\N{IDEOGRAPHIC FULL STOP}|\N{FULLWIDTH EXCLAMATION MARK}|"
-    r"\N{FULLWIDTH QUESTION MARK}|\N{FULLWIDTH SEMICOLON}|\N{FULLWIDTH COLON}|"
-    r"\N{EM DASH}|\N{EN DASH}|\b(?:and|but|which|that)\b)[ \t]*",
-    re.IGNORECASE,
-)
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 _ATX_HEADING = re.compile(r"^[ \t]{0,3}(?P<marker>#{1,6})[ \t]+(?P<title>.*?)[ \t]*#*[ \t]*$")
 _LIST_PREFIX = re.compile(r"^[ \t]{0,3}(?:(?:>[ \t]*)+)?(?:[-+*]|\d+[.)])[ \t]+")
@@ -470,7 +439,7 @@ def _validate_evidence(
             problems.append("substantive paragraph requires conditional language")
         if direct:
             _validate_claims(block.text, direct, ledger, problems)
-        elif _DEGREE_CLAIM.search(block.text):
+        elif substantive and _DEGREE_CLAIM.search(block.text):
             problems.append("measurement does not match paragraph evidence")
 
 
@@ -522,45 +491,141 @@ def _metadata_entry_remainder(
     language: str,
 ) -> str | None:
     normalized = " ".join(text.split())
-    match = _METADATA_ENTRY[language].match(normalized)
-    if match is None:
-        return None
-    value = normalized[match.end() :].strip()
-    if not value:
-        return None
-    if match.group("label").casefold() in {"source", "数据来源"}:
-        return _source_metadata_remainder(value, ledger, language)
-    boundary = _METADATA_APPEND_BOUNDARY[language].search(value)
-    return "" if boundary is None else value[boundary.end() :].strip()
+    accepted = _accepted_metadata_entries(ledger, language)
+    if normalized in accepted:
+        return ""
+    for entry in sorted(accepted, key=len, reverse=True):
+        if normalized.startswith(entry):
+            return normalized[len(entry) :].strip()
+    return None
 
 
-def _source_metadata_remainder(
-    value: str,
+def _accepted_metadata_entries(
     ledger: EvidenceLedger,
     language: str,
-) -> str:
+) -> frozenset[str]:
+    entries = set(_source_metadata_entries(ledger, language))
+    entries.update(_configuration_metadata_entries(ledger.configuration, language))
+    entries.update(_provenance_metadata_entries(ledger.provenance, language))
+    entries.update(_context_metadata_entries(language))
+    entries.update(_limitation_metadata_entries(ledger.limitations, language))
+    return frozenset(" ".join(entry.split()) for entry in entries)
+
+
+def _source_metadata_entries(ledger: EvidenceLedger, language: str) -> frozenset[str]:
+    schema_major = ledger.schema_version.split(".", 1)[0]
     if language == "en":
-        standalone_values = (
-            "attached JSON",
-            "pasted JSON",
-            f"validated synastry JSON v2, chart ID {ledger.chart_id}",
+        values = (
+            "Source: attached JSON",
+            "Source: pasted JSON",
+            f"Source: validated synastry JSON v{schema_major}, chart ID {ledger.chart_id}",
+        )
+        return frozenset(values) | frozenset(f"{value}." for value in values)
+    values = (
+        f"数据来源\N{FULLWIDTH COLON}已验证的合盘 JSON v{schema_major}"
+        f"\N{FULLWIDTH SEMICOLON}图表 ID {ledger.chart_id}",
+        f"数据来源\N{FULLWIDTH COLON}已验证的合盘 JSON v{schema_major}; 图表 ID {ledger.chart_id}",
+    )
+    return frozenset(values) | frozenset(f"{value}。" for value in values)
+
+
+def _configuration_metadata_entries(
+    configuration: Mapping[str, object],
+    language: str,
+) -> frozenset[str]:
+    calculation = str(configuration["calculation_profile"])
+    aspects = str(configuration["aspect_profile"])
+    house = configuration.get("house_system")
+    major = _metadata_number(configuration["major_orb"])
+    minor = _metadata_number(configuration["minor_orb"])
+    if language == "en":
+        values = (
+            f"Calculation and aspect profiles: calculation {calculation}; aspects {aspects}",
+            f"House system and configured orbs: {house or 'not configured'}; major {major}°; minor {minor}°",
+            f"House system: {house or 'not configured'}",
+            f"Aspect orbs: major {major}°; minor {minor}°",
+        )
+        return _metadata_terminal_variants(values, ".")
+    values = (
+        f"计算与相位配置\N{FULLWIDTH COLON}计算 {calculation}\N{FULLWIDTH SEMICOLON}相位 {aspects}",
+        f"宫位系统与相位容许度\N{FULLWIDTH COLON}{house or '未配置'}"
+        f"\N{FULLWIDTH SEMICOLON}主要相位 {major}°"
+        f"\N{FULLWIDTH SEMICOLON}次要相位 {minor}°",
+        f"宫位系统\N{FULLWIDTH COLON}{house or '未配置'}",
+        f"相位容许度\N{FULLWIDTH COLON}主要相位 {major}°\N{FULLWIDTH SEMICOLON}次要相位 {minor}°",
+    )
+    return _metadata_terminal_variants(values, "。")
+
+
+def _provenance_metadata_entries(
+    provenance: Mapping[str, object],
+    language: str,
+) -> frozenset[str]:
+    empty = "none" if language == "en" else "无"
+    flags = _metadata_sequence(provenance["return_flags"], empty, ", ")
+    warnings = _metadata_sequence(provenance["warnings"], empty, " | ")
+    if language == "en":
+        value = (
+            f"Backend provenance: requested {provenance['requested_backend']}; "
+            f"actual {provenance['actual_backend']}; software {provenance['software_version']}; "
+            f"binding {provenance['binding_version']}; timezone {provenance['timezone_source']}; "
+            f"return flags {flags}; warnings {warnings}"
         )
     else:
-        standalone_values = (
-            f"已验证的合盘 JSON v2\N{FULLWIDTH SEMICOLON}图表 ID {ledger.chart_id}",
-            f"已验证的合盘 JSON v2; 图表 ID {ledger.chart_id}",
+        value = (
+            f"星历数据来源\N{FULLWIDTH COLON}请求 {provenance['requested_backend']}"
+            f"\N{FULLWIDTH SEMICOLON}实际 {provenance['actual_backend']}"
+            f"\N{FULLWIDTH SEMICOLON}软件 {provenance['software_version']}"
+            f"\N{FULLWIDTH SEMICOLON}绑定 {provenance['binding_version']}"
+            f"\N{FULLWIDTH SEMICOLON}时区 {provenance['timezone_source']}"
+            f"\N{FULLWIDTH SEMICOLON}返回标志 {flags}"
+            f"\N{FULLWIDTH SEMICOLON}警告 {warnings}"
         )
-    folded = value.casefold()
-    for standalone in standalone_values:
-        prefix = standalone.casefold()
-        if folded == prefix or folded in {f"{prefix}.", f"{prefix}。"}:
-            return ""
-        if folded.startswith(prefix):
-            suffix = value[len(standalone) :].strip()
-            separator = _SOURCE_APPEND_SEPARATOR.match(suffix)
-            if separator is not None and suffix[separator.end() :].strip():
-                return suffix[separator.end() :].strip()
-    return value
+    terminal = "." if language == "en" else "。"
+    return _metadata_terminal_variants((value,), terminal)
+
+
+def _context_metadata_entries(language: str) -> frozenset[str]:
+    if language == "en":
+        return _metadata_terminal_variants(
+            ("Explicit relationship context: Not stated", "Relationship context: Not stated"),
+            ".",
+        )
+    return _metadata_terminal_variants(
+        (
+            "用户明确提供的关系背景\N{FULLWIDTH COLON}未说明",
+            "用户提供的关系背景\N{FULLWIDTH COLON}未说明",
+        ),
+        "。",
+    )
+
+
+def _limitation_metadata_entries(
+    limitations: Sequence[Mapping[str, object]],
+    language: str,
+) -> frozenset[str]:
+    label = "Data limitations: " if language == "en" else "数据限制\N{FULLWIDTH COLON}"
+    if not limitations:
+        value = "None recorded" if language == "en" else "未记录限制"
+        terminal = "." if language == "en" else "。"
+        return _metadata_terminal_variants((f"{label}{value}",), terminal)
+    return frozenset(f"{label}{limitation['message']}" for limitation in limitations)
+
+
+def _metadata_terminal_variants(values: Sequence[str], terminal: str) -> frozenset[str]:
+    return frozenset(values) | frozenset(f"{value}{terminal}" for value in values)
+
+
+def _metadata_sequence(value: object, empty: str, separator: str) -> str:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise TypeError("invalid ledger metadata sequence")
+    return separator.join(str(item) for item in value) or empty
+
+
+def _metadata_number(value: object) -> str:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise TypeError("invalid ledger metadata number")
+    return format(float(value), ".15g")
 
 
 def _validate_claims(
