@@ -3,14 +3,14 @@ name: bazi-reading
 description: Interpret a completed single-person BaZi JSON chart or equivalent verified four-pillar data as an evidence-linked static natal report. Use when a calculator hands off its artifact or someone asks to 解读八字, 看命局, explain day-master strength, structure, or favorable elements from an existing chart. Not for raw birth details, relationship matching, luck cycles, dated predictions, or incomplete source data.
 license: MIT
 metadata:
-  version: "0.8.2"
+  version: "0.8.3"
 ---
 
 # BaZi Reading
 
-Read one complete chart and write `bazi_reading_<name>.md`. Interpret; never recalculate.
+Read one complete chart and write `bazi_reading_<name>.md` plus `bazi_reading_evidence_<name>.md`. Interpret; never recalculate. The first is a reader report; the second is a separate evidence artifact.
 
-Before writing the report, read and follow `shared/report-presentation.md`. It defines the common localization, compact-citation, rounded-display, and technical-appendix boundary rules; this skill defines the natal evidence and section requirements.
+Before writing either file, read and follow `shared/report-presentation.md`. It defines the common localization, data-card, and separate-evidence boundary rules; this skill defines the natal evidence and section requirements.
 
 ## Route and source gate
 
@@ -35,7 +35,7 @@ Assign stable raw evidence ids before writing prose:
 - Preserve structural interaction ids such as `[interaction-001]`, scoring ids such as `[base.visible.month]` and `[adjust.seasonal.木]`, and strength component names.
 - Prefix alternate evidence with `[ALT-...]`; prefix Shen Sha with `[SS-...]` and label it secondary.
 
-Apply the compact-citation and appendix-mapping contract in `shared/report-presentation.md` to this ledger.
+Use this ledger to build the evidence artifact's heading-based claim map. Do not expose its ids in the reader report.
 
 ## Interpretation discipline
 
@@ -56,28 +56,26 @@ When a 00:00-boundary alternate exists, interpret primary and alternate independ
 - changed day/hour evidence and every conclusion it affects;
 - claims that should be withheld because the boundary choice changes them.
 
-Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material. Retain primary and alternate raw evidence separately in the final appendix.
+Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material. Retain primary and alternate raw evidence separately in the evidence artifact.
 
 ## Required report order
 
-Keep exactly these seven sections, using the structure in `references/output-template.md`:
+Keep exactly these five reader-report sections, using the structure in `references/output-template.md`:
 
-1. Conclusion at a glance
-2. Chart overview
-3. Element and day-master summary
-4. Core structure
-5. Strengths and tensions
-6. Relationship, work, and reflection prompts
-7. Technical basis and evidence
+1. Main pattern
+2. Chart tendencies
+3. Strengths and tensions
+4. Relationships, work, and reflection
+5. Model data card
 
-Make sections 1–6 the reader layer. Put the conditional conclusion, material uncertainty, and scope disclaimer first. Show a concise four-pillar table in section 2. In section 3, state that five-element percentages and day-master scores are heuristic model outputs, not probabilities.
+Put the conditional conclusion first, but lead with the person's lived pattern rather than source confidence or a method disclaimer. Show a concise four-pillar table only when it helps section 2. In section 5, state once that five-element percentages and day-master scores are heuristic model references, not probabilities.
 
-Make section 7 the final audit appendix. In addition to the shared appendix requirements, include source status, boundary rules, rule and scoring details, the component ledger, and separate alternate calculations. Classify natal evidence as primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
+Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include source status, boundary rules, rule and scoring details, the component ledger, and separate alternate calculations. Classify natal evidence as primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 
 ## Write safely
 
-Create UTF-8 Markdown only after validation and evidence indexing. Use the portable source name in `bazi_reading_<name>.md`; preserve the display name inside the report. Do not overwrite a different existing report. When a same-name file already exists, reuse it only if its recorded source checksum matches; otherwise append the first eight checksum characters.
+Create UTF-8 Markdown only after validation and evidence indexing. Use portable source names in `bazi_reading_<name>.md` and `bazi_reading_evidence_<name>.md`; preserve the display name inside both files. Do not overwrite a different report pair. When a same-name reader report or evidence artifact already exists, reuse the pair only if both record the same source checksum; otherwise append the first eight checksum characters to both names.
 
-Report the reading path and source JSON path. Do not create new chart JSON, alter the source artifact, or invoke the chart calculator after a valid hand-off.
+Report the reader-report path, evidence-artifact path, and source JSON path. Do not create new chart JSON, alter the source artifact, or invoke the chart calculator after a valid hand-off.
 
 See `references/examples.md` for a hand-off, alternate-boundary treatment, and corrupt-source refusal.

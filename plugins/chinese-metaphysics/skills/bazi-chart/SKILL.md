@@ -3,7 +3,7 @@ name: bazi-chart
 description: Calculate one reusable BaZi chart from a named person's exact birth date, minute, and birthplace, write canonical JSON plus data-only Markdown, then start the natal reading automatically. Use for 八字排盘, 生辰八字, four pillars, or informal single-person birth details. Not for two-person compatibility, existing-chart interpretation, Da Yun, annual luck, or event forecasts.
 license: MIT
 metadata:
-  version: "0.8.2"
+  version: "0.8.3"
 ---
 
 # BaZi Chart
@@ -74,7 +74,7 @@ Read the JSON back and verify:
 - an alternate is complete when `alternate_day_boundary` is true;
 - Markdown names the same checksum and contains no interpretation.
 
-After validation, automatically invoke `bazi-reading` with the exact JSON path. Do not wait for a second user request. Do not invoke it when calculation or validation failed. After the reading completes, report the chart JSON, chart Markdown, and reading Markdown paths.
+After validation, automatically invoke `bazi-reading` with the exact JSON path. Do not wait for a second user request. Do not invoke it when calculation or validation failed. After the reading completes, report the chart JSON, chart Markdown, reader-report Markdown, and separate evidence-artifact Markdown paths.
 
 ## Privacy and limits
 
