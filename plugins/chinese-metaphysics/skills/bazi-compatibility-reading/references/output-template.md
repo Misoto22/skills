@@ -1,6 +1,6 @@
 # BaZi compatibility reading template
 
-Write the whole report in the user's language. Translate every report heading and table label into the user's language, including the final technical appendix. Chinese and English headings below are examples only: use them to identify each section's meaning, not as a fixed pair to select from. Do not render bilingual headings unless the user's requested language itself requires them. Keep raw evidence ids, full checksums, model ids, exact arithmetic, unrounded values, and sensitivity variants out of sections 1–7.
+Follow `shared/report-presentation.md` for localization, compact citations, rounded display values, and the technical-appendix boundary. This template defines the compatibility report structure. The Chinese and English headings below are semantic examples for translation, not fixed output labels.
 
 | Section | Chinese example | English example |
 |---|---|---|
@@ -15,11 +15,7 @@ Write the whole report in the user's language. Translate every report heading an
 
 ## 1. 结论速览
 
-The Chinese headings and table labels below are structural examples only. Translate them before writing any report whose user language is not Chinese.
-
 - State the main conditional reading, material uncertainty, and heuristic scope disclaimer first.
-- Support each substantive statement with compact sequential markers such as `〔1〕` and `〔2〕`.
-- Do not expose raw ids, checksums, model names, or exact arithmetic here.
 
 ## 2. 双方命盘概览
 
@@ -28,7 +24,6 @@ The Chinese headings and table labels below are structural examples only. Transl
 | ... | ... | ... |
 
 - Introduce both people and their verified charts in plain language.
-- Use compact markers for the supporting facts; do not show source checksums or stored ownership labels.
 
 ## 3. 关系评分卡
 
@@ -42,7 +37,6 @@ The Chinese headings and table labels below are structural examples only. Transl
 | 日柱核心 | ... | ... |
 | 稳定性 | ... | ... |
 
-- Display reader-layer scores as whole numbers only.
 - When the source selects a relationship context, show that contextual score before the general score and label the latter as a secondary reference.
 - When no context is selected, show the general score and write that no relationship context was selected.
 - State that every score is a heuristic model output, not a probability or verdict.
@@ -51,7 +45,6 @@ The Chinese headings and table labels below are structural examples only. Transl
 
 - Present three separate evidence-linked findings, including material disagreement between dimensions.
 - Treat day-pillar linkage and cross-chart combinations as hypotheses of ease or linkage; treat clashes, harms, and breaks as friction hypotheses, not destiny.
-- Use compact markers only.
 
 ## 5. 双方可能的体验
 
@@ -72,10 +65,12 @@ The Chinese headings and table labels below are structural examples only. Transl
 
 ## 8. 技术依据与证据
 
-Put the audit appendix last. Include source status, full source-chart and comparison checksums when available, model id, exact five-dimensional values, weights, weighted arithmetic, confidence, sensitivity variants, and raw ledger ids. Map every marker used in sections 1–7 to its exact raw evidence id, source value, stored owner or direction, and evidence class.
+In addition to the shared appendix requirements, include source status, both source-chart checksums, the comparison checksum when available, exact five-dimensional weights and values, general and contextual weighted arithmetic, confidence, sensitivity variants, and the stored owner or direction for compatibility evidence.
+
+`[D-support]` is the aggregate across both direction-specific support entries. Describe it in the user's language as a both-directions aggregate; never assign this dimension summary to a one-way owner. The ownership descriptions in the example table are Chinese structural examples and must be translated with the other labels.
 
 | 标记 | 原始证据标识 | 精确来源值 | 存储归属／方向 | 证据类别 |
 |---|---|---|---|---|
-| `〔1〕` | `[D-support]` | ... | `left receives from right` | 启发式维度汇总 |
-| `〔2〕` | `[support.received.left]` | ... | `left` | 定向支持账本 |
+| `〔1〕` | `[D-support]` | ... | 双向支持汇总（非单向归属） | 启发式维度汇总 |
+| `〔2〕` | `[support.received.left]` | ... | 存储左侧接收自存储右侧 | 定向支持账本 |
 | `〔3〕` | `[S-primary-alternate]` | ... | ... | 备选边界计算 |

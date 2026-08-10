@@ -10,6 +10,8 @@ metadata:
 
 Read one complete chart and write `bazi_reading_<name>.md`. Interpret; never recalculate.
 
+Before writing the report, read and follow `shared/report-presentation.md`. It defines the common localization, compact-citation, rounded-display, and technical-appendix boundary rules; this skill defines the natal evidence and section requirements.
+
 ## Route and source gate
 
 - Raw name/place/date/time belongs to `bazi-chart` first.
@@ -33,7 +35,7 @@ Assign stable raw evidence ids before writing prose:
 - Preserve structural interaction ids such as `[interaction-001]`, scoring ids such as `[base.visible.month]` and `[adjust.seasonal.木]`, and strength component names.
 - Prefix alternate evidence with `[ALT-...]`; prefix Shen Sha with `[SS-...]` and label it secondary.
 
-Then assign sequential compact markers `〔1〕`, `〔2〕`, and so on to the evidence used in reader prose. Cite every substantive reader-layer sentence with one or more compact markers; do not expose raw ids there. In the final appendix, map each used marker to the exact raw id, exact source value, and evidence class. Deduplicate the appendix: one raw id, one source fact. If evidence conflicts, describe the tension instead of selecting the more flattering result.
+Apply the compact-citation and appendix-mapping contract in `shared/report-presentation.md` to this ledger.
 
 ## Interpretation discipline
 
@@ -54,11 +56,11 @@ When a 00:00-boundary alternate exists, interpret primary and alternate independ
 - changed day/hour evidence and every conclusion it affects;
 - claims that should be withheld because the boundary choice changes them.
 
-Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material. Cite reader-layer sensitivity statements with compact markers and retain primary and alternate raw evidence separately in the final appendix.
+Never average their pillars, percentages, strength scores, or interpretations. Lower the report's claim confidence where sensitivity is material. Retain primary and alternate raw evidence separately in the final appendix.
 
 ## Required report order
 
-Write the whole report in the user's language and render the matching localized headings in `references/output-template.md`. Keep exactly these seven sections:
+Keep exactly these seven sections, using the structure in `references/output-template.md`:
 
 1. Conclusion at a glance
 2. Chart overview
@@ -68,9 +70,9 @@ Write the whole report in the user's language and render the matching localized 
 6. Relationship, work, and reflection prompts
 7. Technical basis and evidence
 
-Make sections 1–6 the reader layer. Put the conditional conclusion, material uncertainty, and scope disclaimer first. Show a concise four-pillar table in section 2. In section 3, display five-element percentages and day-master scores as whole numbers, and state that they are heuristic model outputs, not probabilities. Keep raw ids, full checksums, model ids, exact arithmetic, and unrounded values out of sections 1–6. Use compact markers only in those sections.
+Make sections 1–6 the reader layer. Put the conditional conclusion, material uncertainty, and scope disclaimer first. Show a concise four-pillar table in section 2. In section 3, state that five-element percentages and day-master scores are heuristic model outputs, not probabilities.
 
-Make section 7 the final audit appendix. Include source status, full checksum when available, boundary rules, rule and scoring model ids, full unrounded values, component ledger, exact arithmetic, and separate alternate calculations. Map every marker used in the reader layer to its exact raw id and source value, and state whether it is primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
+Make section 7 the final audit appendix. In addition to the shared appendix requirements, include source status, boundary rules, rule and scoring details, the component ledger, and separate alternate calculations. Classify natal evidence as primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 
 ## Write safely
 

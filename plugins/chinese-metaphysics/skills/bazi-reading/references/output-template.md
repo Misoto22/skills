@@ -1,6 +1,6 @@
 # BaZi static natal reading template
 
-Write the whole report in the user's language. Translate every report heading and table label into the user's language, including the final technical appendix. Chinese and English headings below are examples only: use them to identify each section's meaning, not as a fixed pair to select from. Do not render bilingual headings unless the user's requested language itself requires them. Keep raw evidence ids, full checksums, model ids, exact arithmetic, and unrounded values out of sections 1–6.
+Follow `shared/report-presentation.md` for localization, compact citations, rounded display values, and the technical-appendix boundary. This template defines the natal report structure. The Chinese and English headings below are semantic examples for translation, not fixed output labels.
 
 | Section | Chinese example | English example |
 |---|---|---|
@@ -14,11 +14,7 @@ Write the whole report in the user's language. Translate every report heading an
 
 ## 1. 结论速览
 
-The Chinese headings and table labels below are structural examples only. Translate them before writing any report whose user language is not Chinese.
-
 - State the main conditional reading, material uncertainty, and scope disclaimer first.
-- Support each substantive statement with compact sequential markers such as `〔1〕` and `〔2〕`.
-- Do not expose raw ids, checksums, or model names here.
 
 ## 2. 命盘概览
 
@@ -27,7 +23,6 @@ The Chinese headings and table labels below are structural examples only. Transl
 | 干支 | ... | ... | ... | ... |
 
 - Summarize the applicable civil, true-solar, solar-term, and day-boundary basis in plain language.
-- Use compact markers for the underlying facts.
 
 ## 3. 五行与日主摘要
 
@@ -36,9 +31,8 @@ The Chinese headings and table labels below are structural examples only. Transl
 | 调整后五行 | ...% | ... |
 | 日主强弱分数 | ... | ... |
 
-- Display percentages and day-master scores as whole numbers only.
 - State that they are heuristic model outputs, not probabilities.
-- Explain the day stem, month command, roots, visible support or control, and score components with compact markers.
+- Explain the day stem, month command, roots, visible support or control, and score components.
 
 ## 4. 核心结构
 
@@ -59,7 +53,7 @@ The Chinese headings and table labels below are structural examples only. Transl
 
 ## 7. 技术依据与证据
 
-Put the audit appendix last. Map every marker used in sections 1–6 to its exact raw evidence id and source value, and state whether it is primary, calculated heuristic, alternate, or secondary Shen Sha evidence. Include the source status, full checksum when available, rule and scoring model ids, complete unrounded score and percentage values, component ledger, exact arithmetic, and alternate calculations here.
+In addition to the shared appendix requirements, include the source status, natal boundary rules, scoring details, component ledger, alternate calculations, and whether each evidence item is primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 
 | 标记 | 原始证据标识 | 精确来源值 | 证据类别 |
 |---|---|---|---|

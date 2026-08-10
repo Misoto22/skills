@@ -97,6 +97,8 @@
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
       "expectations": [
+        "Uses all eight reader-facing sections in this exact order: Conclusion at a glance; Two-chart overview; Relationship scorecard; Three core findings; Each person's likely experience; Strengths, friction, and repair; Practical prompts; Technical basis and evidence.",
+        "Cites every substantive reader-layer sentence with compact sequential `〔n〕` markers and maps every used marker in the final technical appendix to its exact raw evidence ID and exact source value.",
         "Shows the selected relationship score before the general score when a relationship context is selected.",
         "Uses Chinese only throughout the reader-facing layer, including scorecard labels, and explicit `A → B` directions, with no `left` or `right` in reader prose.",
         "Confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."

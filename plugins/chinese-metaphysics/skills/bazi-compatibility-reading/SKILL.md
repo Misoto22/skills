@@ -10,6 +10,8 @@ metadata:
 
 Read one complete compatibility calculation and write `bazi_compatibility_reading_<name-a>_<name-b>.md`. Interpret its evidence; never recalculate either chart or any score.
 
+Before writing the report, read and follow `shared/report-presentation.md`. It defines the common localization, compact-citation, rounded-display, and technical-appendix boundary rules; this skill defines the compatibility evidence, direction, and section requirements.
+
 ## Route and validate
 
 - Two raw birth records, two chart files, or one of each belong to `bazi-compatibility` first.
@@ -30,7 +32,7 @@ Preserve the calculator's exact evidence and ownership before writing prose:
 - `[C-score]` for an explicitly selected contextual profile.
 - `[S-primary-alternate]` style ids for sensitivity variants.
 
-Assign sequential compact markers `〔1〕`, `〔2〕`, and so on to evidence used in the reader layer. Cite every substantive reader-layer sentence with one or more compact markers; do not expose raw ids there. In the final appendix, map each used marker to its exact raw id, exact source value, owner or direction, and evidence class. Deduplicate the appendix: one raw id, one source fact.
+Apply the compact-citation and appendix-mapping contract in `shared/report-presentation.md` to this index. Compatibility mappings must also record the stored owner or direction.
 
 Reader-layer directional claims must name both people in the form `Name A → Name B`; describe what A supplies or what B receives in plain language. Reserve stored `left` and `right` ownership labels for the final appendix. Shen Sha may appear only when present in complete source evidence, with `[SS-...]` and `secondary` labels in the appendix; it never explains a numeric dimension.
 
@@ -52,7 +54,7 @@ The primary-primary calculation supplies the displayed score: show its contextua
 
 ## Required report order
 
-Write the whole report in the user's language and render the matching localized headings in `references/output-template.md`. Keep exactly these eight sections:
+Keep exactly these eight sections, using the structure in `references/output-template.md`:
 
 1. Conclusion at a glance
 2. Two-chart overview
@@ -63,11 +65,11 @@ Write the whole report in the user's language and render the matching localized 
 7. Practical prompts
 8. Technical basis and evidence
 
-Make sections 1–7 the reader layer. State the conditional conclusion, material uncertainty, and heuristic scope disclaimer first. In section 2, show both people and a concise two-chart overview. In section 3, show all five dimensions as whole-number display scores. When a relationship context is explicitly selected, show its contextual score first and label the general score as a secondary reference; otherwise show the general score and state that no context was selected. Do not invent a context.
+Make sections 1–7 the reader layer. State the conditional conclusion, material uncertainty, and heuristic scope disclaimer first. In section 2, show both people and a concise two-chart overview. In section 3, show all five dimensions. When a relationship context is explicitly selected, show its contextual score first and label the general score as a secondary reference; otherwise show the general score and state that no context was selected. Do not invent a context.
 
 Use sections 4–6 to preserve mixed dimensions, explain named directional support, and pair friction with low-risk repair hypotheses. In section 5, describe each person's likely experience separately using `Name A → Name B` direction labels, never stored `left` or `right` labels. Section 7 gives three to five observable, reversible prompts and states which compact marker each addresses.
 
-Make section 8 the final audit appendix. Include source status, both full source-chart checksums, full comparison checksum when available, model id, exact five-dimensional values, weights, general and contextual weighted arithmetic, confidence, sensitivity variants, and raw ledger ids. Map every marker used in sections 1–7 to its exact raw id, source value, stored owner or direction, and evidence class. Keep full checksums, model ids, exact arithmetic, unrounded values, sensitivity variants, and raw ids out of sections 1–7.
+Make section 8 the final audit appendix. In addition to the shared appendix requirements, include source status, both source-chart checksums, the comparison checksum when available, exact five-dimensional weights and values, general and contextual weighted arithmetic, confidence, sensitivity variants, and stored owner or direction for compatibility evidence.
 
 ## Write safely
 

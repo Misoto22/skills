@@ -6,7 +6,7 @@ All notable changes to this repository are documented here.
 
 ## 0.8.2 — 2026-08-10
 
-- Improved the BaZi compatibility reading report so the verdict, evidence, and practical guidance are easier to scan while preserving the auditable calculation contract.
+- Improved the BaZi natal and compatibility reading reports so their conclusions, evidence, and practical guidance are easier to scan while preserving the auditable calculation contracts.
 
 - Every plugin now ships an Agent Plugins manifest at `plugins/<name>/plugin.json`, alongside the Claude Code one it already carried. The format was published on 2026-08-06 by Amazon, Cursor, Microsoft, OpenAI and Vercel, and is read by ChatGPT, Codex, Cursor, GitHub Copilot, Kiro and VS Code. Nothing under `skills/` moved: the layout this repository already used is the one the spec fixes, so the manifest was the whole gap.
 - Two manifests rather than one, because the schema is closed and the two disagree on exactly one field: Claude Code requires a `skills` array, and Agent Plugins rejects any field outside its own list — the skills tree is discovered by reading `skills/`. The validator asserts the fields they share are equal, `bump-version.py` moves both, and `new-skill.py` and `remove-skill.py` create and retire both.
