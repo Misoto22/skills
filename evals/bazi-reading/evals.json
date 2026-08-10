@@ -65,7 +65,7 @@
       "id": "evidence-linked-output",
       "prompt": "Give me a complete reading of this valid chart artifact.",
       "expectations": [
-        "Writes a human-first reader report plus a separate evidence artifact, with no numbered citations or raw identifiers in reader prose.",
+        "Writes a substantive human-first reader report plus a separate evidence artifact, with no numbered citations or raw identifiers in reader prose.",
         "Uses the five reader sections: main pattern; chart tendencies; strengths and tensions; relationships, work, and reflection; and model data card.",
         "Calls percentages and strength scores heuristic outputs, not probabilities.",
         "Keeps Shen Sha secondary and avoids deterministic claims."
@@ -75,7 +75,7 @@
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
       "expectations": [
-        "Uses Chinese only in a reader report that starts with a lived pattern rather than source confidence or calculation method.",
+        "Uses Chinese only in a substantial reader report that starts with a lived pattern rather than source confidence or calculation method, and develops its main pattern and tension beyond a bare summary.",
         "Includes a compact model data card with rounded figures and one link to a separate Chinese evidence artifact.",
         "Keeps reader prose free of numbered citations, full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs; the evidence artifact preserves those exact records with a heading-based claim map."
       ]

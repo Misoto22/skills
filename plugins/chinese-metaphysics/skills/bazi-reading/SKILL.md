@@ -3,7 +3,7 @@ name: bazi-reading
 description: Interpret a completed single-person BaZi JSON chart or equivalent verified four-pillar data as an evidence-linked static natal report. Use when a calculator hands off its artifact or someone asks to 解读八字, 看命局, explain day-master strength, structure, or favorable elements from an existing chart. Not for raw birth details, relationship matching, luck cycles, dated predictions, or incomplete source data.
 license: MIT
 metadata:
-  version: "0.8.3"
+  version: "0.8.4"
 ---
 
 # BaZi Reading
@@ -68,7 +68,7 @@ Keep exactly these five reader-report sections, using the structure in `referenc
 4. Relationships, work, and reflection
 5. Model data card
 
-Put the conditional conclusion first, but lead with the person's lived pattern rather than source confidence or a method disclaimer. Show a concise four-pillar table only when it helps section 2. In section 5, state once that five-element percentages and day-master scores are heuristic model references, not probabilities.
+Put the conditional conclusion first, but lead with the person's lived pattern rather than source confidence or a method disclaimer. Develop the pattern, its countervailing tension, and its practical expression to the depth required by `shared/report-presentation.md`; do not reduce the reader report to a score summary. Show a concise four-pillar table only when it helps section 2. In section 5, state once that five-element percentages and day-master scores are heuristic model references, not probabilities.
 
 Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include source status, boundary rules, rule and scoring details, the component ledger, and separate alternate calculations. Classify natal evidence as primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 

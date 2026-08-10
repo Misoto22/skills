@@ -3,7 +3,7 @@ name: ship
 description: Ship the current changes as a merged pull request — branch off, run the project's tests, commit, open the PR, wait for CI, merge, and clean up the worktree. Runs a preflight first that marks each step RUN or SKIP, so a clean tree on the base branch exits without doing anything. Use when asked to ship it, ship this, land it, get this merged, open a PR and merge it, push this up and merge, 发出去, 合掉, 开个 PR 合了, 把这些改动提上去, 推上去合并. Not for tagging a release, publishing a package, deploying, or writing a commit message without pushing it.
 license: MIT
 metadata:
-  version: "0.8.3"
+  version: "0.8.4"
 argument-hint: "[branch-name] [--dry-run] [--no-test] [--draft] [--base=<branch>] [--merge-strategy=<squash|merge|rebase>]"
 ---
 

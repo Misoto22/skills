@@ -1,6 +1,6 @@
 {
   "name": "astrology",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Two-person synastry that produces one validated JSON v2 chart artifact with uncertainty and backend provenance, then a separate adaptive evidence-linked reading.",
   "author": {
     "name": "skills contributors"

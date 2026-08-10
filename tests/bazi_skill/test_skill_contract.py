@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "plugins" / "chinese-metaphysics"
-VERSION = "0.8.3"
+VERSION = "0.8.4"
 SKILLS = {
     "bazi-chart": ("bazi_<name>.json", "bazi-reading"),
     "bazi-reading": ("bazi_reading_<name>.md", None),
@@ -71,6 +71,21 @@ class SkillContractTests(unittest.TestCase):
                 self.assertIn("separate evidence artifact", instruction.lower())
                 self.assertIn("Model data card", template)
                 self.assertNotIn(chr(0x3014), template)
+
+    def test_reader_templates_require_substantive_narrative_depth(self) -> None:
+        """A reader report is a full interpretation, not a bare executive summary."""
+        presentation = (PLUGIN / "shared" / "report-presentation.md").read_text(encoding="utf-8")
+        natal_template = (PLUGIN / "skills" / "bazi-reading" / "references" / "output-template.md").read_text(
+            encoding="utf-8"
+        )
+        compatibility_template = (
+            PLUGIN / "skills" / "bazi-compatibility-reading" / "references" / "output-template.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Minimum narrative depth", presentation)
+        self.assertIn(f"1,400{chr(0x2013)}1,900 Chinese characters", presentation)
+        self.assertIn("two or three paragraphs", natal_template)
+        self.assertIn("two or three paragraphs", compatibility_template)
 
 
 if __name__ == "__main__":
