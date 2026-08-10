@@ -1,8 +1,8 @@
 # BaZi static natal reading template
 
-Write the whole report in the user's language. Render one heading from each pair below; do not render bilingual headings in the report. Keep raw evidence ids, full checksums, model ids, exact arithmetic, and unrounded values out of sections 1–6.
+Write the whole report in the user's language. Translate every report heading and table label into the user's language, including the final technical appendix. Chinese and English headings below are examples only: use them to identify each section's meaning, not as a fixed pair to select from. Do not render bilingual headings unless the user's requested language itself requires them. Keep raw evidence ids, full checksums, model ids, exact arithmetic, and unrounded values out of sections 1–6.
 
-| Section | Chinese heading | English heading |
+| Section | Chinese example | English example |
 |---|---|---|
 | 1 | 结论速览 | Conclusion at a glance |
 | 2 | 命盘概览 | Chart overview |
@@ -13,6 +13,8 @@ Write the whole report in the user's language. Render one heading from each pair
 | 7 | 技术依据与证据 | Technical basis and evidence |
 
 ## 1. 结论速览
+
+The Chinese headings and table labels below are structural examples only. Translate them before writing any report whose user language is not Chinese.
 
 - State the main conditional reading, material uncertainty, and scope disclaimer first.
 - Support each substantive statement with compact sequential markers such as `〔1〕` and `〔2〕`.
