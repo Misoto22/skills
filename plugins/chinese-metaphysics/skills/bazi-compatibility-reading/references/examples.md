@@ -2,25 +2,29 @@
 
 ## High affinity, lower stability
 
-Good synthesis: “The day-pillar core shows strong linkage `[D-day-core]`, while unresolved structures and negative internal interactions reduce stability `[D-stability]`. In this model, ease of attraction and durability under pressure are different questions. Treat the first as a connection resource and the second as a reason to make repair habits explicit.”
+Good reader-layer synthesis: “日柱核心显示较强的连结线索，而稳定性维度同时保留了未解决结构与内部互动压力。〔1〕〔2〕 在这个传统模型中，亲近感与压力下的持续协作是不同的问题；前者可视为连结资源，后者则提示可以把修复习惯说清楚。”
+
+The final technical appendix maps `〔1〕` to `[D-day-core]` and `〔2〕` to `[D-stability]`, with their exact values. The reader layer does not show raw ids.
 
 Bad synthesis: “The total is high, so the relationship will work.”
 
 ## Directional asymmetry
 
-Good: “A receives more peer/resource support from B `[support.received.left]` than B receives from A `[support.received.right]`. This is not a ranking; it suggests checking whether support is recognized and reciprocated in forms each person values.”
+Good reader-layer wording: “甲 → 乙：甲可能以资源或同侪式支持帮助乙；乙 → 甲：乙得到的同类支持较少。〔1〕〔2〕 这不是高低排名，而是提示双方可以核对：各自重视的支持是否被看见，并以对方能感受到的方式回应。”
+
+The final appendix preserves the stored direction for `〔1〕` as `[support.received.left]` and for `〔2〕` as `[support.received.right]`. Do not write `left` or `right` in reader prose.
 
 Bad: “B is the giver and A is dependent.”
 
 ## Context
 
-When the source declares `work`, show the unchanged general score first `[G-score]`, then the separately reweighted work index `[C-score]`. Do not import romance or marriage language.
+When the source declares `work`, show the separately reweighted work index first in the reader layer, then label the unchanged general score as a secondary reference. Cite both with compact markers and retain `[C-score]`, `[G-score]`, and exact arithmetic in the appendix. Do not import romance or marriage language.
 
 When context is null, write “Selected relationship context: not selected.” Do not choose one from the names or score pattern.
 
 ## Alternate sensitivity
 
-Good: “The primary-primary result is the displayed score. Boundary variants span the recorded minimum to maximum `[S-primary-alternate]`; day-core conclusions that cross categories are withheld.”
+Good reader-layer wording: “主版本是本报告的展示结果。边界变化会让分数在记录的最低与最高结果之间移动，因此跨越类别的日柱核心结论暂不下定论。〔1〕” Put the exact minimum、maximum、spread, changed source boundary, and `[S-primary-alternate]` values in the final appendix.
 
 Bad: use the maximum as “potential” or average the range.
 

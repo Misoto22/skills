@@ -22,7 +22,7 @@ Use the vendored `shared/bazi/artifacts.py` validator for JSON. Stop on checksum
 
 ## Evidence index before prose
 
-Preserve the calculator's exact evidence and ownership:
+Preserve the calculator's exact evidence and ownership before writing prose:
 
 - `[D-element]`, `[D-support]`, `[D-interactions]`, `[D-day-core]`, `[D-stability]` for dimensions.
 - Preserve every dimension ledger id such as `[support.received.left]` and `[cross.branch_clash.day.month]`.
@@ -30,7 +30,9 @@ Preserve the calculator's exact evidence and ownership:
 - `[C-score]` for an explicitly selected contextual profile.
 - `[S-primary-alternate]` style ids for sensitivity variants.
 
-Every substantive claim cites evidence inline. Directional claims must name giver and receiver exactly as stored. Deduplicate the final index. Shen Sha may appear only when present in complete source evidence, with `[SS-...]` and `secondary` labels; it never explains a numeric dimension.
+Assign sequential compact markers `〔1〕`, `〔2〕`, and so on to evidence used in the reader layer. Cite every substantive reader-layer sentence with one or more compact markers; do not expose raw ids there. In the final appendix, map each used marker to its exact raw id, exact source value, owner or direction, and evidence class. Deduplicate the appendix: one raw id, one source fact.
+
+Reader-layer directional claims must name both people in the form `Name A → Name B`; describe what A supplies or what B receives in plain language. Reserve stored `left` and `right` ownership labels for the final appendix. Shen Sha may appear only when present in complete source evidence, with `[SS-...]` and `secondary` labels in the appendix; it never explains a numeric dimension.
 
 ## Reading discipline
 
@@ -50,21 +52,22 @@ The primary-primary general score is the displayed result. When alternates exist
 
 ## Required report order
 
-Use the user's language and the matching headings in `references/output-template.md`. Keep exactly these eleven sections:
+Write the whole report in the user's language and render the matching localized headings in `references/output-template.md`. Keep exactly these eight sections:
 
-1. Basis and scope
-2. Five-dimension scorecard
-3. Element complement and drain
-4. Directional support and asymmetry
-5. Affinity and day-pillar core
-6. Communication and coordination
-7. Friction, conflict, and repair
-8. Stability, confidence, and boundary sensitivity
-9. Selected relationship context
-10. Synthesis and practical prompts
-11. Evidence index
+1. Conclusion at a glance
+2. Two-chart overview
+3. Relationship scorecard
+4. Three core findings
+5. Each person's likely experience
+6. Strengths, friction, and repair
+7. Practical prompts
+8. Technical basis and evidence
 
-Section 1 names both people, both source chart checksums, comparison checksum, model, source status, and heuristic disclaimer. Section 2 shows weights, scores, and general arithmetic without a binary verdict. Sections 3-8 use the relevant positive and negative ledgers. Section 9 says “not selected” when context is null. Section 10 gives three to five observable, reversible prompts and states what evidence each addresses. Section 11 maps every cited id to its exact source value and class.
+Make sections 1–7 the reader layer. State the conditional conclusion, material uncertainty, and heuristic scope disclaimer first. In section 2, show both people and a concise two-chart overview. In section 3, show all five dimensions as whole-number display scores. When a relationship context is explicitly selected, show its contextual score first and label the general score as a secondary reference; otherwise show the general score and state that no context was selected. Do not invent a context.
+
+Use sections 4–6 to preserve mixed dimensions, explain named directional support, and pair friction with low-risk repair hypotheses. In section 5, describe each person's likely experience separately using `Name A → Name B` direction labels, never stored `left` or `right` labels. Section 7 gives three to five observable, reversible prompts and states which compact marker each addresses.
+
+Make section 8 the final audit appendix. Include source status, both full source-chart checksums, full comparison checksum when available, model id, exact five-dimensional values, weights, general and contextual weighted arithmetic, confidence, sensitivity variants, and raw ledger ids. Map every marker used in sections 1–7 to its exact raw id, source value, stored owner or direction, and evidence class. Keep full checksums, model ids, exact arithmetic, unrounded values, sensitivity variants, and raw ids out of sections 1–7.
 
 ## Write safely
 
