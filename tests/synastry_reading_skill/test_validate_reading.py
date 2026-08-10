@@ -205,14 +205,115 @@ class MarkdownValidationTests(unittest.TestCase):
 
         self.assertTrue(any("substantive paragraph" in item for item in problems))
 
-    def test_section_evidence_can_bind_a_conditional_paragraph(self) -> None:
+    def test_section_evidence_cannot_bind_a_conditional_paragraph(self) -> None:
         citation = ledger().evidence[0].citation
         report = valid_report().replace(
             f"## Repeated interaction patterns\n\n{citation}",
             f"## Repeated interaction patterns\n\nThis may create an easier rhythm.\n\n{citation}",
         )
 
-        self.assertEqual(validate_markdown(report, ledger(), "en", ()), [])
+        problems = validate_markdown(report, ledger(), "en", ())
+
+        self.assertTrue(any("substantive paragraph lacks valid evidence" in item for item in problems))
+
+    def test_only_an_exact_standalone_limitation_may_omit_evidence(self) -> None:
+        citation = ledger().evidence[0].citation
+        statement = (
+            "The source does not support a confident money-specific interpretation "
+            "because no directly relevant measurement is present."
+        )
+        standalone = valid_report().replace(
+            f"## Repeated interaction patterns\n\n{citation}",
+            f"## Repeated interaction patterns\n\n{statement}",
+        )
+
+        self.assertEqual(validate_markdown(standalone, ledger(), "en", ()), [])
+
+        appended = standalone.replace(
+            statement,
+            f"{statement} This may create an easier rhythm.",
+        )
+        appended_problems = validate_markdown(appended, ledger(), "en", ())
+
+        self.assertTrue(
+            any("substantive paragraph lacks valid evidence" in item for item in appended_problems)
+        )
+
+        evidence_id = ledger().evidence[0].id
+        cited = appended.replace(
+            "This may create an easier rhythm.",
+            f"This may create an easier rhythm. [{evidence_id}]",
+        )
+
+        self.assertEqual(validate_markdown(cited, ledger(), "en", ()), [])
+
+    def test_metadata_and_index_exemptions_require_exact_standalone_entries(self) -> None:
+        citation = ledger().evidence[0].citation
+        basis_entry = "Source: attached JSON."
+        standalone = valid_report().replace(citation, basis_entry, 1)
+
+        self.assertEqual(validate_markdown(standalone, ledger(), "en", ()), [])
+        for source in (
+            "Source: pasted JSON.",
+            f"Source: validated synastry JSON v2, chart ID {ledger().chart_id}.",
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(
+                    validate_markdown(standalone.replace(basis_entry, source), ledger(), "en", ()),
+                    [],
+                )
+
+        bypasses = {
+            "sentence append": standalone.replace(
+                basis_entry, f"{basis_entry} This may create an unusually fluent emotional bond."
+            ),
+            "conjunction append": standalone.replace(
+                basis_entry,
+                "Source: attached JSON and this may create an unusually fluent emotional bond.",
+            ),
+            "semicolon append": standalone.replace(
+                basis_entry,
+                "Source: attached JSON; this may create an unusually fluent emotional bond.",
+            ),
+            "colon append": standalone.replace(
+                basis_entry,
+                "Source: attached JSON: this may create an unusually fluent emotional bond.",
+            ),
+            "dash append": standalone.replace(
+                basis_entry,
+                "Source: attached JSON — this may create an unusually fluent emotional bond.",
+            ),
+            "hyphen append": standalone.replace(
+                basis_entry,
+                "Source: attached JSON - this may create an unusually fluent emotional bond.",
+            ),
+            "mismatched chart ID": standalone.replace(
+                basis_entry,
+                "Source: validated synastry JSON v2, chart ID deadbeefcafe.",
+            ),
+            "basis interpretation": standalone.replace(
+                basis_entry, "This may create an unusually fluent emotional bond."
+            ),
+            "index interpretation": valid_report().replace(
+                f"## Evidence index\n\n{citation}",
+                "## Evidence index\n\nThis may create an unusually fluent emotional bond.",
+            ),
+        }
+        for name, report in bypasses.items():
+            with self.subTest(name=name):
+                problems = validate_markdown(report, ledger(), "en", ())
+
+                self.assertTrue(
+                    any("substantive paragraph lacks valid evidence" in item for item in problems)
+                )
+
+        evidence_id = ledger().evidence[0].id
+        cited = standalone.replace(
+            basis_entry,
+            f"{basis_entry} This may create an unusually fluent emotional bond. [{evidence_id}]",
+        )
+
+        self.assertEqual(validate_markdown(cited, ledger(), "en", ()), [])
 
     def test_fenced_and_inline_content_cannot_supply_structure_or_evidence(self) -> None:
         citation = ledger().evidence[0].citation
@@ -457,6 +558,28 @@ class ValidatedWriteTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    def test_output_basename_is_bound_to_the_validated_chart_id(self) -> None:
+        for basename in (
+            "reading.md",
+            "synastry_reading_ABC123DEF456.md",
+            "synastry_reading_deadbeefcafe.md",
+            "synastry_reading_abc123def456.md.extra",
+        ):
+            with self.subTest(basename=basename):
+                destination = self.directory / basename
+
+                with self.assertRaisesRegex(ValueError, "basename.*chart_id"):
+                    write_validated_markdown(valid_report(), ledger(), destination, "en", ())
+
+                self.assertFalse(destination.exists())
+
+        destination = self.directory / "nested" / "synastry_reading_abc123def456.md"
+
+        self.assertEqual(
+            write_validated_markdown(valid_report(), ledger(), destination, "en", ()),
+            destination,
+        )
+
     def test_validated_reading_write_is_exclusive_atomic_and_user_only(self) -> None:
         destination = self.directory / "synastry_reading_abc123def456.md"
 
@@ -469,18 +592,18 @@ class ValidatedWriteTests(unittest.TestCase):
             write_validated_markdown(valid_report(), ledger(), destination, "en", ())
 
     def test_invalid_markdown_and_source_json_destination_are_never_written(self) -> None:
-        destination = self.directory / "invalid.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         with self.assertRaises(ReadingError):
             write_validated_markdown("# Incomplete", ledger(), destination, "en", ())
         self.assertFalse(destination.exists())
 
-        with self.assertRaisesRegex(ValueError, "source JSON"):
+        with self.assertRaisesRegex(ValueError, "basename.*chart_id"):
             write_validated_markdown(
                 valid_report(), ledger(), FIXTURES / "neutral.json", "en", (), overwrite=True
             )
 
     def test_explicit_overwrite_atomically_replaces_the_reading(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         write_validated_markdown(valid_report(), ledger(), destination, "en", ())
         changed = valid_report() + "\n"
 
@@ -491,7 +614,7 @@ class ValidatedWriteTests(unittest.TestCase):
     def test_cli_returns_zero_or_two_without_a_traceback(self) -> None:
         draft = self.directory / "draft.md"
         draft.write_text(valid_report(), encoding="utf-8")
-        output = self.directory / "final.md"
+        output = self.directory / "synastry_reading_abc123def456.md"
         stdout = io.StringIO()
         stderr = io.StringIO()
         with redirect_stdout(stdout), redirect_stderr(stderr):
@@ -529,7 +652,7 @@ class ValidatedWriteTests(unittest.TestCase):
         decoy = self.directory / "decoy.json"
         decoy.write_bytes((FIXTURES / "neutral.json").read_bytes())
         source_link.symlink_to(decoy)
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.hardlink_to(source)
 
         with self.assertRaisesRegex(ValueError, "source JSON"):
@@ -539,7 +662,7 @@ class ValidatedWriteTests(unittest.TestCase):
         source = self.directory / "source.json"
         source.write_bytes((FIXTURES / "neutral.json").read_bytes())
         selected = load_ledger(source)
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         original_identity = validate_synastry._path_identity
         destination_checks = 0
@@ -564,7 +687,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
 
     def test_symlink_swapped_at_exchange_boundary_is_restored_after_rejection(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         symlink_target = self.directory / "raced-reading.md"
         symlink_target.write_text("raced reading", encoding="utf-8")
@@ -590,7 +713,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(symlink_target.read_text(encoding="utf-8"), "raced reading")
 
     def test_directory_swapped_at_exchange_boundary_is_restored_after_rejection(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         raced_directory = self.directory / "raced-directory"
         raced_directory.mkdir()
@@ -617,7 +740,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual((destination / "keep.txt").read_text(encoding="utf-8"), "keep")
 
     def test_overwrite_never_exchanges_or_replaces_a_directory(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.mkdir()
         sentinel = destination / "keep.txt"
         sentinel.write_text("keep", encoding="utf-8")
@@ -632,7 +755,7 @@ class ValidatedWriteTests(unittest.TestCase):
         source = self.directory / "source.json"
         source.write_bytes((FIXTURES / "neutral.json").read_bytes())
         selected = load_ledger(source)
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         original_identity = validate_synastry._path_identity
         original_exchange = validate_synastry._exchange_paths
@@ -667,7 +790,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(), (FIXTURES / "neutral.json").read_bytes())
 
     def test_failed_rollback_retains_the_displaced_regular_file(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         previous_identity = validate_synastry._path_identity(destination)
         original_identity = validate_synastry._path_identity
@@ -705,7 +828,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertNotEqual(installed, valid_report().encode("utf-8"))
 
     def test_failed_recovery_move_restores_the_displaced_file_by_exchange(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
         previous_identity = validate_synastry._path_identity(destination)
         original_identity = validate_synastry._path_identity
@@ -727,7 +850,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(destination.read_text(encoding="utf-8"), "previous reading")
 
     def test_recovery_storage_failure_occurs_before_exchange_without_mutation(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
 
         with (
@@ -743,7 +866,7 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(list(self.directory.glob(".synastry-*")), [])
 
     def test_unsupported_atomic_overwrite_fails_without_mutating_the_destination(self) -> None:
-        destination = self.directory / "reading.md"
+        destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
 
         with (
@@ -759,7 +882,9 @@ class ValidatedWriteTests(unittest.TestCase):
         self.assertEqual(list(self.directory.glob(".synastry-*")), [])
 
     def test_output_collision_cli_error_does_not_echo_destination(self) -> None:
-        destination = self.directory / "secret-reading-name.md"
+        secret_directory = self.directory / "secret-reading-name"
+        secret_directory.mkdir()
+        destination = secret_directory / "synastry_reading_abc123def456.md"
         destination.write_text("existing", encoding="utf-8")
         draft = self.directory / "draft.md"
         draft.write_text(valid_report(), encoding="utf-8")

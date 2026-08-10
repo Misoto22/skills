@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -34,6 +34,53 @@ def fixture_with_label(label: str) -> dict[str, object]:
     source = fixture()
     source["subjects"][0]["display_name"] = label  # type: ignore[index]
     return attach_integrity(source)
+
+
+class AtomicPublicationRecorder:
+    """Record the durable-publication boundaries without obscuring assertions."""
+
+    def __init__(self, destination: Path):
+        self.destination = destination
+        self.events: list[str] = []
+        self.descriptor_kinds: dict[int, str] = {}
+        self.original_open = os.open
+        self.original_fsync = os.fsync
+        self.original_link = os.link
+        self.original_exchange = validate_synastry._exchange_paths
+        self.stack = ExitStack()
+
+    def open(self, path: object, flags: int, *args: object, **kwargs: object) -> int:
+        descriptor = self.original_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
+        if Path(path) == self.destination.parent:  # type: ignore[arg-type]
+            self.descriptor_kinds[descriptor] = "parent"
+            self.events.append("parent-open")
+        else:
+            self.descriptor_kinds[descriptor] = "file"
+        return descriptor
+
+    def fsync(self, descriptor: int) -> None:
+        self.events.append(f"{self.descriptor_kinds.get(descriptor, 'unknown')}-fsync")
+        self.original_fsync(descriptor)
+
+    def link(self, source: object, target: object, *args: object, **kwargs: object) -> None:
+        self.original_link(source, target, *args, **kwargs)  # type: ignore[arg-type]
+        if Path(target) == self.destination:  # type: ignore[arg-type]
+            self.events.append("publish")
+
+    def exchange(self, first: Path, second: Path) -> None:
+        self.original_exchange(first, second)
+        if second == self.destination:
+            self.events.append("publish")
+
+    def __enter__(self) -> AtomicPublicationRecorder:
+        self.stack.enter_context(patch.object(validate_synastry.os, "open", self.open))
+        self.stack.enter_context(patch.object(validate_synastry.os, "fsync", self.fsync))
+        self.stack.enter_context(patch.object(validate_synastry.os, "link", self.link))
+        self.stack.enter_context(patch.object(validate_synastry, "_exchange_paths", self.exchange))
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.stack.__exit__(*exc_info)
 
 
 class SourceValidationTests(unittest.TestCase):
@@ -85,7 +132,7 @@ class SourceValidationTests(unittest.TestCase):
 
     def test_broken_digest_and_unknown_schema_are_rejected(self) -> None:
         broken = fixture()
-        broken["chart_id"] = "changed"
+        broken["chart_id"] = "deadbeefcafe"
         with self.assertRaisesRegex(SchemaError, "digest mismatch"):
             load_ledger(broken)
 
@@ -123,78 +170,74 @@ class AtomicPublicationTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    def test_temporary_unlink_still_runs_when_descriptor_close_fails(self) -> None:
+        destination = self.directory / "output.md"
+        temporary_descriptor: int | None = None
+        original_open = os.open
+        original_close = os.close
+
+        def record_temporary_open(
+            path: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+            flags: int,
+            *args: object,
+        ) -> int:
+            nonlocal temporary_descriptor
+            descriptor = original_open(path, flags, *args)  # type: ignore[arg-type]
+            if Path(path).name.startswith(".close-cleanup-"):
+                temporary_descriptor = descriptor
+            return descriptor
+
+        def fail_write(_descriptor: int, _payload: object) -> int:
+            raise OSError("injected write failure")
+
+        def close_then_fail(descriptor: int) -> None:
+            original_close(descriptor)
+            if descriptor == temporary_descriptor:
+                raise OSError("injected close failure")
+
+        with (
+            patch.object(validate_synastry.os, "open", record_temporary_open),
+            patch.object(validate_synastry.os, "write", fail_write),
+            patch.object(validate_synastry.os, "close", close_then_fail),
+            self.assertRaisesRegex(OSError, "close failure"),
+        ):
+            validate_synastry._write_atomic_bytes(
+                b"payload",
+                destination,
+                overwrite=False,
+                temporary_prefix="close-cleanup",
+            )
+
+        self.assertEqual(list(self.directory.iterdir()), [])
+
     def test_atomic_publication_syncs_parent_after_link_or_exchange_before_return(self) -> None:
-        payload = b"durable publication\n"
-
-        def run_case(name: str, overwrite: bool) -> None:
-            destination = self.directory / f"{name}.md"
-            if overwrite:
-                destination.write_bytes(b"displaced bytes\n")
-                destination.chmod(0o600)
-            events: list[str] = []
-            descriptor_kinds: dict[int, str] = {}
-            original_open = os.open
-            original_fsync = os.fsync
-            original_link = os.link
-            original_exchange = validate_synastry._exchange_paths
-
-            def recording_open(
-                path: str | bytes | os.PathLike[str] | os.PathLike[bytes],
-                flags: int,
-                *args: object,
-                **kwargs: object,
-            ) -> int:
-                descriptor = original_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
-                if Path(path) == destination.parent:
-                    descriptor_kinds[descriptor] = "parent"
-                    events.append("parent-open")
-                else:
-                    descriptor_kinds[descriptor] = "file"
-                return descriptor
-
-            def recording_fsync(descriptor: int) -> None:
-                events.append(f"{descriptor_kinds.get(descriptor, 'unknown')}-fsync")
-                original_fsync(descriptor)
-
-            def recording_link(
-                source: str | bytes | os.PathLike[str] | os.PathLike[bytes],
-                target: str | bytes | os.PathLike[str] | os.PathLike[bytes],
-                *args: object,
-                **kwargs: object,
-            ) -> None:
-                original_link(source, target, *args, **kwargs)  # type: ignore[arg-type]
-                if Path(target) == destination:
-                    events.append("publish")
-
-            def recording_exchange(first: Path, second: Path) -> None:
-                original_exchange(first, second)
-                if second == destination:
-                    events.append("publish")
-
-            with (
-                patch.object(validate_synastry.os, "open", recording_open),
-                patch.object(validate_synastry.os, "fsync", recording_fsync),
-                patch.object(validate_synastry.os, "link", recording_link),
-                patch.object(validate_synastry, "_exchange_paths", recording_exchange),
-            ):
-                result = validate_synastry._write_atomic_bytes(
-                    payload,
-                    destination,
-                    overwrite=overwrite,
-                    temporary_prefix=f"durability-{name}",
-                )
-            events.append("return")
-
-            self.assertEqual(result, destination)
-            self.assertEqual(destination.read_bytes(), payload)
-            self.assertIn("parent-open", events)
-            self.assertLess(events.index("file-fsync"), events.index("publish"))
-            self.assertLess(events.index("publish"), events.index("parent-fsync"))
-            self.assertEqual(events[-1], "return")
-
         for name, overwrite in (("link", False), ("exchange", True)):
             with self.subTest(name=name):
-                run_case(name, overwrite)
+                self.assert_atomic_publication_order(name, overwrite)
+
+    def assert_atomic_publication_order(self, name: str, overwrite: bool) -> None:
+        destination = self.directory / f"{name}.md"
+        payload = b"durable publication\n"
+        if overwrite:
+            destination.write_bytes(b"displaced bytes\n")
+            destination.chmod(0o600)
+        recorder = AtomicPublicationRecorder(destination)
+
+        with recorder:
+            result = validate_synastry._write_atomic_bytes(
+                payload,
+                destination,
+                overwrite=overwrite,
+                temporary_prefix=f"durability-{name}",
+            )
+        recorder.events.append("return")
+
+        self.assertEqual(result, destination)
+        self.assertEqual(destination.read_bytes(), payload)
+        self.assertIn("parent-open", recorder.events)
+        self.assertLess(recorder.events.index("file-fsync"), recorder.events.index("publish"))
+        self.assertLess(recorder.events.index("publish"), recorder.events.index("parent-fsync"))
+        self.assertEqual(recorder.events[-1], "return")
 
 
 class SourceValidatorCliTests(unittest.TestCase):

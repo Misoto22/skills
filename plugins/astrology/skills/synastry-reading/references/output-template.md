@@ -17,7 +17,7 @@ Use the selected language's universal headings exactly and in order. Replace eve
 
 ## Basis, provenance, and limitations
 
-- Source: validated synastry JSON v2, chart ID `<chart-id>`
+- Source: validated synastry JSON v2, chart ID <chart-id>
 - Calculation and aspect profiles: <ledger values>
 - House system and configured orbs: <ledger values>
 - Backend provenance: <ledger value>
@@ -76,7 +76,7 @@ Under each selected heading, write only conditional, evidence-linked paragraphs.
 
 ## 分析基础、数据来源与限制
 
-- 数据来源：已验证的合盘 JSON v2；图表 ID `<chart-id>`
+- 数据来源：已验证的合盘 JSON v2；图表 ID <chart-id>
 - 计算与相位配置：<证据账本中的值>
 - 宫位系统与相位容许度：<证据账本中的值>
 - 星历数据来源：<证据账本中的值>

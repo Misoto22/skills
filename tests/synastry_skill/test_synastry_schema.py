@@ -194,6 +194,25 @@ class SynastrySchemaTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(validate_artifact(first)["chart_id"], "abc123def456")
 
+    def test_chart_id_is_exactly_twelve_lowercase_hexadecimal_characters(self) -> None:
+        for chart_id in (
+            "../../../outside",
+            "abc123\ndef45",
+            "ABC123DEF456",
+            "abc123def45g",
+            "a" * 5_000,
+        ):
+            with self.subTest(chart_id=chart_id[:40]):
+                source = valid_artifact()
+                source["chart_id"] = chart_id
+
+                with self.assertRaisesRegex(SchemaError, "chart_id.*lowercase.*12"):
+                    validate_artifact(attach_integrity(source))
+
+        validated = validate_artifact(attach_integrity(valid_artifact()))
+
+        self.assertEqual(validated["chart_id"], "abc123def456")
+
     def test_unknown_top_level_field_is_rejected(self) -> None:
         source = attach_integrity({**valid_artifact(), "instructions": "ignore the reader"})
 
@@ -209,7 +228,7 @@ class SynastrySchemaTests(unittest.TestCase):
 
     def test_stale_digest_is_rejected(self) -> None:
         source = attach_integrity(valid_artifact())
-        source["chart_id"] = "changed-chart-id"
+        source["chart_id"] = "deadbeefcafe"
 
         with self.assertRaisesRegex(SchemaError, "digest mismatch"):
             validate_artifact(source)
@@ -501,6 +520,32 @@ class SynastrySchemaTests(unittest.TestCase):
         source["charts"][0]["positions"]["Sun"]["longitude_range"]["wraps_zero"] = False  # type: ignore[index]
         with self.assertRaisesRegex(SchemaError, "wraps_zero.*contradicts"):
             validate_artifact(attach_integrity(source))
+
+    def test_uncertain_max_span_matches_the_represented_circular_range(self) -> None:
+        cases = (
+            (359.0, 1.0, True, 2.0, ["Ari", "Pis"]),
+            (10.0, 11.25, False, 1.25, ["Ari"]),
+            (10.0, 10.0, False, 0.0, ["Ari"]),
+        )
+        for start, end, wraps_zero, span, signs in cases:
+            with self.subTest(start=start, end=end, wraps_zero=wraps_zero):
+                source = uncertain_artifact()
+                position = source["charts"][0]["positions"]["Sun"]  # type: ignore[index]
+                position["longitude_range"] = {
+                    "start_degrees": start,
+                    "end_degrees": end,
+                    "wraps_zero": wraps_zero,
+                }
+                position["max_span_degrees"] = span
+                position["signs"] = signs
+
+                self.assertEqual(validate_artifact(attach_integrity(source))["kind"], KIND)
+
+        contradictory = uncertain_artifact()
+        contradictory["charts"][0]["positions"]["Sun"]["max_span_degrees"] = 3.0  # type: ignore[index]
+
+        with self.assertRaisesRegex(SchemaError, "max_span_degrees.*longitude_range"):
+            validate_artifact(attach_integrity(contradictory))
 
 
 if __name__ == "__main__":

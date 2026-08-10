@@ -18,6 +18,7 @@ DERIVED_PROFILE = "classical-derived-v1"
 EVIDENCE_POLICY = "editorial-v1"
 
 _DIGEST = re.compile(r"\A[0-9a-f]{64}\Z")
+_CHART_ID = re.compile(r"\A[0-9a-f]{12}\Z")
 _TOP_LEVEL_FIELDS = frozenset(
     {
         "kind",
@@ -162,7 +163,9 @@ def validate_artifact(document: Mapping[str, object]) -> dict[str, object]:
 
     _equal(artifact["kind"], KIND, "artifact.kind")
     _equal(artifact["schema_version"], SCHEMA_VERSION, "artifact.schema_version")
-    _string(artifact["chart_id"], "artifact.chart_id")
+    chart_id = _string(artifact["chart_id"], "artifact.chart_id")
+    if not _CHART_ID.fullmatch(chart_id):
+        raise SchemaError("artifact.chart_id: expected a lowercase 12-character hexadecimal identifier")
 
     configuration = _validate_configuration(artifact["configuration"])
     privacy = _string(configuration["privacy"], "artifact.configuration.privacy")
@@ -604,6 +607,9 @@ def _validate_uncertain_position(value: object, where: str) -> None:
     wraps_zero = longitude_range["wraps_zero"]
     if (wraps_zero and start <= end) or (not wraps_zero and start > end):
         raise SchemaError(f"{where}.longitude_range: wraps_zero contradicts start_degrees and end_degrees")
+    represented_span = 360.0 - start + end if wraps_zero else end - start
+    if not math.isclose(span, represented_span, rel_tol=0.0, abs_tol=1e-9):
+        raise SchemaError(f"{where}.max_span_degrees: does not match longitude_range")
     signs = _list(position["signs"], f"{where}.signs")
     if not signs:
         raise SchemaError(f"{where}.signs: must not be empty")

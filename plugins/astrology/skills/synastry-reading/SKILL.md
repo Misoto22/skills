@@ -72,13 +72,12 @@ Run finalization with the opaque token and supply the complete draft on standard
 
 ```bash
 python3 scripts/reading_session.py finalize <session-token> \
-  --language en \
   --out /chosen/output/synastry_reading_a1b2c3d4e5f6.md
 ```
 
 Replace the token, output directory, and chart ID with the returned token, chosen destination, and exact `chart_id` read from the ledger.
 
-Repeat `--module "<Canonical module heading>"` once for each explicitly selected module. Omit every `--module` flag when none is selected. Use the artifact language unless the user explicitly requested another supported language.
+Repeat `--module "<Canonical module heading>"` once for each explicitly selected module. Omit every `--module` flag when none is selected. Omit `--language` to inherit the artifact language; include `--language <supported-language>` only when the user explicitly requests an override.
 
 The helper revalidates the original source, rejects a changed source, writes the final Markdown atomically only after validation passes, and removes the session on success or failure. It never overwrites an existing output. Do not rename a draft into place or pre-create the destination.
 

@@ -51,6 +51,55 @@ _CONDITIONAL = {
     ),
     "zh": re.compile(r"可能|也许|或许|倾向|往往|通常|可以|可(?:能)?|有时|似乎"),
 }
+_STRUCTURAL_LIMITATION = {
+    "en": re.compile(
+        r"(?:No directly relevant measurement(?: is present)?|"
+        r"The source does not support a confident [A-Za-z][A-Za-z -]{0,79}-specific "
+        r"interpretation because no directly relevant measurement is present|"
+        r"Evidence is insufficient|No unrequested domain met)"
+        r"(?:[.!?])?(?=\s|\Z)",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(
+        r"(?:没有直接相关证据|源数据不足(?:以支持有把握的"
+        r"[^\N{IDEOGRAPHIC FULL STOP}\N{FULLWIDTH EXCLAMATION MARK}"
+        r"\N{FULLWIDTH QUESTION MARK}\n]{1,80}解读\N{FULLWIDTH COMMA}"
+        r"因为没有直接相关(?:的)?(?:测量|证据))?)"
+        r"(?:[\N{IDEOGRAPHIC FULL STOP}\N{FULLWIDTH EXCLAMATION MARK}"
+        r"\N{FULLWIDTH QUESTION MARK}])?(?=\s|\Z)"
+    ),
+}
+_METADATA_ENTRY = {
+    "en": re.compile(
+        r"(?P<label>Source|Calculation and aspect profiles|House system and configured orbs|"
+        r"Backend provenance|Explicit relationship context|House system|Aspect orbs|"
+        r"Relationship context|Data limitations)[ \t]*:[ \t]*",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(
+        r"(?P<label>数据来源|计算与相位配置|宫位系统与相位容许度|星历数据来源|"
+        r"用户明确提供的关系背景|宫位系统|相位容许度|用户提供的关系背景|数据限制)"
+        r"[ \t]*(?::|\N{FULLWIDTH COLON})[ \t]*"
+    ),
+}
+_METADATA_APPEND_BOUNDARY = {
+    "en": re.compile(
+        r"(?:[.!?;:]|\N{EM DASH}|\N{EN DASH})(?=\s+\S)|"
+        r"\b(?:and|but|which|that)\b(?=\s+(?:this|these|those|it|they|both|the)\b)",
+        re.IGNORECASE,
+    ),
+    "zh": re.compile(
+        r"(?:\N{IDEOGRAPHIC FULL STOP}|\N{FULLWIDTH EXCLAMATION MARK}|"
+        r"\N{FULLWIDTH QUESTION MARK}|\N{FULLWIDTH SEMICOLON}|"
+        r"\N{FULLWIDTH COLON}|\N{EM DASH})(?=\s*\S)"
+    ),
+}
+_SOURCE_APPEND_SEPARATOR = re.compile(
+    r"^(?:[.!?;:]|\N{IDEOGRAPHIC FULL STOP}|\N{FULLWIDTH EXCLAMATION MARK}|"
+    r"\N{FULLWIDTH QUESTION MARK}|\N{FULLWIDTH SEMICOLON}|\N{FULLWIDTH COLON}|"
+    r"\N{EM DASH}|\N{EN DASH}|\b(?:and|but|which|that)\b)[ \t]*",
+    re.IGNORECASE,
+)
 _FENCE = re.compile(r"^[ \t]{0,3}(?P<marker>`{3,}|~{3,})")
 _ATX_HEADING = re.compile(r"^[ \t]{0,3}(?P<marker>#{1,6})[ \t]+(?P<title>.*?)[ \t]*#*[ \t]*$")
 _LIST_PREFIX = re.compile(r"^[ \t]{0,3}(?:(?:>[ \t]*)+)?(?:[-+*]|\d+[.)])[ \t]+")
@@ -410,82 +459,43 @@ def _validate_evidence(
         if token not in known:
             problems.append("unknown evidence token")
 
-    keys = _section_keys(blocks, language)
-    section_evidence: dict[tuple[str, str | None], dict[str, EvidenceItem]] = {}
-    for index, block in enumerate(blocks):
-        if block.kind != "paragraph" or keys[index] is None:
-            continue
-        for token in _EVIDENCE_TOKEN.findall(block.text):
-            item = known.get(token)
-            if item is not None and (block.text.startswith(item.citation) or block.text == item.display):
-                section_evidence.setdefault(keys[index], {})[item.id] = item
-
-    for index, block in enumerate(blocks):
+    for block in blocks:
         if block.kind != "paragraph":
             continue
         direct = [known[token] for token in _EVIDENCE_TOKEN.findall(block.text) if token in known]
-        section = list(section_evidence.get(keys[index], {}).values()) if keys[index] else []
-        bound = direct or section
-        top_section = keys[index][0] if keys[index] else ""
-        substantive = _is_substantive(block.text, top_section, ledger, language)
-        if substantive and not bound:
+        substantive = _is_substantive(block.text, ledger, language)
+        if substantive and not direct:
             problems.append("substantive paragraph lacks valid evidence")
-        if substantive and _contains_unconditional_claim(block.text, language):
+        if substantive and _contains_unconditional_claim(block.text, ledger, language):
             problems.append("substantive paragraph requires conditional language")
-        if bound:
-            _validate_claims(block.text, bound, ledger, problems)
+        if direct:
+            _validate_claims(block.text, direct, ledger, problems)
         elif _DEGREE_CLAIM.search(block.text):
             problems.append("measurement does not match paragraph evidence")
 
 
-def _section_keys(blocks: Sequence[_Block], language: str) -> list[tuple[str, str | None] | None]:
-    domains = _normalize_heading(_UNIVERSAL_HEADINGS[language][6])
-    current_level_two: str | None = None
-    current_module: str | None = None
-    result: list[tuple[str, str | None] | None] = []
-    for block in blocks:
-        if block.kind == "heading":
-            if block.level <= 2:
-                current_level_two = _normalize_heading(block.text) if block.level == 2 else None
-                current_module = None
-            elif block.level == 3 and current_level_two == domains:
-                current_module = _normalize_heading(block.text)
-        result.append((current_level_two, current_module) if current_level_two is not None else None)
-    return result
-
-
 def _is_substantive(
     text: str,
-    top_section: str,
     ledger: EvidenceLedger,
     language: str,
 ) -> bool:
-    exempt_sections = {
-        _normalize_heading(_UNIVERSAL_HEADINGS[language][0]),
-        _normalize_heading(_UNIVERSAL_HEADINGS[language][-1]),
-    }
-    if top_section in exempt_sections:
-        return False
     if any(text == item.citation or text == item.display for item in ledger.evidence):
         return False
-    if re.match(
-        r"^(?:Source|House system|Aspect orbs|Relationship context|Data limitations|"
-        r"数据来源|宫位系统|相位容许度|用户提供的关系背景|数据限制)[ \t]*:",
-        text,
-        re.IGNORECASE,
-    ):
+    if _metadata_entry_remainder(text, ledger, language) == "":
         return False
-    if re.match(
-        r"^(?:No directly relevant measurement|The source does not support|Evidence is insufficient|"
-        r"No unrequested domain met|没有直接相关证据|源数据不足)",
-        text,
-        re.IGNORECASE,
-    ):
+    if _structural_limitation_remainder(text, language) == "":
         return False
     return bool(re.search(r"[A-Za-z\u3400-\u9fff]", text))
 
 
-def _contains_unconditional_claim(text: str, language: str) -> bool:
+def _contains_unconditional_claim(text: str, ledger: EvidenceLedger, language: str) -> bool:
+    for remainder in (
+        _structural_limitation_remainder(text, language),
+        _metadata_entry_remainder(text, ledger, language),
+    ):
+        if remainder is not None:
+            text = remainder
+            break
     without_citations = _EVIDENCE_TOKEN.sub("", text)
     for claim in _CLAIM_BOUNDARY.split(without_citations):
         if language == "en":
@@ -496,6 +506,61 @@ def _contains_unconditional_claim(text: str, language: str) -> bool:
         if substantive and _CONDITIONAL[language].search(claim) is None:
             return True
     return False
+
+
+def _structural_limitation_remainder(text: str, language: str) -> str | None:
+    normalized = " ".join(text.split())
+    match = _STRUCTURAL_LIMITATION[language].match(normalized)
+    if match is None:
+        return None
+    return normalized[match.end() :].strip()
+
+
+def _metadata_entry_remainder(
+    text: str,
+    ledger: EvidenceLedger,
+    language: str,
+) -> str | None:
+    normalized = " ".join(text.split())
+    match = _METADATA_ENTRY[language].match(normalized)
+    if match is None:
+        return None
+    value = normalized[match.end() :].strip()
+    if not value:
+        return None
+    if match.group("label").casefold() in {"source", "数据来源"}:
+        return _source_metadata_remainder(value, ledger, language)
+    boundary = _METADATA_APPEND_BOUNDARY[language].search(value)
+    return "" if boundary is None else value[boundary.end() :].strip()
+
+
+def _source_metadata_remainder(
+    value: str,
+    ledger: EvidenceLedger,
+    language: str,
+) -> str:
+    if language == "en":
+        standalone_values = (
+            "attached JSON",
+            "pasted JSON",
+            f"validated synastry JSON v2, chart ID {ledger.chart_id}",
+        )
+    else:
+        standalone_values = (
+            f"已验证的合盘 JSON v2\N{FULLWIDTH SEMICOLON}图表 ID {ledger.chart_id}",
+            f"已验证的合盘 JSON v2; 图表 ID {ledger.chart_id}",
+        )
+    folded = value.casefold()
+    for standalone in standalone_values:
+        prefix = standalone.casefold()
+        if folded == prefix or folded in {f"{prefix}.", f"{prefix}。"}:
+            return ""
+        if folded.startswith(prefix):
+            suffix = value[len(standalone) :].strip()
+            separator = _SOURCE_APPEND_SEPARATOR.match(suffix)
+            if separator is not None and suffix[separator.end() :].strip():
+                return suffix[separator.end() :].strip()
+    return value
 
 
 def _validate_claims(
@@ -654,15 +719,24 @@ def prepare_validated_markdown(
 ) -> tuple[Path, bytes]:
     """Validate Markdown and return its checked destination and bytes without writing."""
 
-    target = Path(destination).expanduser()
-    if _is_source_path(target, ledger):
-        raise SourceIdentityError("reading destination must not replace the source JSON")
-    if target.suffix.lower() != ".md":
-        raise ValueError("reading destination must end in .md and must not be the source JSON")
+    target = _validated_reading_target(destination, ledger)
     problems = validate_markdown(markdown, ledger, language, selected_modules)
     if problems:
         raise ReadingError(problems)
     return target, markdown.encode("utf-8")
+
+
+def _validated_reading_target(
+    destination: str | os.PathLike[str],
+    ledger: EvidenceLedger,
+) -> Path:
+    target = Path(destination).expanduser()
+    expected_basename = f"synastry_reading_{ledger.chart_id}.md"
+    if target.name != expected_basename:
+        raise ValueError("reading destination basename must match the validated chart_id")
+    if _is_source_path(target, ledger):
+        raise SourceIdentityError("reading destination must not replace the source JSON")
+    return target
 
 
 def install_validated_markdown(
@@ -675,9 +749,7 @@ def install_validated_markdown(
 ) -> Path:
     """Atomically install already-validated Markdown bytes."""
 
-    target = Path(destination).expanduser()
-    if _is_source_path(target, ledger):
-        raise SourceIdentityError("reading destination must not replace the source JSON")
+    target = _validated_reading_target(destination, ledger)
     return _install_prepared_markdown(
         payload,
         target,

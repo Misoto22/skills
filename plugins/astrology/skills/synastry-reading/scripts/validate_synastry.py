@@ -370,17 +370,19 @@ def _write_atomic_bytes(
         _fsync_directory(destination.parent)
         return destination
     finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        if temporary is not None:
-            with suppress(FileNotFoundError):
-                temporary.unlink()
-        if backup is not None:
-            with suppress(FileNotFoundError):
-                backup.unlink()
-        if recovery_directory is not None:
-            with suppress(FileNotFoundError):
-                recovery_directory.rmdir()
+        try:
+            if descriptor is not None:
+                os.close(descriptor)
+        finally:
+            if temporary is not None:
+                with suppress(FileNotFoundError):
+                    temporary.unlink()
+            if backup is not None:
+                with suppress(FileNotFoundError):
+                    backup.unlink()
+            if recovery_directory is not None:
+                with suppress(FileNotFoundError):
+                    recovery_directory.rmdir()
 
 
 def _discard_published_temporary(temporary: Path) -> None:

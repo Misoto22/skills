@@ -20,6 +20,7 @@ import time
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import replace
+from enum import Enum
 from pathlib import Path
 
 from validate_reading import (
@@ -61,6 +62,17 @@ class _SignalInterruption(BaseException):
         super().__init__(signum)
 
 
+class _RecoveryResult(Enum):
+    """Classify one recovery attempt without conflating conflicts and corruption."""
+
+    COMPLETED = "completed"
+    RETRYABLE = "retryable"
+    MALFORMED = "malformed"
+
+    def __bool__(self) -> bool:
+        return self is _RecoveryResult.COMPLETED
+
+
 def _root(*, create: bool) -> Path:
     configured = os.environ.get(_ROOT_ENV)
     root = (
@@ -87,6 +99,8 @@ def _absolute_output_path(path: Path, root: Path) -> Path:
     try:
         resolved_parent = absolute.parent.resolve(strict=False)
         resolved_root = root.resolve(strict=False)
+        with suppress(FileNotFoundError):
+            resolved_parent.stat()
     except (OSError, RuntimeError) as error:
         raise ValueError("invalid output path") from error
     candidate = resolved_parent / absolute.name
@@ -250,7 +264,8 @@ def _owned_state(candidate: Path) -> tuple[str, str] | None:
 
 def _fallback_deadline(candidate: Path) -> int:
     try:
-        observed_mtime = min(int(os.lstat(candidate).st_mtime), int(time.time()))
+        status = os.lstat(candidate)
+        observed_mtime = min(int(status.st_mtime), int(status.st_ctime), int(time.time()))
     except FileNotFoundError:
         return 0
     return observed_mtime + MAX_TTL_SECONDS + _CLOCK_GRACE_SECONDS
@@ -373,9 +388,24 @@ def _sweep_expired(root: Path) -> None:
         state, token = owned
         if state == "committing":
             if _state_deadline(candidate, state) <= now:
-                _recover_committing(root, candidate)
+                result = _recover_committing(root, candidate)
+                if result is _RecoveryResult.MALFORMED:
+                    _discard_malformed_committing(root, candidate, now)
         else:
             _discard_expired_state(root, token, state, now)
+
+
+def _discard_malformed_committing(root: Path, committing: Path, now: int) -> bool:
+    owned = _owned_state(committing)
+    if owned is None or owned[0] != "committing" or _fallback_deadline(committing) > now:
+        return False
+    _, token = owned
+    try:
+        cancelling = _transition_state(root, token, "committing", "cancelling")
+    except ValueError:
+        return False
+    _best_effort_remove_private_tree(cancelling)
+    return True
 
 
 def _spawn_watchdog(token: str, expires_at: int) -> None:
@@ -724,8 +754,12 @@ def _complete_known_commit(
     _require_exact_committed_output(payload, target, _ledger_source_identity(ledger))
 
 
-def _complete_committing(root: Path, committing: Path) -> None:
-    payload, target, forbidden_identity = _commit_material(root, committing)
+def _complete_committing(
+    root: Path,
+    committing: Path,
+    material: tuple[bytes, Path, tuple[int, int] | None] | None = None,
+) -> None:
+    payload, target, forbidden_identity = material or _commit_material(root, committing)
     _install_prepared_markdown(
         payload,
         target,
@@ -740,22 +774,24 @@ def _complete_committing(root: Path, committing: Path) -> None:
         return
 
 
-def _recover_committing(root: Path, committing: Path) -> bool:
+def _recover_committing(root: Path, committing: Path) -> _RecoveryResult:
     try:
-        _complete_committing(root, committing)
+        material = _commit_material(root, committing)
     except (
         FileNotFoundError,
         KeyError,
         OSError,
-        OutputExistsError,
-        SourceIdentityError,
         TypeError,
         UnicodeError,
         ValueError,
         json.JSONDecodeError,
     ):
-        return False
-    return True
+        return _RecoveryResult.MALFORMED
+    try:
+        _complete_committing(root, committing, material)
+    except (OSError, OutputExistsError, SourceIdentityError):
+        return _RecoveryResult.RETRYABLE
+    return _RecoveryResult.COMPLETED
 
 
 def _finalize(arguments: argparse.Namespace) -> int:
@@ -846,6 +882,7 @@ def _cancel(arguments: argparse.Namespace) -> int:
 def _expire(arguments: argparse.Namespace) -> int:
     root = _root(create=False)
     tracked_states = ("staging", "public", "finalizing", "cancelling", "committing")
+    malformed_deadline: int | None = None
     while True:
         if not root.exists():
             return 0
@@ -853,7 +890,10 @@ def _expire(arguments: argparse.Namespace) -> int:
         for state in tracked_states:
             path = _state_path(root, arguments.token, state)
             if _owned_state(path) == (state, arguments.token):
-                observed.append((state, path, _state_deadline(path, state)))
+                deadline = _state_deadline(path, state)
+                if state == "committing" and malformed_deadline is not None:
+                    deadline = max(deadline, malformed_deadline)
+                observed.append((state, path, deadline))
         if not observed:
             return 0
         now = int(time.time())
@@ -862,16 +902,20 @@ def _expire(arguments: argparse.Namespace) -> int:
             delay = min(deadline for _, _, deadline in observed) - now
             time.sleep(max(0.01, min(delay, 1)))
             continue
-        attempted_commit_recovery = False
+        terminal_commit_recovery = False
         for state, path, _deadline in due:
             if state == "committing":
-                attempted_commit_recovery = True
-                _recover_committing(root, path)
+                result = _recover_committing(root, path)
+                if result is _RecoveryResult.MALFORMED:
+                    malformed_deadline = _fallback_deadline(path)
+                    terminal_commit_recovery = _discard_malformed_committing(root, path, now)
+                else:
+                    terminal_commit_recovery = True
             else:
                 _discard_expired_state(root, arguments.token, state, now)
         with suppress(BaseException):
             _prune_root(root)
-        if attempted_commit_recovery:
+        if terminal_commit_recovery:
             return 0
 
 

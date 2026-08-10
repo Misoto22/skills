@@ -21,6 +21,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "neutral.json"
 sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
+from synastry_schema import attach_integrity  # type: ignore[import-not-found]
 from validate_reading import validate_markdown  # type: ignore[import-not-found]
 from validate_synastry import load_ledger  # type: ignore[import-not-found]
 
@@ -35,6 +36,76 @@ UNIVERSAL_HEADINGS = (
     "Overall synthesis",
     "Evidence index",
 )
+CHINESE_UNIVERSAL_HEADINGS = (
+    "分析基础、数据来源与限制",
+    "反复出现的互动模式",
+    "双向影响与不对称性",
+    "沟通与协作",
+    "张力、边界与修复",
+    "成长与共同方向",
+    "用户要求或关系背景领域",
+    "整体总结",
+    "证据索引",
+)
+
+
+def chinese_report(source: dict[str, object]) -> str:
+    citation = load_ledger(source).evidence[0].citation
+    lines = ["# 双方合盘分析"]
+    for heading in CHINESE_UNIVERSAL_HEADINGS:
+        lines.extend((f"## {heading}", citation))
+    return "\n\n".join(lines) + "\n"
+
+
+def documented_language_override() -> str | None:
+    documented = re.search(
+        r"```bash\npython3 scripts/reading_session\.py finalize <session-token>(.*?)\n```",
+        READER_SKILL.read_text(encoding="utf-8"),
+        re.S,
+    )
+    if documented is None:
+        raise AssertionError("documented finalization command is missing")
+    language = re.search(r"--language[ \t]+([^\s\\]+)", documented.group(1))
+    return None if language is None else language.group(1)
+
+
+def run_documented_default_finalization(
+    source: dict[str, object],
+    report: str,
+) -> tuple[subprocess.CompletedProcess[str], subprocess.CompletedProcess[str], str | None]:
+    with tempfile.TemporaryDirectory() as temporary:
+        directory = Path(temporary)
+        environment = os.environ | {
+            "SYNASTRY_READING_SESSION_ROOT": str(directory / "sessions"),
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        helper = SKILL / "scripts" / "reading_session.py"
+        started = subprocess.run(
+            [sys.executable, str(helper), "start", "-"],
+            cwd=SKILL,
+            env=environment,
+            input=json.dumps(source),
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        status = json.loads(started.stdout)
+        destination = directory / "synastry_reading_abc123def456.md"
+        arguments = ["finalize", status["token"]]
+        if (language := documented_language_override()) is not None:
+            arguments.extend(("--language", language))
+        arguments.extend(("--out", str(destination)))
+        finalized = subprocess.run(
+            [sys.executable, str(helper), *arguments],
+            cwd=SKILL,
+            env=environment,
+            input=report,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        written = destination.read_text(encoding="utf-8") if destination.exists() else None
+    return started, finalized, written
 
 
 class ReaderSkillContractTests(unittest.TestCase):
@@ -127,6 +198,18 @@ class ReaderSkillContractTests(unittest.TestCase):
         self.assertIn("expires", text)
         self.assertIn("reading_session.py", text)
 
+    def test_documented_default_finalization_inherits_the_artifact_language(self) -> None:
+        source = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        source["configuration"]["language"] = "zh"
+        source = attach_integrity(source)
+        report = chinese_report(source)
+
+        started, finalized, written = run_documented_default_finalization(source, report)
+
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.assertEqual(finalized.returncode, 0, finalized.stderr)
+        self.assertEqual(written, report)
+
     def test_every_linked_reference_and_runtime_script_resolves(self) -> None:
         text = READER_SKILL.read_text(encoding="utf-8")
 
@@ -180,7 +263,8 @@ class ReaderSkillContractTests(unittest.TestCase):
 
     def test_template_representatives_pass_the_bundled_validator(self) -> None:
         blocks = re.findall(r"```markdown\n(.*?)\n```", TEMPLATE.read_text(encoding="utf-8"), re.S)
-        evidence = load_ledger(FIXTURE).evidence[0].citation
+        selected_ledger = load_ledger(FIXTURE)
+        evidence = selected_ledger.evidence[0].citation
 
         for block, language, title, domains_heading, module in (
             (
@@ -199,14 +283,20 @@ class ReaderSkillContractTests(unittest.TestCase):
             ),
         ):
             with self.subTest(language=language):
+                source_line = next(
+                    line.removeprefix("- ").replace("<chart-id>", selected_ledger.chart_id)
+                    for line in block.splitlines()
+                    if line.startswith(("- Source:", "- 数据来源\N{FULLWIDTH COLON}"))
+                )
                 lines = [title]
-                for heading in (line for line in block.splitlines() if line.startswith("## ")):
-                    lines.extend((heading, evidence))
+                headings = [line for line in block.splitlines() if line.startswith("## ")]
+                for index, heading in enumerate(headings):
+                    lines.extend((heading, source_line if index == 0 else evidence))
                     if heading == domains_heading:
                         lines.extend((f"### {module}", evidence))
                 report = "\n\n".join(lines) + "\n"
 
-                self.assertEqual(validate_markdown(report, load_ledger(FIXTURE), language, (module,)), [])
+                self.assertEqual(validate_markdown(report, selected_ledger, language, (module,)), [])
 
     def test_metadata_matches_validated_json_v2_workflow(self) -> None:
         text = OPENAI.read_text(encoding="utf-8")

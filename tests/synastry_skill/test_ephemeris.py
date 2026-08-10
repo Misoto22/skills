@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import sys
 import unittest
 from collections.abc import Iterable
@@ -299,6 +300,61 @@ class ResolutionModeTests(unittest.TestCase):
 
 
 class BindingFailureTests(unittest.TestCase):
+    def test_calc_ut_rejects_malformed_shapes_and_nonfinite_numeric_fields(self) -> None:
+        flags = FakeSwe.FLG_SWIEPH | FakeSwe.FLG_SPEED
+        valid_position = (10.0, 0.0, 1.0, 1.0, 0.0, 0.0)
+        malformed = (
+            (),
+            (valid_position,),
+            ((10.0, 0.0, 1.0), flags),
+            (valid_position, float(flags)),
+            ((math.nan, 0.0, 1.0, 1.0, 0.0, 0.0), flags),
+            ((10.0, 0.0, 1.0, 1.0, 0.0, math.inf), flags),
+        )
+        for returned in malformed:
+            with self.subTest(returned=returned):
+                fake = FakeSwe()
+                fake.calc_ut = lambda *_args, value=returned: value  # type: ignore[method-assign]
+
+                with self.assertRaisesRegex(EphemerisError, "calc_ut.*invalid"):
+                    resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
+
+    def test_binding_type_index_and_value_errors_become_ephemeris_errors(self) -> None:
+        for error in (TypeError("bad type"), IndexError("bad index"), ValueError("bad value")):
+            with self.subTest(error=type(error).__name__):
+                fake = FakeSwe()
+
+                def fail(*_args: object, selected: BaseException = error) -> object:
+                    raise selected
+
+                fake.calc_ut = fail  # type: ignore[method-assign]
+
+                with self.assertRaisesRegex(EphemerisError, "calc_ut.*bad"):
+                    resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
+
+    def test_julian_day_and_house_results_require_finite_reviewed_shapes(self) -> None:
+        bad_julian = FakeSwe()
+        bad_julian.julday = lambda *_args: math.nan  # type: ignore[method-assign]
+        with self.assertRaisesRegex(EphemerisError, "Julian day.*finite"):
+            resolve_subject(exact_subject(), swiss_options(), swe_module=bad_julian)
+
+        valid_cusps = tuple(float(index * 30) for index in range(12))
+        valid_angles = (11.0, 22.0, 0.0, 33.0, 44.0, 0.0, 0.0, 0.0)
+        malformed = (
+            (),
+            (valid_cusps, valid_angles[:4]),
+            (valid_cusps[:-1], valid_angles),
+            ((*valid_cusps[:-1], math.nan), valid_angles),
+            (valid_cusps, (*valid_angles[:-1], math.inf)),
+        )
+        for returned in malformed:
+            with self.subTest(returned=returned):
+                fake = FakeSwe()
+                fake.houses = lambda *_args, value=returned: value  # type: ignore[method-assign]
+
+                with self.assertRaisesRegex(EphemerisError, "house.*invalid"):
+                    resolve_subject(exact_subject(), swiss_options(), swe_module=fake)
+
     def test_missing_optional_asteroid_file_is_a_structured_limitation(self) -> None:
         fake = FakeSwe(body_errors=(FakeSwe.CHIRON, FakeSwe.CERES))
 
