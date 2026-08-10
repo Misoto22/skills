@@ -4,46 +4,42 @@
 
 Input: a verified chart JSON path from `bazi-chart`.
 
-A concise Chinese reader layer begins with the conclusion, then gives the chart before its technical appendix:
+Write a Chinese reader report without evidence markers or technical identifiers:
 
 ```markdown
 # 八字静态命局解读
 
-## 1. 结论速览
+## 你的命局主线
 
-这份命盘以月令与日主之间的支持和制衡为主线；以下解读是传统模型下的条件性观察，不是确定的人生结论。〔1〕〔2〕
+这份命盘的主线是：你更容易在有清晰方向时投入，也需要留出调整节奏的空间。这个判断来自传统命理模型，用来帮助观察，不是对人生的定论。
 
-## 2. 命盘概览
+## 命盘倾向
 
 | 四柱 | 年柱 | 月柱 | 日柱 | 时柱 |
 |---|---|---|---|---|
-| 干支 | ... | ... | ... | ... |
+| 干支 | … | … | … | … |
 
-命盘采用真太阳时。〔3〕 月柱遵循节气换月。〔4〕 日柱采用 23:00 换日规则。〔5〕
+## 优势与张力
 
-## 3. 五行与日主摘要
+当你把想法落实为具体步骤时，往往更能发挥优势；压力较大时，也值得先分清是需要行动，还是需要恢复余地。
 
-调整后五行与日主强弱分数均以整数展示；它们是启发式模型输出，不是概率。〔6〕
+## 关系、工作与自我观察
 
-## 7. 技术依据与证据
+1. 最近的选择里，哪些是在清晰目标下更有力量，哪些是在被催促时变得紧绷？
+2. 下次想推动一件事前，先给自己一个可以调整的时间点，观察效率有没有改变。
 
-| 标记 | 原始证据标识 | 精确来源值 | 证据类别 |
-|---|---|---|---|
-| `〔1〕` | `[P-month]` | ... | 主要计算事实 |
-| `〔2〕` | `[P-day]` | ... | 主要计算事实 |
-| `〔3〕` | `[time.true_solar]` | ... | 主要计算事实 |
-| `〔4〕` | `[B-month]` | ... | 主要计算事实 |
-| `〔5〕` | `[B-day]` | ... | 主要计算事实 |
-| `〔6〕` | `[base.visible.month]` | ... | 启发式分数账本 |
+## 模型数据卡
 
-完整校验和、模型标识、未四舍五入的百分比、日主分数、组件账本与精确算式见本附录。
+五行分布与日主参考分数是模型参考，不是概率。
+
+[查看计算依据](bazi_reading_evidence_示例.md)
 ```
 
-The reader-facing layer uses Chinese only, has no raw ids, and uses compact markers. The final appendix maps those markers to exact ids and values. Use the same pattern in any other user language.
+Write `bazi_reading_evidence_<name>.md` separately. It records the checksum, raw evidence ids, time basis, exact values, score ledger, and a heading-based map for each reader-report claim. It is not appended to the reader report.
 
 ## Alternate boundary
 
-Good treatment: “两种边界版本的年柱与月柱相同，因此季节判断较稳定。〔1〕〔2〕 日柱与时柱在午夜规则下变化，所以依赖日主的关系结论具有边界敏感性，暂不下结论。〔3〕〔4〕” Map the primary and alternate raw ids, exact values, and separate unrounded calculations in the final technical appendix.
+Good treatment: “两种边界版本的年柱与月柱相同，因此季节判断较稳定；日柱与时柱在午夜规则下变化，所以依赖日主的关系结论暂不下结论。” Put the primary and alternate raw ids, exact values, and separate unrounded calculations in the evidence artifact.
 
 Bad treatment: average the two day-master scores or choose the more favorable chart.
 

@@ -1,36 +1,38 @@
 # Reading report presentation contract
 
-Apply this contract after completing the reading skill's report-specific source validation and evidence indexing.
+Apply this contract after the reading skill validates and indexes its source artifact.
 
-## Localization
+## Two-output boundary
 
-- Write the entire report in the user's language, including every heading, table label, disclaimer, and final technical appendix label.
-- Treat headings and labels shown in a template as semantic examples. Translate them; do not select from a fixed language pair or render bilingual labels unless the user's requested language requires them.
-- Preserve raw evidence ids, checksums, model ids, and other machine values exactly when they appear in the technical appendix; localization applies to the prose and labels around them.
+Write a reader report and a separate evidence artifact. They serve different readers and must not be merged.
 
-## Reader-layer citations
+- The reader report is the default handoff. Write it in the user's language as a short, human-first explanation. It may include a compact **Model data card** with rounded values the user asked to see.
+- The evidence artifact is the audit handoff. It holds source validation, exact source values, raw ids, checksums, model ids, arithmetic, ledgers, and sensitivity variants.
+- Link to the evidence artifact once as the final line of the reader report. Do not expose its machine detail before that link.
 
-- Use compact sequential markers `〔1〕`, `〔2〕`, and so on in the reader layer. Cite every substantive sentence that makes a source, calculation, or interpretive claim with one or more markers.
-- Show only compact markers in reader prose. Do not expose raw evidence ids there.
-- In the final technical appendix, map every used marker to one exact raw evidence id, its exact source value, and its evidence class. Include stored ownership or direction when the report-specific contract requires it.
-- Keep the mapping deduplicated and complete: one raw id maps to one source fact, every reader marker has a mapping, and every mapped marker is used in the reader layer.
-- When evidence conflicts, describe the tension instead of choosing the more favorable result.
+## Reader report
 
-## Display precision
+- Start with the relationship or natal pattern in plain language, then explain why it matters to the reader. Do not begin with a model disclaimer, source confidence, or calculation method.
+- Write only the user's language in headings, labels, prose, and data-card explanations. Translate template headings semantically.
+- Do not use numbered evidence markers, raw evidence ids, checksums, model ids, ledger keys, exact arithmetic, stored `left`/`right` labels, or unrounded values.
+- Use conditional language for metaphysical interpretation. State the heuristic limitation once, near the compact data card or closing note; do not repeat it in every paragraph.
+- Keep only decision-relevant findings. Do not restate a dimension in a score table, a finding list, and a prompt.
+- Show reader-facing scores and percentages as whole numbers. Label them as model references, not probabilities, diagnoses, or verdicts.
+- Make prompts observable and reversible. Do not give medical, legal, financial, employment, or relationship commands.
 
-- Display scores and percentages as whole numbers in the reader layer. Keep the exact unrounded values in the final technical appendix.
-- Display sensitivity minimum, maximum, and spread as whole numbers in the reader layer; keep exact variant scores and spreads in the appendix. An exact boundary fact, such as a changeover time, may appear in plain reader language when it is necessary to explain a material boundary effect, but its raw id remains appendix-only.
+## Model data card
 
-## Technical appendix boundary
+Use a small data card late in the reader report. It must make numbers legible without making them the story.
 
-- Put the technical appendix last and keep the earlier, report-specific sections as the reader layer.
-- Keep full checksums, model ids, exact arithmetic, unrounded values, and raw evidence ids in the final technical appendix only.
-- Include the report-specific validation status, calculation details, and evidence fields required by the reading skill without moving those technical records into reader prose.
+- Show the displayed primary score and no more than three supporting indicators in a compatibility reader report. If a relationship context was selected, display that contextual score before the general reference.
+- Show the five-element distribution and day-master reference in a natal reader report, with a one-sentence heuristic limitation.
+- Keep the complete dimension table, exact weights, and all exact values in the separate evidence artifact.
 
-## Worked boundary
+## Evidence artifact
 
-Translate the prose in this example into the user's language; preserve only the raw id and machine value verbatim.
+Use the same user language for prose labels, but preserve raw ids and machine values exactly.
 
-- Before, in reader prose: `The heuristic score [score.raw] is 59.99.`
-- After, in reader prose: `The heuristic score is 60.〔1〕`
-- In the final appendix: `` `〔1〕` | `[score.raw]` | `59.99` | calculated heuristic ``
+- Begin with source status and the checksum or explicit `pasted-complete` limitation.
+- Mirror the reader report's headings in a claim map. Under each heading, list the exact source facts and ledger records that support or limit its prose; this replaces inline reader citations.
+- Include every raw id required by the reading skill, exact values, source and comparison checksums, model versions, arithmetic, stored ownership, and sensitivity variants.
+- Treat conflicting evidence as a recorded tension. Do not hide a negative ledger or select the favorable alternate.

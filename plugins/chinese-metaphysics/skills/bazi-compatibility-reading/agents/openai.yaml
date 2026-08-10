@@ -1,6 +1,6 @@
 interface:
   display_name: "BaZi Compatibility Reading"
   short_description: "Interpret a completed BaZi comparison"
-  default_prompt: "Use $bazi-compatibility-reading to explain a verified two-person comparison without recalculating its scores."
+  default_prompt: "Use $bazi-compatibility-reading to explain a verified two-person comparison as a reader report with separate evidence."
 policy:
   allow_implicit_invocation: true

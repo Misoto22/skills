@@ -66,7 +66,7 @@
       "prompt": "This valid result has high day-core affinity and low structural stability. Summarize it.",
       "expectations": [
         "Preserves both findings instead of flattening them into compatible or incompatible.",
-        "Offers evidence-linked repair prompts rather than a stay-or-leave instruction."
+        "Offers observable, reversible prompts rather than a stay-or-leave instruction."
       ]
     },
     {
@@ -97,11 +97,10 @@
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
       "expectations": [
-        "Uses all eight reader-facing sections in this exact order: Conclusion at a glance; Two-chart overview; Relationship scorecard; Three core findings; Each person's likely experience; Strengths, friction, and repair; Practical prompts; Technical basis and evidence.",
-        "Cites every substantive reader-layer sentence with compact sequential `〔n〕` markers and maps every used marker in the final technical appendix to its exact raw evidence ID and exact source value.",
-        "Shows the selected relationship score before the general score when a relationship context is selected.",
-        "Uses Chinese only throughout the reader-facing layer, including scorecard labels, and explicit `A → B` directions, with no `left` or `right` in reader prose.",
-        "Confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."
+        "Writes a Chinese reader report with exactly these six sections in order: relationship pattern; what draws the pair together; main misalignment; each person's likely experience; what to observe now; and model data card.",
+        "Keeps the reader report free of numbered citations, raw identifiers, checksums, model IDs, exact arithmetic, and stored left/right labels; it links once to a separate Chinese evidence artifact.",
+        "Shows the selected relationship score before the general score when a relationship context is selected, and keeps no more than three supporting indicators in the model data card.",
+        "Uses explicit `A → B` directions in reader prose and preserves exact ledgers, ownership, arithmetic, and heading-based claim mapping in the evidence artifact."
       ]
     }
   ]
