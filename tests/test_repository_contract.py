@@ -542,6 +542,43 @@ class RepositoryContractTests(unittest.TestCase):
                 moved.rename(suite)
             suite.write_text(original, encoding="utf-8")
 
+    def test_behavior_fixtures_stay_in_their_suite_and_validate_as_v2_json(self) -> None:
+        """A missing, escaping, or malformed artifact must fail before model billing."""
+
+        suite = ROOT / "evals" / "synastry-reading" / "evals.json"
+        invalid = suite.parent / "invalid-behavior-fixture.json"
+        original = suite.read_text(encoding="utf-8")
+
+        def run_with(fixture: str) -> subprocess.CompletedProcess[str]:
+            document = json.loads(original)
+            document["behaviors"][0]["fixture"] = fixture
+            document["behaviors"][0]["language"] = "en"
+            suite.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+            return subprocess.run(
+                [sys.executable, "scripts/run-evals.py", "--check"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        try:
+            missing = run_with("fixtures/does-not-exist.json")
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("does not exist", missing.stderr)
+
+            escaping = run_with("../synastry/evals.json")
+            self.assertNotEqual(escaping.returncode, 0)
+            self.assertIn("inside its eval suite", escaping.stderr)
+
+            invalid.write_text("{}\n", encoding="utf-8")
+            malformed = run_with(invalid.name)
+            self.assertNotEqual(malformed.returncode, 0)
+            self.assertIn("synastry v2 validation", malformed.stderr)
+        finally:
+            invalid.unlink(missing_ok=True)
+            suite.write_text(original, encoding="utf-8")
+
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/check-descriptions.py"],
@@ -620,6 +657,94 @@ class RepositoryContractTests(unittest.TestCase):
         # every push, and only that half is allowed in the gate.
         self.assertIn("run-evals.py --check", validate)
         self.assertNotIn("--run", validate)
+
+    def test_behavior_fixtures_are_validated_and_executable(self) -> None:
+        """Reading behavior cases have their own paid execution path."""
+
+        runner = (ROOT / "scripts" / "run-evals.py").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+
+        self.assertIn("--run-behaviors", runner)
+        self.assertIn("--run-behaviors synastry-reading", workflow)
+
+    def test_a_reading_behavior_runs_mechanical_and_semantic_checks(self) -> None:
+        """A valid draft still fails once for each expectation the judge rejects."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        run_behavior_case = getattr(module, "run_behavior_case", None)
+        self.assertIsNotNone(run_behavior_case, "run_behavior_case is not implemented")
+        if run_behavior_case is None:
+            return
+
+        citation = (
+            "[E-ASPECT-9DAF] aspect: subject-b Moon -> subject-a Sun; "
+            "direction subject-b->subject-a; kind square; certainty exact; orb 1.1°"
+        )
+        headings = (
+            "Basis, provenance, and limitations",
+            "Repeated interaction patterns",
+            "Reciprocity and asymmetry",
+            "Communication and coordination",
+            "Tension, boundaries, and repair",
+            "Growth and shared direction",
+            "Requested or context-specific domains",
+            "Overall synthesis",
+            "Evidence index",
+        )
+        report = "# Synthetic synastry reading\n\n" + "\n\n".join(
+            f"## {heading}\n\n{citation}" for heading in headings
+        )
+        judge = json.dumps(
+            {
+                "evaluations": [
+                    {"expectation": 1, "passed": True, "reason": "All headings are present."},
+                    {
+                        "expectation": 2,
+                        "passed": False,
+                        "reason": "The requested constraint is not demonstrated.",
+                    },
+                ]
+            }
+        )
+        responses = [report, judge]
+        requests: list[dict] = []
+
+        class Messages:
+            @staticmethod
+            def create(**kwargs):
+                requests.append(kwargs)
+                text = responses.pop(0)
+                block = type("Block", (), {"type": "text", "text": text})()
+                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+
+        class Client:
+            messages = Messages()
+
+        failures = run_behavior_case(
+            Client(),
+            "synastry-reading",
+            {
+                "id": "mechanical-and-semantic",
+                "prompt": "Write a neutral reading from the supplied artifact.",
+                "fixture": "fixtures/neutral.json",
+                "language": "en",
+                "expectations": ["Uses all headings.", "Demonstrates the requested constraint."],
+            },
+        )
+
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("expectation 2", failures[0])
+        self.assertEqual(len(requests), 2)
+        self.assertNotIn("json_schema", json.dumps(requests[0]))
+        self.assertIn("[E-ASPECT-9DAF]", requests[0]["messages"][0]["content"])
+        self.assertEqual(requests[1]["output_config"]["effort"], "low")
+        self.assertEqual(requests[1]["output_config"]["format"]["type"], "json_schema")
+        self.assertIn("output-template.md", requests[0]["system"][0]["text"])
+        self.assertIn("usage:", requests[0]["system"][0]["text"])
 
     def test_the_scoring_mode_stays_out_of_the_standard_library_path(self) -> None:
         """--check and --report run everywhere; only --run may need a dependency."""

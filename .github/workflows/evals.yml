@@ -45,23 +45,30 @@ jobs:
           REPORT: ${{ runner.temp }}/evals.txt
         run: |
           set -o pipefail
+          set +e
           if [ -n "$SKILL" ]; then
             python3 scripts/run-evals.py --run "$SKILL" 2>&1 | tee "$REPORT"
           else
             python3 scripts/run-evals.py --run 2>&1 | tee "$REPORT"
           fi
-      - name: Report a routing regression
+          routing_status=${PIPESTATUS[0]}
+          python3 scripts/run-evals.py --run-behaviors synastry-reading 2>&1 | tee -a "$REPORT"
+          behavior_status=${PIPESTATUS[0]}
+          if [ "$routing_status" -ne 0 ] || [ "$behavior_status" -ne 0 ]; then
+            exit 1
+          fi
+      - name: Report an evaluation regression
         if: failure() && steps.score.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
           REPORT: ${{ runner.temp }}/evals.txt
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          body=$(printf 'A scheduled eval run found prompts routing to the wrong skill.\n\n```\n%s\n```\n\nRun: %s\n' \
+          body=$(printf 'A scheduled eval run found a routing or behavior regression.\n\n```\n%s\n```\n\nRun: %s\n' \
             "$(tail -c 40000 "$REPORT")" "$RUN_URL")
           existing=$(gh issue list --state open --label evals --limit 1 --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$body"
           else
-            gh issue create --label evals --title "Evals: a prompt routes to the wrong skill" --body "$body"
+            gh issue create --label evals --title "Evals: routing or behavior regression" --body "$body"
           fi
