@@ -65,7 +65,7 @@
       "id": "evidence-linked-output",
       "prompt": "Give me a complete reading of this valid chart artifact.",
       "expectations": [
-        "Uses the required ten-section order and inline evidence ids.",
+        "Uses the required seven-section reader-first order and compact `〔n〕` citations in reader prose.",
         "Calls percentages and strength scores heuristic outputs, not probabilities.",
         "Keeps Shen Sha secondary and avoids deterministic claims."
       ]

@@ -49,8 +49,8 @@
       "id": "all-contexts",
       "prompt": "Explain a valid comparison whose explicit relationship_type is marriage.",
       "expectations": [
-        "Keeps the general score primary and adds the separate marriage contextual arithmetic.",
-        "Does not mutate dimension scores or introduce another relationship profile."
+        "Displays the selected marriage contextual score first in the reader layer and labels the general score as a secondary reference.",
+        "Does not mutate either score or dimension scores, and does not introduce another relationship profile."
       ]
     },
     {
