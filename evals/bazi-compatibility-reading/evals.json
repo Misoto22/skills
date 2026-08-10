@@ -98,8 +98,8 @@
       "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
       "expectations": [
         "Shows the selected relationship score before the general score when a relationship context is selected.",
-        "Uses Chinese scorecard labels and explicit `A → B` directions, with no `left` or `right` in reader prose.",
-        "Places technical identifiers only in the final technical appendix."
+        "Uses Chinese only throughout the reader-facing layer, including scorecard labels, and explicit `A → B` directions, with no `left` or `right` in reader prose.",
+        "Confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."
       ]
     }
   ]

@@ -76,7 +76,7 @@
       "expectations": [
         "Uses Chinese only in the reader-facing layer, with the conclusion before the technical basis.",
         "Uses compact `〔n〕` citations instead of raw evidence ids in reader prose.",
-        "Shows rounded display scores in the reader layer and preserves exact values in the final technical appendix."
+        "Shows rounded display scores in the reader layer and confines exact values—including full checksums, model IDs, exact arithmetic, unrounded values, and raw ledger IDs—to the final technical appendix."
       ]
     }
   ]
