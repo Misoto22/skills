@@ -547,6 +547,8 @@ class RepositoryContractTests(unittest.TestCase):
 
         suite = ROOT / "evals" / "synastry-reading" / "evals.json"
         invalid = suite.parent / "invalid-behavior-fixture.json"
+        stale = suite.parent / "stale-integrity-behavior-fixture.json"
+        escaping_link = suite.parent / "escaping-behavior-fixture.json"
         original = suite.read_text(encoding="utf-8")
 
         def run_with(fixture: str) -> subprocess.CompletedProcess[str]:
@@ -575,8 +577,22 @@ class RepositoryContractTests(unittest.TestCase):
             malformed = run_with(invalid.name)
             self.assertNotEqual(malformed.returncode, 0)
             self.assertIn("synastry v2 validation", malformed.stderr)
+
+            escaping_link.symlink_to(ROOT / "evals" / "synastry" / "evals.json")
+            symlink_escape = run_with(escaping_link.name)
+            self.assertNotEqual(symlink_escape.returncode, 0)
+            self.assertIn("inside its eval suite", symlink_escape.stderr)
+
+            fixture = json.loads((suite.parent / "fixtures" / "neutral.json").read_text(encoding="utf-8"))
+            fixture["chart_id"] = "aaaaaaaaaaaa"
+            stale.write_text(json.dumps(fixture), encoding="utf-8")
+            integrity_mismatch = run_with(stale.name)
+            self.assertNotEqual(integrity_mismatch.returncode, 0)
+            self.assertIn("synastry v2 validation", integrity_mismatch.stderr)
         finally:
             invalid.unlink(missing_ok=True)
+            stale.unlink(missing_ok=True)
+            escaping_link.unlink(missing_ok=True)
             suite.write_text(original, encoding="utf-8")
 
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
@@ -705,7 +721,7 @@ class RepositoryContractTests(unittest.TestCase):
                     {
                         "expectation": 2,
                         "passed": False,
-                        "reason": "The requested constraint is not demonstrated.",
+                        "reason": "The requested constraint is not demonstrated.\n" + "x" * 6000,
                     },
                 ]
             }
@@ -738,6 +754,8 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(len(failures), 1, failures)
         self.assertIn("expectation 2", failures[0])
+        self.assertNotIn("\n", failures[0])
+        self.assertLessEqual(len(failures[0]), 512)
         self.assertEqual(len(requests), 2)
         self.assertNotIn("json_schema", json.dumps(requests[0]))
         self.assertIn("[E-ASPECT-9DAF]", requests[0]["messages"][0]["content"])
@@ -745,6 +763,66 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(requests[1]["output_config"]["format"]["type"], "json_schema")
         self.assertIn("output-template.md", requests[0]["system"][0]["text"])
         self.assertIn("usage:", requests[0]["system"][0]["text"])
+
+    def test_a_reading_behavior_reports_every_mechanical_validator_problem(self) -> None:
+        """Removing or collapsing mechanical validation must make this test fail."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        invalid_report = (
+            "# Invalid reading\n\nCompatibility score: 99%\n\nThis relationship will definitely last.\n"
+        )
+        judge = json.dumps(
+            {"evaluations": [{"expectation": 1, "passed": True, "reason": "Semantic expectation passes."}]}
+        )
+        responses = [invalid_report, judge]
+
+        class Messages:
+            @staticmethod
+            def create(**kwargs):
+                del kwargs
+                block = type("Block", (), {"type": "text", "text": responses.pop(0)})()
+                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+
+        class Client:
+            messages = Messages()
+
+        failures = module.run_behavior_case(
+            Client(),
+            "synastry-reading",
+            {
+                "id": "multiple-mechanical-problems",
+                "prompt": "Write a neutral reading from the supplied artifact.",
+                "fixture": "fixtures/neutral.json",
+                "language": "en",
+                "expectations": ["Uses valid reading mechanics."],
+            },
+        )
+
+        self.assertGreaterEqual(len(failures), 4, failures)
+        self.assertTrue(all(failure.startswith("mechanical violation: ") for failure in failures))
+        self.assertTrue(all("\n" not in failure and len(failure) <= 512 for failure in failures))
+        self.assertTrue(any("compatibility score" in failure for failure in failures))
+        self.assertTrue(any("required universal heading" in failure for failure in failures))
+
+    def test_model_text_response_joins_every_text_block(self) -> None:
+        """A split Markdown response must not be silently truncated after its first block."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        first = type("Block", (), {"type": "text", "text": "first"})()
+        ignored = type("Block", (), {"type": "tool_use", "text": "ignored"})()
+        second = type("Block", (), {"type": "text", "text": " second"})()
+        response = type("Response", (), {"stop_reason": "end_turn", "content": [first, ignored, second]})()
+
+        self.assertEqual(module._response_text(response), "first second")
 
     def test_the_scoring_mode_stays_out_of_the_standard_library_path(self) -> None:
         """--check and --report run everywhere; only --run may need a dependency."""

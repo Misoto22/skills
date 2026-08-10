@@ -374,8 +374,29 @@ BEHAVIOR_MAX_TOKENS = 16_000
 JUDGE_MODEL = ROUTER_MODEL
 JUDGE_EFFORT = "low"
 JUDGE_MAX_TOKENS = 4096
+# Keep each unattended workflow/issue diagnostic compact and intrinsically
+# single-line, even when a model or validator returns hostile or accidental bulk.
+FAILURE_LINE_MAX_CHARS = 512
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((?P<target>[^)]+)\)")
 SCRIPT_COMMAND = re.compile(r"python3[ \t]+scripts/(?P<script>[\w.-]+\.py)(?:[ \t]+(?P<command>[\w-]+))?")
+VALIDATOR_PROBLEMS_CODE = """
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+sys.path.insert(0, sys.argv[2])
+
+from validate_reading import validate_markdown
+from validate_synastry import load_ledger
+
+fixture = Path(sys.argv[3])
+draft = Path(sys.argv[4]).read_text(encoding="utf-8")
+language = sys.argv[5]
+modules = json.loads(sys.argv[6])
+problems = validate_markdown(draft, load_ledger(fixture), language, modules)
+sys.stdout.write(json.dumps(problems))
+"""
 JUDGE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -480,10 +501,20 @@ def behavior_system_prompt(skill: str) -> str:
 def _response_text(response: object) -> str | None:
     if getattr(response, "stop_reason", None) == "refusal":
         return None
-    return next(
-        (block.text for block in getattr(response, "content", []) if getattr(block, "type", None) == "text"),
-        "",
+    return "".join(
+        block.text for block in getattr(response, "content", []) if getattr(block, "type", None) == "text"
     )
+
+
+def _bounded_failure(prefix: str, detail: object) -> str:
+    """Return one printable diagnostic line within the unattended log limit."""
+
+    printable = "".join(character if character.isprintable() else " " for character in str(detail))
+    normalized = " ".join(printable.split()) or "unspecified"
+    line = f"{prefix}: {normalized}"
+    if len(line) <= FAILURE_LINE_MAX_CHARS:
+        return line
+    return line[: FAILURE_LINE_MAX_CHARS - 3].rstrip() + "..."
 
 
 def _behavior_user_message(skill: str, case: dict) -> str:
@@ -527,6 +558,8 @@ def _mechanical_failures(skill: str, case: dict, markdown: str) -> list[str]:
     if skill != "synastry-reading":
         return ["mechanical validation is not configured for this fixture-bearing skill"]
 
+    fixture_path = _fixture_path(skill, fixture)
+    modules = case.get("modules", [])
     with tempfile.TemporaryDirectory(prefix="behavior-eval-") as temporary:
         draft = Path(temporary) / "draft.md"
         draft.write_text(markdown, encoding="utf-8")
@@ -534,15 +567,55 @@ def _mechanical_failures(skill: str, case: dict, markdown: str) -> list[str]:
             sys.executable,
             "-B",
             str(READING_VALIDATOR),
-            str(_fixture_path(skill, fixture)),
+            str(fixture_path),
             str(draft),
             "--language",
             case.get("language", "en"),
         ]
-        for module in case.get("modules", []):
+        for module in modules:
             command.extend(("--module", module))
         result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
-    return [] if result.returncode == 0 else ["mechanical reading validation failed"]
+        if result.returncode == 0:
+            return []
+        problems = _validator_problems(fixture_path, draft, case.get("language", "en"), modules)
+    return [_bounded_failure("mechanical violation", problem) for problem in problems]
+
+
+def _validator_problems(
+    fixture: Path,
+    draft: Path,
+    language: str,
+    modules: list[str],
+) -> list[str]:
+    """Read the validator's deduplicated problems in an isolated child process."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-c",
+            VALIDATOR_PROBLEMS_CODE,
+            str(READING_VALIDATOR.parent),
+            str(READING_VALIDATOR.parent.parent / "shared"),
+            str(fixture),
+            str(draft),
+            language,
+            json.dumps(modules),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ["reading validation failed without structured details"]
+    try:
+        problems = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return ["reading validation failed without structured details"]
+    if not isinstance(problems, list) or any(not isinstance(problem, str) for problem in problems):
+        return ["reading validation failed without structured details"]
+    return problems or ["reading validation failed without structured details"]
 
 
 def _semantic_failures(client: object, case: dict, markdown: str) -> list[str]:
@@ -590,7 +663,7 @@ def _semantic_failures(client: object, case: dict, markdown: str) -> list[str]:
     if len(evaluations) != len(by_number) or set(by_number) != expected_numbers:
         return ["semantic judge did not evaluate every expectation exactly once"]
     return [
-        f"expectation {number} failed: {by_number[number]['reason']}"
+        _bounded_failure(f"expectation {number} failed", by_number[number]["reason"])
         for number in sorted(by_number)
         if not by_number[number]["passed"]
     ]
