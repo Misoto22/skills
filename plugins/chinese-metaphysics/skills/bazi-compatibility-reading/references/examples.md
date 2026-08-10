@@ -20,7 +20,7 @@ Bad: “B is the giver and A is dependent.”
 
 When the source declares `work`, show the separately reweighted work index first in the reader layer, then label the unchanged general score as a secondary reference. Cite both with compact markers and retain `[C-score]`, `[G-score]`, and exact arithmetic in the appendix. Do not import romance or marriage language.
 
-When context is null, write “Selected relationship context: not selected.” Do not choose one from the names or score pattern.
+When context is null, state that no relationship context was selected. “Selected relationship context: not selected.” is an English example only; translate it into the user's language. Do not choose a context from the names or score pattern.
 
 ## Alternate sensitivity
 

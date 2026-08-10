@@ -37,7 +37,7 @@ Reader-layer directional claims must name both people in the form `Name A → Na
 ## Reading discipline
 
 - Scores are versioned heuristics, not probabilities, success rates, scientific measurements, or predictions.
-- General score remains primary. A contextual score answers only the explicitly named romance, marriage, friendship, family, or work lens.
+- When a relationship context is explicitly selected, show its contextual score first in the reader layer and label the general score as a secondary reference. When `relationship_type` is null, show the general score as the displayed result. A contextual score answers only the explicitly named romance, marriage, friendship, family, or work lens.
 - Do not invent context from names, genders, or a vague request. If `relationship_type` is null, omit the selected-context analysis rather than guessing.
 - Preserve multidimensional disagreement. High affinity with low stability, or high complementarity with asymmetric support, must remain two findings rather than collapse into “compatible” or “incompatible.”
 - Treat stem/branch combinations as ease or linkage hypotheses and clashes, harms, or breaks as friction hypotheses. Neither is automatically good or bad outside its ledger context.
@@ -48,7 +48,7 @@ Reader-layer directional claims must name both people in the form `Name A → Na
 
 ## Sensitivity
 
-The primary-primary general score is the displayed result. When alternates exist, explain the minimum, maximum, spread, and which source boundary changes. Do not average variants, select the best result, or describe the range as odds. Lower claim confidence when a major finding changes across variants.
+The primary-primary calculation supplies the displayed score: show its contextual score first when a context is selected, or its general score when `relationship_type` is null. When alternates exist, explain the minimum, maximum, spread, and which source boundary changes. Do not average variants, select the best result, or describe the range as odds. Lower claim confidence when a major finding changes across variants.
 
 ## Required report order
 
