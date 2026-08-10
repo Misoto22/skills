@@ -7,6 +7,10 @@ All notable changes to this repository are documented here.
 - **Breaking:** The `astrology` plugin now writes and reads validated JSON v2 synastry artifacts only, with uncertainty-aware calculations, backend provenance, and adaptive evidence-linked readings; legacy TXT artifacts must be recalculated. Its code is now `AGPL-3.0-or-later`, while a Swiss Ephemeris professional license remains a separate commercial option from Astrodienst that this repository does not grant.
 - `new-skill.py` now inherits an existing plugin's declared license instead of stamping every new skill as MIT; brand-new plugins still default to MIT. Behavioral regressions scaffold inside isolated repository copies and mutate both astrology license layers to prove the scaffold and validator remain aligned.
 
+## 0.8.4 — 2026-08-10
+
+- Expanded the default BaZi reader reports from compact summaries into substantive interpretations. Natal reports now target 1,400–1,900 Chinese characters and compatibility reports 1,800–2,400, developing each main pattern, tension, and practical observation without reintroducing technical evidence into the reader flow.
+
 ## 0.8.3 — 2026-08-10
 
 - BaZi natal and compatibility readings now write a short reader report with a compact model data card and one link to a separate evidence artifact. The audit file retains exact scores, source IDs, checksums, directional ownership, arithmetic, and sensitivity records, so technical proof no longer interrupts the human reading flow.

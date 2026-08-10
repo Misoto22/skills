@@ -3,7 +3,7 @@ name: synastry
 description: Use when two people's birth details need an uncertainty-aware JSON v2 synastry calculation, including 合盘, 星盘配对, exact times, bounded time windows, or date-only records. Not for interpreting an existing v2 artifact, legacy TXT, one-person natal charts, transits, forecasts, predictions, or compatibility scores.
 license: AGPL-3.0-or-later
 metadata:
-  version: "0.8.3"
+  version: "0.8.4"
 ---
 
 # Synastry JSON Calculator

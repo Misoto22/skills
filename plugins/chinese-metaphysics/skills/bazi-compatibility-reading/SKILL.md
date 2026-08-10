@@ -3,7 +3,7 @@ name: bazi-compatibility-reading
 description: Interpret a completed BaZi compatibility JSON artifact or equivalent verified comparison as a balanced, directional, evidence-linked relationship report. Use after the compatibility calculator or when asked to explain general, romance, marriage, friendship, family, or work scores already computed for two charts. Not for raw birth records, one-person readings, recalculation, predictions, or a binary destiny verdict.
 license: MIT
 metadata:
-  version: "0.8.3"
+  version: "0.8.4"
 ---
 
 # BaZi Compatibility Reading
@@ -63,7 +63,7 @@ Keep exactly these six reader-report sections, using the structure in `reference
 5. What to observe now
 6. Model data card
 
-Lead with a conditional relationship pattern, but do not lead with score, source confidence, or a method disclaimer. Use sections 2–5 to preserve mixed dimensions, explain named directional support, and offer low-risk observations. When a relationship context is explicitly selected, show its contextual score first in section 6 and label the general score as a secondary reference; otherwise show the general score and state that no context was selected. Do not invent a context.
+Lead with a conditional relationship pattern, but do not lead with score, source confidence, or a method disclaimer. Develop the attraction, friction, and two directional experiences to the depth required by `shared/report-presentation.md`; do not reduce the reader report to a score summary. Use sections 2–5 to preserve mixed dimensions, explain named directional support, and offer low-risk observations. When a relationship context is explicitly selected, show its contextual score first in section 6 and label the general score as a secondary reference; otherwise show the general score and state that no context was selected. Do not invent a context.
 
 In section 4, describe each person's likely experience separately using `Name A → Name B` direction labels, never stored `left` or `right` labels. Section 5 gives no more than three observable, reversible prompts. Keep the data card small: the displayed score and no more than three supporting indicators.
 

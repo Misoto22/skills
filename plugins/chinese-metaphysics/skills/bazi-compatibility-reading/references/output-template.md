@@ -15,24 +15,24 @@ Follow `shared/report-presentation.md`. Write the reader report and its separate
 
 ### 1. 你们的关系画像
 
-- Open with one conditional, plain-language relationship pattern. Explain its practical meaning before mentioning an astrological term or a score.
+- Open with one conditional, plain-language relationship pattern. Develop it in two or three paragraphs: how the pair may feel when things are going well, what makes the pattern meaningful, and the condition that can turn it into friction. Mention an astrological term or score only after the practical meaning is clear.
 
 ### 2. 为什么会互相靠近
 
-- Explain one or two interaction or complementarity findings as everyday sources of ease, interest, or coordination. Do not promise an outcome.
+- Use two or three paragraphs to explain one or two interaction or complementarity findings as everyday sources of ease, interest, or coordination. Show what each person may bring to the exchange; do not promise an outcome.
 
 ### 3. 最容易错位的地方
 
-- Name the most material friction in concrete language. Preserve mixed dimensions; a strength and a pressure may coexist.
+- Use two or three paragraphs to name the most material friction in concrete language: the trigger, how it may look from each side, and what makes the same pattern workable or difficult. Preserve mixed dimensions; a strength and a pressure may coexist.
 
 ### 4. 双方可能的体验
 
-- Describe each direction as `Name A → Name B` in the user's language. State what A may offer and what B may receive; never use stored `left` or `right` labels.
+- Develop each direction in two or three paragraphs using `Name A → Name B` in the user's language. State what A may offer, what B may receive, and what can make that support miss its mark; never use stored `left` or `right` labels.
 - Explain unequal support without blame, rank, dependency, or moral judgment.
 
 ### 5. 现在值得观察什么
 
-- Give no more than three observable, reversible questions or conversations. Use supplied relationship context only; do not infer one from names or demographics.
+- Give no more than three observable, reversible questions or conversations, each tied back to the relationship pattern and explained as a real-world check. Use supplied relationship context only; do not infer one from names or demographics.
 
 ### 6. 模型数据卡
 

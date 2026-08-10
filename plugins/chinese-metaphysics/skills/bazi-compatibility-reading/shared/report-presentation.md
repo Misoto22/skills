@@ -6,7 +6,7 @@ Apply this contract after the reading skill validates and indexes its source art
 
 Write a reader report and a separate evidence artifact. They serve different readers and must not be merged.
 
-- The reader report is the default handoff. Write it in the user's language as a short, human-first explanation. It may include a compact **Model data card** with rounded values the user asked to see.
+- The reader report is the default handoff. Write it in the user's language as a detailed, human-first interpretation. It may include a compact **Model data card** with rounded values the user asked to see.
 - The evidence artifact is the audit handoff. It holds source validation, exact source values, raw ids, checksums, model ids, arithmetic, ledgers, and sensitivity variants.
 - Link to the evidence artifact once as the final line of the reader report. Do not expose its machine detail before that link.
 
@@ -19,6 +19,14 @@ Write a reader report and a separate evidence artifact. They serve different rea
 - Keep only decision-relevant findings. Do not restate a dimension in a score table, a finding list, and a prompt.
 - Show reader-facing scores and percentages as whole numbers. Label them as model references, not probabilities, diagnoses, or verdicts.
 - Make prompts observable and reversible. Do not give medical, legal, financial, employment, or relationship commands.
+
+## Minimum narrative depth
+
+Unless the user explicitly asks for a brief reading, write a full interpretation rather than an executive summary.
+
+- Target 1,400–1,900 Chinese characters for a natal reader report and 1,800–2,400 Chinese characters for a compatibility reader report; use comparable depth in other languages.
+- Give every major conclusion its everyday expression, a countervailing condition or tension, and a practical way to observe it. Do not pad with generic reassurance or repeat the same score in prose.
+- Develop the central pattern, main tension, and each person's experience in two or three paragraphs where the source evidence supports that depth. Keep the data card compact and technical evidence separate.
 
 ## Model data card
 

@@ -97,7 +97,8 @@
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
       "expectations": [
-        "Writes a Chinese reader report with exactly these six sections in order: relationship pattern; what draws the pair together; main misalignment; each person's likely experience; what to observe now; and model data card.",
+        "Writes a substantial Chinese reader report with exactly these six sections in order: relationship pattern; what draws the pair together; main misalignment; each person's likely experience; what to observe now; and model data card.",
+        "Develops the attraction, friction, and each named direction as a real-world relationship narrative rather than a score summary or generic advice.",
         "Keeps the reader report free of numbered citations, raw identifiers, checksums, model IDs, exact arithmetic, and stored left/right labels; it links once to a separate Chinese evidence artifact.",
         "Shows the selected relationship score before the general score when a relationship context is selected, and keeps no more than three supporting indicators in the model data card.",
         "Uses explicit `A → B` directions in reader prose and preserves exact ledgers, ownership, arithmetic, and heading-based claim mapping in the evidence artifact."

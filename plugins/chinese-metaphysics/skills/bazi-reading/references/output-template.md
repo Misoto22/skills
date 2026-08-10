@@ -14,20 +14,20 @@ Follow `shared/report-presentation.md`. Write the reader report and its separate
 
 ### 1. 你的命局主线
 
-- Open with one conditional, plain-language pattern. Explain what it may feel like in everyday choices before naming any technical term.
+- Open with one conditional, plain-language pattern. Develop it in two or three paragraphs: how it may feel in everyday choices, when it tends to help, and what condition can make it harder. Name technical terms only after the lived pattern is clear.
 
 ### 2. 命盘倾向
 
-- Show a concise four-pillar table, then explain only the two or three structural facts that make the main pattern understandable.
+- Show a concise four-pillar table, then explain the two or three structural facts that make the main pattern understandable. Connect each fact to an observable tendency rather than naming it as a label.
 - Mention time, solar-term, or day-boundary basis only when it materially changes the reading.
 
 ### 3. 优势与张力
 
-- Pair each supported capacity with its countervailing pressure. Do not turn a tendency into a personality verdict.
+- Use two or three paragraphs to pair each supported capacity with its countervailing pressure, including how the reader can notice the difference in real choices. Do not turn a tendency into a personality verdict.
 
 ### 4. 关系、工作与自我观察
 
-- Give three or fewer low-risk observations or reflection questions. Discuss contribution styles and conditions, never occupation, income, promotion, or outcomes.
+- Give three or fewer low-risk observations or reflection questions, each explained in context rather than listed as a generic exercise. Discuss contribution styles and conditions, never occupation, income, promotion, or outcomes.
 
 ### 5. 模型数据卡
 
