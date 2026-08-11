@@ -1,11 +1,13 @@
-<div align="right"><a href="README.md">English</a> · <b>简体中文</b></div>
-
 <div align="center">
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
   <img alt="skills — personal agent skills marketplace" src="assets/hero-light.png" width="820">
 </picture>
+
+<br />
+
+<sub><a href="README.md">English</a> · <b>简体中文</b></sub>
 
 <br />
 
