@@ -2,11 +2,9 @@
 
 <div align="center">
 
-<h1>skills</h1>
-
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="claude plugin install writing@misoto22 — /writing:email, /writing:personal-blog, /writing:tempering, /docs:readme" src="assets/hero-light.svg" width="820">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
+  <img alt="skills — personal agent skills marketplace" src="assets/hero-light.png" width="820">
 </picture>
 
 <br />
