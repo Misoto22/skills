@@ -32,15 +32,33 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
+
+# Same words check-descriptions.py rejects in a description, for the same reason.
+PLACEHOLDER = re.compile(r"(?i)\bplaceholder\b|\bTODO\b|\bFIXME\b")
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
 GROUPING_MANIFEST = ROOT / "skills.sh.json"
+TRANSLATIONS = ROOT / "i18n"
+EVALS_ROOT = ROOT / "evals"
 REGISTRY = ROOT / "registry.json"
+
+# Locales carried alongside the English. Adding one means adding i18n/<code>.json
+# with an entry for every group and every skill — the build fails until it is
+# complete, which is the only thing that stops a translation going quietly stale
+# while the page keeps serving it.
+LOCALES = ("zh",)
+
+# What a translated entry has to provide. `overview` is the one field with no
+# English counterpart: SKILL.md bodies stay in English because they are what the
+# agent executes, so a reader who does not read English gets this instead.
+GROUP_FIELDS = ("title", "description", "summary")
+SKILL_FIELDS = ("description", "overview")
 
 # Bumped when a consumer would have to change to keep reading this file. Adding
 # an optional field is not that; removing or repurposing one is.
@@ -102,6 +120,136 @@ def _body(text: str) -> str:
     return "\n".join(lines[lines.index("---", 1) + 1 :]).lstrip("\n")
 
 
+def _examples(skill: str) -> dict:
+    """Return the prompts a skill must fire on, and the ones it must stay out of.
+
+    Lifted from evals/<skill>/evals.json, which every published skill already has
+    because `run-evals.py --check` fails without it. That makes these the only
+    examples in the repository that are executed rather than asserted: a prompt
+    here is one CI actually scored the skill against, in both languages, so it
+    cannot drift from what the skill does the way a hand-written example would.
+
+    The `expected` prose is deliberately dropped. It is written for whoever reads
+    a failing evaluation, not for a reader deciding whether to install something.
+    """
+
+    path = EVALS_ROOT / skill / "evals.json"
+    if not path.is_file():
+        raise SystemExit(
+            f"error: {path.relative_to(ROOT)} does not exist. Every published skill"
+            " carries evaluation cases; run-evals.py --check enforces it."
+        )
+    suite = _read_json(path)
+    return {
+        "triggers": [case["prompt"] for case in suite.get("triggers", [])],
+        "nonTriggers": [case["prompt"] for case in suite.get("non_triggers", [])],
+    }
+
+
+def _bookmarks(marketplace: dict, published: set[str]) -> list[dict]:
+    """Return the marketplace entries that are somebody else's work.
+
+    They install from this marketplace but nothing in this tree reaches them —
+    no plugin directory, no skills, no version. What can honestly be published
+    is the name, where it comes from, and the commit it is pinned to. The pin is
+    the whole guarantee, so it travels with the entry rather than being dropped
+    as an implementation detail.
+    """
+
+    bookmarks = []
+    for entry in marketplace.get("plugins", []):
+        source = entry.get("source")
+        # A local plugin's source is a relative path string; a bookmark's is an
+        # object naming another repository. That difference is the definition.
+        if not isinstance(source, dict) or entry["name"] in published:
+            continue
+        bookmarks.append(
+            {
+                "name": entry["name"],
+                "category": entry.get("category", ""),
+                "url": source["url"].removesuffix(".git"),
+                "ref": source.get("ref", ""),
+                "sha": source.get("sha", ""),
+                "install": f"/plugin install {entry['name']}@{marketplace['name']}",
+            }
+        )
+    return bookmarks
+
+
+def _translations(groups: dict[str, list[str]]) -> dict[str, dict]:
+    """Load every locale, and hold each to covering exactly what is published.
+
+    Both directions are errors. A missing entry ships a page that silently falls
+    back to English for one skill among thirteen translated ones, which reads as
+    an oversight nobody notices; a leftover entry is a skill that was retired
+    with its translation left behind, and the next skill to reuse the name would
+    inherit it.
+    """
+
+    loaded: dict[str, dict] = {}
+    for locale in LOCALES:
+        path = TRANSLATIONS / f"{locale}.json"
+        if not path.is_file():
+            raise SystemExit(f"error: {path.relative_to(ROOT)} does not exist, but {locale} is published")
+        data = _read_json(path)
+        errors: list[str] = []
+
+        published_groups = set(groups)
+        translated_groups = set(data.get("groups", {}))
+        for name in sorted(published_groups - translated_groups):
+            errors.append(f"group {name!r} has no {locale} entry")
+        for name in sorted(translated_groups - published_groups):
+            errors.append(f"group {name!r} is translated but not published")
+
+        published_skills = {skill for names in groups.values() for skill in names}
+        translated_skills = set(data.get("skills", {}))
+        for name in sorted(published_skills - translated_skills):
+            errors.append(f"skill {name!r} has no {locale} entry")
+        for name in sorted(translated_skills - published_skills):
+            errors.append(f"skill {name!r} is translated but not published")
+
+        # Empty and still-scaffolded are the same failure with different
+        # symptoms: one renders a blank, the other renders the word PLACEHOLDER
+        # to a reader. The scaffold writes these deliberately, the same way it
+        # writes a description the validator rejects — everything mechanical is
+        # done, and the one part that needs a person is not marked done for them.
+        for name, entry in sorted(data.get("groups", {}).items()):
+            for field in GROUP_FIELDS:
+                value = entry.get(field, "")
+                if not value.strip():
+                    errors.append(f"group {name!r} is missing {locale}.{field}")
+                elif PLACEHOLDER.search(value):
+                    errors.append(f"group {name!r} still has the scaffolded {locale}.{field}")
+        for name, entry in sorted(data.get("skills", {}).items()):
+            for field in SKILL_FIELDS:
+                value = entry.get(field, "")
+                if not value.strip():
+                    errors.append(f"skill {name!r} is missing {locale}.{field}")
+                elif PLACEHOLDER.search(value):
+                    errors.append(f"skill {name!r} still has the scaffolded {locale}.{field}")
+
+        if errors:
+            raise SystemExit(
+                f"error: {path.relative_to(ROOT)} does not match the published catalogue:\n  "
+                + "\n  ".join(errors)
+            )
+        loaded[locale] = data
+    return loaded
+
+
+def _localised(translations: dict[str, dict], section: str, name: str, fields: tuple[str, ...]) -> dict:
+    """Return {locale: {field: text}} for one group or skill.
+
+    Nested under the entry rather than held as a parallel tree, so a reader
+    picking a locale never has to join two structures and never has half of one.
+    """
+
+    return {
+        locale: {field: data[section][name][field] for field in fields}
+        for locale, data in translations.items()
+    }
+
+
 def _skill_entry(name: str, directory: Path, validator: ModuleType, repository: str) -> dict:
     skill_file = directory / "SKILL.md"
     text = skill_file.read_text(encoding="utf-8")
@@ -124,6 +272,9 @@ def _skill_entry(name: str, directory: Path, validator: ModuleType, repository: 
         "path": relative,
         "sourceUrl": f"{repository}/blob/{SOURCE_REF}/{relative}/SKILL.md",
         "body": _body(text),
+        "examples": _examples(name),
+        # Filled after the structural checks — see the injection site in build().
+        "i18n": {},
     }
     # Optional in the frontmatter, so optional here: a skill taking no arguments
     # should not publish an empty string every renderer then special-cases.
@@ -145,6 +296,7 @@ def build() -> dict:
         if isinstance(entry, dict) and "category" in entry
     }
 
+    published: dict[str, list[str]] = {}
     groups: list[dict] = []
     grouped: set[str] = set()
     repositories: set[str] = set()
@@ -181,6 +333,7 @@ def build() -> dict:
         repositories.add(manifest["repository"])
 
         grouped.update(names)
+        published[plugin] = list(names)
         groups.append(
             {
                 "id": plugin,
@@ -190,6 +343,9 @@ def build() -> dict:
                 "category": categories.get(plugin, ""),
                 "keywords": manifest.get("keywords", []),
                 "install": f"/plugin install {plugin}@{marketplace_name}",
+                # Filled once the structure below has been checked — see the note
+                # at the injection site.
+                "i18n": {},
                 "skills": [
                     _skill_entry(name, directories[name], validator, manifest["repository"]) for name in names
                 ],
@@ -212,12 +368,28 @@ def build() -> dict:
             f" {', '.join(sorted(repositories))}"
         )
 
+    # Last, and deliberately: a tree with a structural problem — a skill in no
+    # group, a group spanning two plugins — reports that problem, not the
+    # translation gap that follows from it. Checking here also means the
+    # translations are held to the catalogue as published rather than to a
+    # half-resolved view of it.
+    translations = _translations(published)
+    for group in groups:
+        group["i18n"] = _localised(translations, "groups", group["id"], GROUP_FIELDS)
+        for skill in group["skills"]:
+            skill["i18n"] = _localised(translations, "skills", skill["name"], SKILL_FIELDS)
+
     return {
         "schemaVersion": SCHEMA_VERSION,
         "marketplace": marketplace_name,
         "version": validator.VERSION,
         "repository": repositories.pop(),
+        # Declared rather than inferred from the first entry's keys: a reader
+        # deciding which languages to offer should not have to guess from a
+        # sample, and an empty catalogue still has to answer the question.
+        "locales": list(LOCALES),
         "groups": groups,
+        "bookmarks": _bookmarks(marketplace, set(published)),
     }
 
 

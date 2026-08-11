@@ -63,6 +63,7 @@ def main() -> int:
     _unregister_root_readme(args.plugin, args.skill, touched)
     _unregister_version_bump(args.plugin, args.skill, retires_plugin, touched)
     _unregister_skills_sh(args.plugin, args.skill, touched)
+    _unregister_translations(args.plugin, args.skill, retires_plugin, touched)
     _drop_dangling_hand_offs(args.skill, touched)
     if retires_plugin:
         _unregister_marketplace(args.plugin, touched)
@@ -205,6 +206,23 @@ def _restate_counts(touched: list[str]) -> None:
     spec.loader.exec_module(module)
     for name in module.restate_counts():
         touched.append(f"{name} (count restated)")
+
+
+def _unregister_translations(plugin: str, skill: str, retires_plugin: bool, touched: list[str]) -> None:
+    """Drop the retired skill from every locale, and the plugin when it was the last.
+
+    A translation left behind is one the next skill to reuse that name inherits,
+    silently and in a language the reviewer may not read.
+    """
+
+    for path in sorted((ROOT / "i18n").glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        changed = data.get("skills", {}).pop(skill, None) is not None
+        if retires_plugin:
+            changed = data.get("groups", {}).pop(plugin, None) is not None or changed
+        if changed:
+            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            touched.append(f"{path.relative_to(ROOT)} (updated)")
 
 
 def _rebuild_registry(touched: list[str]) -> None:

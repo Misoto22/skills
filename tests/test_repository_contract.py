@@ -36,6 +36,7 @@ REGISTRIES = [
     ".version-bump.json",
     "skills.sh.json",
     "registry.json",
+    "i18n/zh.json",
     *ROOT_READMES,
 ]
 SKILLS_README_PATH = SKILLS / "README.md"
@@ -2184,6 +2185,103 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("'Docs' lists no skills", result.stderr)
+
+    def test_registry_carries_a_translation_for_every_published_string(self) -> None:
+        """The site renders zh from this file, so a gap is an English string on a Chinese page."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        self.assertEqual(registry["locales"], ["zh"])
+
+        for group in registry["groups"]:
+            for locale in registry["locales"]:
+                for field in ("title", "description", "summary"):
+                    self.assertTrue(
+                        group["i18n"][locale][field].strip(),
+                        f"group {group['id']} has an empty {locale}.{field}",
+                    )
+                for skill in group["skills"]:
+                    for field in ("description", "overview"):
+                        self.assertTrue(
+                            skill["i18n"][locale][field].strip(),
+                            f"skill {skill['name']} has an empty {locale}.{field}",
+                        )
+
+    def test_registry_refuses_a_skill_with_no_translation(self) -> None:
+        """Without this the page silently falls back to English for one skill among thirteen."""
+
+        with repository_copy() as copied:
+            path = copied / "i18n" / "zh.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            del data["skills"]["ship"]
+            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skill 'ship' has no zh entry", result.stderr)
+
+    def test_registry_refuses_a_translation_for_a_retired_skill(self) -> None:
+        """A leftover entry is one the next skill to reuse that name would inherit."""
+
+        with repository_copy() as copied:
+            path = copied / "i18n" / "zh.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["skills"]["retired"] = {"description": "x", "overview": "y"}
+            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skill 'retired' is translated but not published", result.stderr)
+
+    def test_registry_publishes_the_bookmarks_without_claiming_them(self) -> None:
+        """Other people's plugins install from this marketplace; the pin is what makes that safe."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        bookmarked = {entry["name"] for entry in registry["bookmarks"]}
+
+        self.assertEqual(bookmarked, bookmarked_plugins())
+        # A published plugin appearing here would be this repository's own work
+        # presented as somebody else's.
+        self.assertFalse(bookmarked & set(published_skills()))
+        for entry in registry["bookmarks"]:
+            self.assertRegex(entry["sha"], r"\A[0-9a-f]{40}\Z", f"{entry['name']} is not pinned")
+            self.assertTrue(entry["url"].startswith("https://"), entry["name"])
+
+    def test_registry_examples_are_the_prompts_ci_scores(self) -> None:
+        """A hand-written example drifts; these are the ones the evaluation run uses."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        for group in registry["groups"]:
+            for skill in group["skills"]:
+                suite = json.loads(
+                    (ROOT / "evals" / skill["name"] / "evals.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    skill["examples"]["triggers"],
+                    [case["prompt"] for case in suite["triggers"]],
+                    skill["name"],
+                )
+                self.assertEqual(
+                    skill["examples"]["nonTriggers"],
+                    [case["prompt"] for case in suite["non_triggers"]],
+                    skill["name"],
+                )
+                # The boundary is the half a reader most needs and the half a
+                # catalogue most often omits.
+                self.assertTrue(skill["examples"]["nonTriggers"], f"{skill['name']} publishes no boundary")
 
     def test_validate_workflow_holds_the_registry_current(self) -> None:
         """Nothing else notices a stale catalogue before a reader fetches it."""
