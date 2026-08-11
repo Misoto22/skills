@@ -69,6 +69,8 @@ The last one runs the metadata checks and then the full test suite. CI runs the 
 
 `build-registry.py --check` is the one that fails over a file you did not edit. `registry.json` is the catalogue every reader outside Claude Code fetches — the personal site renders it — and it is generated from `skills.sh.json`, `marketplace.json`, each `plugin.json` and each `SKILL.md`. `new-skill.py`, `remove-skill.py` and `bump-version.py` rebuild it for you; editing a description by hand does not, and a stale registry keeps serving the old wording. Run `python3 scripts/build-registry.py` and commit the result.
 
+It also fails when a translation is missing. `i18n/<locale>.json` holds the reader-facing strings per language, and the build requires an entry for every published group and skill — and none for anything unpublished. The scaffold writes a PLACEHOLDER entry, which the build rejects until you write it, exactly as the validator rejects a scaffolded description. What is *not* translated is the SKILL.md body: it is the instruction an agent executes, so a second copy would be a second source nothing keeps in step. `overview` is the paragraph a reader in that language gets instead.
+
 Every version CI depends on lives in `.ci-pins.json` and nowhere else — the CLIs it installs, the Python and Node
 runtimes its jobs run on, and the model the weekly evaluation bills against. Workflows ask for a spec with
 `python3 scripts/ci-pins.py spec <id>`, and `check` rejects any version written down that the file does not

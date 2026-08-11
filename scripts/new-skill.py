@@ -164,8 +164,9 @@ def main() -> int:
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
     _register_skills_sh(args.plugin, args.skill, created)
+    _register_translations(args.plugin, args.skill, new_plugin, created)
     # Last two, in this order: both read the tree the steps above changed, and
-    # the registry reads skills.sh.json among it.
+    # the registry reads skills.sh.json and i18n/ among it.
     _restate_counts(created)
     _rebuild_registry(created)
 
@@ -177,6 +178,8 @@ def main() -> int:
     print("     — it is the only field that decides whether the skill ever fires,")
     print("       and the validator fails on the placeholder until you do.")
     print("  2. Write the body, and replace the README and plugin-registry placeholders.")
+    print(f"     Including i18n/*.json — {args.skill}'s entry is scaffolded there too, and")
+    print("     build-registry.py refuses a scaffolded translation the same way.")
     if new_plugin:
         print(f"     Including `keywords` in plugins/{args.plugin}/plugin.json — the terms a")
         print("     plugin directory searches on, and the only field nothing here reads.")
@@ -397,21 +400,57 @@ def _register_skills_sh(plugin: str, skill: str, created: list[str]) -> None:
     created.append(f"{path.relative_to(ROOT)} (updated)")
 
 
+def _register_translations(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
+    """Add a scaffolded entry per locale, which the registry build then rejects.
+
+    Same bargain as the SKILL.md description: everything mechanical is done, and
+    the one part needing a person is left visibly undone rather than quietly
+    shipped. Without an entry at all the build fails with "no zh entry", which
+    reads like a bug in the scaffold instead of work still to do.
+    """
+
+    for path in sorted((ROOT / "i18n").glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        locale = path.stem
+        if new_plugin:
+            data.setdefault("groups", {})[plugin] = {
+                "title": f"PLACEHOLDER — {plugin} in {locale}",
+                "description": f"PLACEHOLDER — what {plugin} skills are for, in {locale}.",
+                "summary": f"PLACEHOLDER — one line about {plugin}, in {locale}.",
+            }
+        # Appended, not sorted into place: these files read in catalogue order —
+        # the order the groups appear on the page — and re-sorting them
+        # alphabetically would rewrite the whole file for every new skill, and
+        # leave the retirement unable to put it back byte for byte.
+        data.setdefault("skills", {})[skill] = {
+            "description": f"PLACEHOLDER — what {skill} does and when to use it, in {locale}.",
+            "overview": f"PLACEHOLDER — a paragraph introducing {skill} to a {locale} reader.",
+        }
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
 def _rebuild_registry(created: list[str]) -> None:
     """The published catalogue is generated, so a new skill has to regenerate it.
 
-    Leaving it to CI would mean every scaffold starts with a red build for a file
-    the author never edited.
+    Not `check=True`: the entries written a moment ago are scaffolded, and the
+    build rejects a scaffolded translation exactly as the validator rejects a
+    scaffolded description. That refusal is the point, so it is reported as work
+    outstanding rather than raised as a failure of the scaffold.
     """
 
-    subprocess.run(
+    built = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "build-registry.py")],
         cwd=ROOT,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
-    created.append("registry.json (rebuilt)")
+    created.append(
+        "registry.json (rebuilt)"
+        if built.returncode == 0
+        else "registry.json (NOT rebuilt — write the translations first)"
+    )
 
 
 def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:

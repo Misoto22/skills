@@ -36,6 +36,7 @@ REGISTRIES = [
     ".version-bump.json",
     "skills.sh.json",
     "registry.json",
+    "i18n/zh.json",
     *ROOT_READMES,
 ]
 SKILLS_README_PATH = SKILLS / "README.md"
@@ -2184,6 +2185,66 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("'Docs' lists no skills", result.stderr)
+
+    def test_registry_carries_a_translation_for_every_published_string(self) -> None:
+        """The site renders zh from this file, so a gap is an English string on a Chinese page."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        self.assertEqual(registry["locales"], ["zh"])
+
+        for group in registry["groups"]:
+            for locale in registry["locales"]:
+                for field in ("title", "description", "summary"):
+                    self.assertTrue(
+                        group["i18n"][locale][field].strip(),
+                        f"group {group['id']} has an empty {locale}.{field}",
+                    )
+                for skill in group["skills"]:
+                    for field in ("description", "overview"):
+                        self.assertTrue(
+                            skill["i18n"][locale][field].strip(),
+                            f"skill {skill['name']} has an empty {locale}.{field}",
+                        )
+
+    def test_registry_refuses_a_skill_with_no_translation(self) -> None:
+        """Without this the page silently falls back to English for one skill among thirteen."""
+
+        with repository_copy() as copied:
+            path = copied / "i18n" / "zh.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            del data["skills"]["ship"]
+            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skill 'ship' has no zh entry", result.stderr)
+
+    def test_registry_refuses_a_translation_for_a_retired_skill(self) -> None:
+        """A leftover entry is one the next skill to reuse that name would inherit."""
+
+        with repository_copy() as copied:
+            path = copied / "i18n" / "zh.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["skills"]["retired"] = {"description": "x", "overview": "y"}
+            path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skill 'retired' is translated but not published", result.stderr)
 
     def test_validate_workflow_holds_the_registry_current(self) -> None:
         """Nothing else notices a stale catalogue before a reader fetches it."""
