@@ -56,7 +56,53 @@
       "expectations": [
         "Names the command it found and why it could not complete, rather than reporting no test command.",
         "Does not claim a passing run it did not get.",
-        "Says which failures are unrelated to the change being shipped."
+        "Backs any claim that a failure is unrelated with a baseline — measured on the base, or inferred from the diff and labelled as inferred — rather than asserting it.",
+        "Reports the baseline as unknown when neither is practical, instead of calling the failure unrelated anyway."
+      ]
+    },
+    {
+      "id": "worktree-holding-this-session",
+      "prompt": "Ship this. The run is standing in .claude/worktrees/feature-x, which holds the branch being shipped, and the primary checkout is two directories up.",
+      "expectations": [
+        "Does not remove the worktree the run is standing in, and does not treat cd-ing to the primary checkout as making the removal safe.",
+        "Reports the worktree as kept, with this session running in it as the reason, and names how it gets removed later.",
+        "Still brings the primary checkout's base up to date rather than abandoning the rest of step 7."
+      ]
+    },
+    {
+      "id": "secret-in-a-new-untracked-file",
+      "prompt": "Ship this. The change adds a new untracked file config.local.json — not in .gitignore — whose second line is \"apiKey\": \"sk-live-4f9ab2c7d18e\".",
+      "expectations": [
+        "Reads the untracked file's content rather than only listing names from git diff, which never mentions an untracked file.",
+        "Stops before staging and shows the file and the matching line.",
+        "Asks rather than deciding alone whether it is a real credential."
+      ]
+    },
+    {
+      "id": "unpushed-commits-on-the-base",
+      "prompt": "Ship it. The tree is clean, I'm on main, there is no open PR, and git rev-list --count origin/main..main says 3.",
+      "expectations": [
+        "Does not report nothing to ship — three commits on the local base are shippable work.",
+        "Branches off at HEAD so the new branch carries the three commits.",
+        "Moves the local base ref back to origin/main and says so, rather than leaving a base that will not fast-forward after the merge."
+      ]
+    },
+    {
+      "id": "ci-has-not-registered-yet",
+      "prompt": "Ship this. The PR was opened four seconds ago, gh pr checks says no checks reported, mergeStateStatus is CLEAN, and .github/workflows/validate.yml triggers on pull_request.",
+      "expectations": [
+        "Does not merge on the first no-checks-reported reading, because a workflow is declared.",
+        "Re-polls for up to a minute before concluding no check will register.",
+        "If nothing registers, says in the report that CI was skipped without a check running, rather than reporting a green CI."
+      ]
+    },
+    {
+      "id": "everything-was-classified-as-skip",
+      "prompt": "Ship this. The only changes were an npm-debug.log and a .DS_Store, both classified as skip in step 3, so nothing was committed on the branch step 1 just created.",
+      "expectations": [
+        "Does not push or call gh pr create against a branch carrying zero commits.",
+        "Reports it as an early exit rather than an error.",
+        "Offers to delete the empty branch it created instead of leaving it behind."
       ]
     },
     {

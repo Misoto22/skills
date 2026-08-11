@@ -16,8 +16,9 @@ Step 0 inspects the repo and prints an **execution plan** that marks each downst
 ## Common paths
 
 - **On base branch with changes** → branch off → (test) → commit → PR → CI → merge → (worktree cleanup).
+- **On base branch, clean tree, commits the remote does not have** → branch off carrying them, reset the base ref → PR → CI → merge.
 - **On feature branch with open PR** → (test) → (commit) → push → CI → merge.
-- **Clean tree, on base, no open PR** → early-exit at step 0; nothing to ship.
+- **Clean tree, on base, no open PR, nothing unpushed** → early-exit at step 0; nothing to ship.
 
 ---
 
@@ -26,15 +27,17 @@ Step 0 inspects the repo and prints an **execution plan** that marks each downst
 | Step                | Runs when                                                            |
 |---------------------|----------------------------------------------------------------------|
 | 0. Preflight        | Always.                                                              |
-| 1. Branch off base  | Current branch == base branch AND there are changes to ship.         |
-| 2. Test             | A test command is detected AND `--no-test` was not passed.           |
+| 1. Branch off base  | Current branch == base branch AND something is shippable — an uncommitted change, or a commit `origin/<base>` does not have. |
+| 2. Test & lint      | A test or lint command is detected AND `--no-test` was not passed.   |
 | 3. Commit           | `git status --porcelain` is non-empty.                               |
-| 4. PR               | Always — create new or reuse existing open PR.                       |
-| 5. CI               | The PR reports at least one check.                                   |
+| 4. PR               | The branch carries at least one commit the base does not, or an open PR already exists. |
+| 5. CI               | The PR reports at least one check, or the repository declares a workflow that would. |
 | 6. Merge            | Always (unless `--draft` — stop after step 4).                       |
-| 7. Worktree cleanup | Work was done in a `git worktree`.                                   |
+| 7. Worktree cleanup | A `git worktree` holds the branch just shipped. It is removed only when this run is not standing in it. |
 
-> **Early exit overrides everything.** If preflight finds a clean tree AND no open PR for the current branch AND we're on the base branch → there is nothing to ship; report and stop. Steps 1–7 do not run.
+> **Early exit overrides everything.** If preflight finds a clean tree AND no open PR for the current branch AND we're on the base branch AND the base carries no commit its remote does not have → there is nothing to ship; report and stop. Steps 1–7 do not run.
+
+A clean tree is not an empty run. Commits sitting on the local base and missing from `origin/<base>` — someone committed to the base by hand — are exactly what this skill exists to land, and reporting "nothing to ship" over them leaves work that only `git log` will ever mention. Step 1 branches off and carries them.
 
 ---
 
@@ -56,11 +59,22 @@ git remote -v         # at least one remote configured?
 git status --porcelain
 git branch --show-current
 git worktree list
+git rev-parse --show-toplevel   # where this run stands — step 7 needs it before any cd
 ```
+
+Record that path. It is the only chance to: `git rev-parse --show-toplevel` answers for the primary checkout the moment you leave a worktree, and step 7 decides what it may remove by comparing against it.
 
 ### 0c. Base branch resolution
 
 Per [shared/git.md](shared/git.md), which also carries the force-push rule and what "merged" means after a rebase. Read it before step 6.
+
+With the base resolved, ask whether it carries work of its own:
+
+```bash
+git rev-list --count origin/<base>..<base>
+```
+
+Non-zero means someone committed to the base by hand and never pushed. Those commits are shippable work, not an empty run — this is what the early-exit clause guards against and what step 1 branches off.
 
 ### 0d. Open PR for the current branch
 
@@ -102,13 +116,32 @@ interpreter version the tests refuse, a dependency that is not installed — nam
 command and say why it did not run. That is a different report from "no test command",
 and collapsing the two hides a test suite nobody executed.
 
-### 0f. CI presence (informational)
+### 0f. Lint command detection — only what the project declares
+
+A linter the project does not configure is not this skill's to impose. First match wins:
+
+| Marker                                        | Command                                       |
+|-----------------------------------------------|-----------------------------------------------|
+| `lint` target in `scripts/`, `justfile`, `Makefile` | run that target                          |
+| `package.json` `scripts.lint`                 | `<pm> run lint` — pm resolved as in 0e        |
+| `ruff.toml`, `.ruff.toml`, or `[tool.ruff]` in `pyproject.toml` | `ruff check .` and `ruff format --check .` |
+| `Cargo.toml`                                  | `cargo clippy`                                |
+| `.golangci.yml` / `.golangci.yaml`            | `golangci-lint run`                           |
+| `go.mod`, none of the above                   | `go vet ./...`                                |
+| none of the above                             | step 2b SKIPs                                 |
+
+### 0g. CI presence
+
+Step 5 reads this, so record it rather than glancing at it:
 
 ```bash
 ls .github/workflows/ 2>/dev/null
+grep -lE 'pull_request|push:' .github/workflows/*.y*ml 2>/dev/null
 ```
 
-### 0g. Print the execution plan
+Either trigger reports on the pull request — a `push` workflow fires when step 4 pushes the branch. What matters is whether this repository has a workflow that *will* produce a check, because step 5 has to tell "no CI here" apart from "CI has not registered yet".
+
+### 0h. Print the execution plan
 
 Before any write:
 
@@ -116,12 +149,12 @@ Before any write:
 Ship plan for <branch> → <base>:
   [done]       0. Preflight
   [<RUN|SKIP>] 1. Branch off <base>     <reason>
-  [<RUN|SKIP>] 2. Test                  <reason — e.g. "detected: cargo test" / "--no-test passed">
+  [<RUN|SKIP>] 2. Test & lint           <reason — e.g. "detected: cargo test, cargo clippy" / "--no-test passed">
   [<RUN|SKIP>] 3. Commit                <reason — e.g. "5 files modified" / "working tree clean">
   [<RUN|SKIP>] 4. PR                    <reason — "create new" or "reuse #42">
-  [<RUN|SKIP>] 5. CI                    <decided after PR opens>
+  [<RUN|SKIP>] 5. CI                    <reason — "2 workflows declared" / "no workflow declares a check">
   [<RUN|SKIP>] 6. Merge                 <reason — "squash-merge" or "--draft: stop after step 4">
-  [<RUN|SKIP>] 7. Worktree cleanup      <reason>
+  [<RUN|SKIP>] 7. Worktree cleanup      <reason — "worktree <path> holds this branch" / "this run stands in it — kept">
 ```
 
 After printing: stop if `--dry-run` was passed, otherwise proceed immediately. Without that flag the plan is a transparency tool, not a gate.
@@ -130,7 +163,7 @@ After printing: stop if `--dry-run` was passed, otherwise proceed immediately. W
 
 ## 1. Branch off base
 
-Only when on the base branch **and** there are changes.
+Only when on the base branch **and** there is something to ship — an uncommitted change, a commit `origin/<base>` does not have, or both.
 
 - If the user passed a positional `[branch-name]`, use it.
 - Otherwise derive `{type}/{slug}`:
@@ -148,21 +181,68 @@ Only when on the base branch **and** there are changes.
 
 If already on a feature branch → SKIP.
 
-## 2. Test
+### 1a. When the base carried commits of its own
+
+Only when step 0c counted commits on `<base>` that `origin/<base>` does not have. The branch just created was cut from that same HEAD, so it already holds every one of them — which is what makes the next line safe:
+
+```bash
+git branch -f <base> origin/<base>
+```
+
+Nothing can be lost. The commits the base ref is moving away from are the commits the new branch points at, this second, by construction; `git reflog` holds the old position besides. Leaving it undone is what costs: after the pull request lands, the local base holds those commits *and* the squashed or rebased copy of them that came back through the merge, so step 7 finds a base that will not fast-forward and stops.
+
+Say in the report that the base was reset, and to which commit. This is the one ref this skill rewrites without being asked, and a run that does it silently is indistinguishable from one that lost three commits.
+
+## 2. Test & lint
+
+### 2a. Tests
 
 Run the detected command. On failure: max 2 fix attempts; then stop and ask. Never fabricate a test run if no command was detected.
+
+A suite that was already red is a different report from one this change broke, and "unrelated" is a claim, not a guess. Before attributing a failure elsewhere, get a baseline — cheapest first:
+
+- The failing test's file is not in the diff, and neither is the module it exercises → say that, and say the baseline was inferred from the diff rather than measured.
+- Measure it, when the suite runs without an install step. A throwaway checkout touches nothing in the working tree:
+  ```bash
+  git worktree add --detach <tmp> origin/<base>
+  # run the test command in <tmp>
+  git worktree remove <tmp>
+  ```
+  Where a fresh checkout would need its dependencies installed again, `git stash push --include-untracked`, run, then `git stash pop`.
+- Neither is practical → report the baseline as unknown. That is honest; "unrelated to this change" without a baseline is not.
+
+One baseline run for the whole suite, not one per failing test.
+
+### 2b. Lint
+
+Run what 0f detected, before step 3 stages anything — a formatter's output belongs in the commit, not in a follow-up.
+
+- Formatting differences: apply them, and include them in the same commit.
+- Rule violations inside the change: fix them, same budget as 2a — two attempts, then stop and ask.
+- Violations in code this change never touched: report them and leave them. A ship is not a cleanup, and a diff that fixes the repository's backlog is a diff nobody can review.
+
+`--no-test` skips 2b as well as 2a.
 
 ## 3. Commit
 
 ### 3a. Secrets gate — before staging anything
 
 This is the last step before the change becomes public, and a secret pushed to a
-remote is compromised even after a force-push removes it. Run over the diff about
-to be staged, not over the whole repository:
+remote is compromised even after a force-push removes it. Run over the change about
+to be staged, not over the whole repository — and over its **content**, because a
+file name is not where a credential is visible:
 
 ```bash
-git diff --cached --name-only; git diff --name-only
+git diff --name-only HEAD                   # tracked, staged and unstaged together
+git ls-files --others --exclude-standard    # untracked candidates — no diff exists for these
+git diff -U0 HEAD                           # the added lines themselves
+grep -nIE '<pattern>' <each untracked file> # untracked content, since git diff cannot show it
 ```
+
+Both halves are needed. `git diff` never mentions an untracked file, and step 3b
+stages untracked files by name — so a brand-new `config.local.json` holding a live
+token reaches the commit having been read by nothing. Ignored files are excluded on
+purpose: they cannot be committed without `git add -f`, which step 3b never uses.
 
 Stop and ask — never stage — when a path or a diff line matches:
 
@@ -183,6 +263,12 @@ contain shaped examples. Show the file, the line, and ask. Do not decide alone.
 - Trailer: `Co-Authored-By: Claude <noreply@anthropic.com>`. **Do not hard-code a model version** — the trailer must stay model-agnostic.
 - Commit directly; no user approval needed.
 
+### 3c. When the commit is rejected
+
+A pre-commit hook that refuses is the project talking. Read what it printed, fix what it names, commit again — two attempts, then stop and ask.
+
+Never `--no-verify`. A hook bypassed here runs again in CI a minute later, on a pull request that is already public, and the only thing the bypass bought was a longer path to the same failure. If the hook itself is broken, say so and stop; that is a repository problem, not a shipping decision.
+
 ## 4. PR
 
 **Reuse path** — preflight found an open PR on this branch:
@@ -192,7 +278,17 @@ contain shaped examples. Show the file, the line, and ask. Do not decide alone.
 3. `git push` any new local commits.
 4. Skip to step 5.
 
-**Create path**:
+**Create path** — first, confirm there is anything to open one for:
+
+```bash
+git rev-list --count <base>..HEAD
+```
+
+Zero commits and no open pull request is not an error, it is an early exit: the run's
+only changes were files step 3 classified as skip. Report it, push nothing, and if
+step 1 created the branch a moment ago, offer `git checkout <base> && git branch -d <name>`
+rather than leaving an empty branch behind. `gh pr create` against zero commits fails
+anyway; reaching it means the plan printed in step 0 was wrong about what would be committed.
 
 1. `git push -u origin <branch>`. If push is rejected (branch protection, signed-commits requirement, etc.), stop and surface the rejection — do not retry blindly.
 2. `gh pr create --base <base>` (the resolved base from step 0c).
@@ -203,9 +299,20 @@ contain shaped examples. Show the file, the line, and ask. Do not decide alone.
 
 ## 5. CI
 
-Skip immediately if `gh pr checks` reports "no checks reported" **and** `mergeStateStatus == CLEAN`.
+"No checks reported" has two meanings and they are minutes apart in consequence. A pull
+request opened seconds ago reports none because GitHub has not registered the workflow
+run yet, and `mergeStateStatus` is `CLEAN` in that window exactly as it is in a repository
+with no CI at all. Merging on that reading ships without the checks the project wrote.
 
-Otherwise poll `gh pr checks` every 30s, timeout 10 min.
+Step 0g already settled which one this is:
+
+- **A workflow declares a trigger** → re-poll `gh pr checks` every 10s for up to 60s before
+  concluding there are none. If nothing registers in that window, proceed, and say so in
+  the report: `CI skipped — <N> workflows declared, no check registered within 60s`. That
+  line is the difference between a check that was green and a check that never ran.
+- **No workflow declares one** → skip step 5 immediately.
+
+Once at least one check exists, poll `gh pr checks` every 30s, timeout 10 min.
 
 When checks settle, branch on `gh pr view --json mergeStateStatus`:
 
@@ -225,7 +332,14 @@ If a required check fails: `gh run view --log-failed`, fix, commit, push, re-pol
 
 ## 6. Merge
 
-`--merge-strategy` wins if passed. Otherwise choose, rather than defaulting:
+`--merge-strategy` wins if passed — but check it against what the repository allows before
+merging, not after. `squash`, `merge`, and `rebase` map to `--squash`, `--merge`, and
+`--rebase`; each is refused by `gh pr merge` when the corresponding repository setting is
+off. On a mismatch, stop and name the strategies the repository does allow. Never
+substitute one silently: `--merge` where the author asked for `--rebase` writes a history
+they explicitly did not want.
+
+Without the flag, choose rather than defaulting:
 
 ```bash
 gh repo view --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed
@@ -244,24 +358,57 @@ Never `--admin`. A merge that needs it is one a human should look at.
 
 ## 7. Worktree cleanup
 
-Only if `git worktree list` showed more than the primary repo.
+Only about the worktree holding the branch just shipped. Another tool's worktree, or one
+for an unrelated branch, is not this run's business — `/dev:cleanup` owns those.
 
-1. Confirm the worktree is clean. If dirty, stop and ask.
-2. `cd` back to the primary repo path.
-3. `git worktree remove <path>` (retry with `--force` on "Directory not empty"; if residue remains, `rm -rf <path>`).
+### 7a. The worktree this run is standing in is never removed
+
+Compare the toplevel recorded in step 0b against `git worktree list`. It has to be that
+recorded value: after a `cd` to the primary checkout, `git rev-parse --show-toplevel` no
+longer answers the question.
+
+Per [shared/git.md](shared/git.md), changing directory does not make the removal safe —
+the session's tooling, its scratch state, and its open file handles all live there, and
+nothing running inside can undo the deletion. Report it and move on to 7c:
+
+```
+Worktree kept: <path> — this session is running in it.
+Remove it from the primary checkout once the session ends, or run /dev:cleanup there.
+```
+
+That is a completed step 7, not a failure. Shipping from a worktree is the common case,
+so this is the common outcome.
+
+### 7b. A worktree for the shipped branch that this run is not in
+
+1. Confirm it is clean: `git -C <path> status --porcelain`. Anything at all, untracked included, means stop and ask.
+2. From the primary repo, never from inside it: `git worktree remove <path>` (retry with `--force` on "Directory not empty" only when step 1 found it clean; if residue remains, `rm -rf <path>`).
+3. `git worktree prune`.
 4. Delete the local branch only if it still exists: `git branch -D <merged-branch> 2>/dev/null` is fine — `--delete-branch` in step 6 plus `git fetch --prune` may have already removed it.
-5. In the primary repo: `git fetch origin <base> && git checkout <base> && git pull --ff-only`. If `pull --ff-only` fails because the primary's base branch has diverged, stop and ask — do not force.
-6. Report remaining worktrees and the new HEAD on `<base>`.
+
+### 7c. Bring the primary checkout's base up to date
+
+Advance the ref without commandeering someone's checkout — the primary may hold work in progress, and a `git checkout` in it is a change nobody asked for:
+
+```bash
+git -C <primary> fetch origin <base>:<base>
+```
+
+That advances the local base directly, refuses anything that is not a fast-forward, and touches no file. It is refused when `<base>` is the branch checked out there; in that case, and only when that tree is clean, `git -C <primary> pull --ff-only`. If the base has diverged, or the tree is dirty, report it and stop — do not force, do not stash someone else's work.
+
+### 7d. Report
+
+Remaining worktrees, and where `<base>` now points in the primary checkout.
 
 ---
 
 ## Flags
 
 - `--dry-run` — print the execution plan and stop. Nothing is written, pushed, or merged.
-- `--no-test` — skip step 2 even if a test command was detected. Useful for docs-only / config-only ships.
+- `--no-test` — skip all of step 2, tests and lint alike, even where both were detected. Useful for docs-only / config-only ships.
 - `--draft` — open the PR as a draft and stop after step 4.
 - `--base=<branch>` — override base branch resolution. Without this flag, base is detected per step 0c.
-- `--merge-strategy=squash|merge|rebase` — force one. Without it, step 6 picks from what the repository allows and how many commits the branch carries.
+- `--merge-strategy=squash|merge|rebase` — force one, subject to what the repository allows. Without it, step 6 picks from that and from how many commits the branch carries.
 - `[branch-name]` (positional) — branch name when step 1 triggers.
 
 ## Reporting
@@ -274,13 +421,18 @@ Merged commit: <sha on base>
 Branch:        <feature-branch> → <base>
 Steps run:     <comma-separated step numbers>
 Steps skipped: <step number — reason; …>
+Attention:     <base reset to <sha>; CI never registered; worktree kept — …; or none>
 ```
+
+`Attention` carries what the run did that nobody asked for, and what it decided not to do:
+the base ref moved in step 1a, a CI window that expired without a check, a worktree kept
+because this session is standing in it. Empty is a valid value; a silent one is not.
 
 **Early exit (nothing to ship)**:
 
 ```
 Nothing to ship.
-Branch: <branch> (== <base>), tree clean, no open PR.
+Branch: <branch> (== <base>), tree clean, no open PR, nothing unpushed on <base>.
 ```
 
 **Draft stop (`--draft`)**:
