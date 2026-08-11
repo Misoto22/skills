@@ -2246,6 +2246,43 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("skill 'retired' is translated but not published", result.stderr)
 
+    def test_registry_publishes_the_bookmarks_without_claiming_them(self) -> None:
+        """Other people's plugins install from this marketplace; the pin is what makes that safe."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        bookmarked = {entry["name"] for entry in registry["bookmarks"]}
+
+        self.assertEqual(bookmarked, bookmarked_plugins())
+        # A published plugin appearing here would be this repository's own work
+        # presented as somebody else's.
+        self.assertFalse(bookmarked & set(published_skills()))
+        for entry in registry["bookmarks"]:
+            self.assertRegex(entry["sha"], r"\A[0-9a-f]{40}\Z", f"{entry['name']} is not pinned")
+            self.assertTrue(entry["url"].startswith("https://"), entry["name"])
+
+    def test_registry_examples_are_the_prompts_ci_scores(self) -> None:
+        """A hand-written example drifts; these are the ones the evaluation run uses."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        for group in registry["groups"]:
+            for skill in group["skills"]:
+                suite = json.loads(
+                    (ROOT / "evals" / skill["name"] / "evals.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    skill["examples"]["triggers"],
+                    [case["prompt"] for case in suite["triggers"]],
+                    skill["name"],
+                )
+                self.assertEqual(
+                    skill["examples"]["nonTriggers"],
+                    [case["prompt"] for case in suite["non_triggers"]],
+                    skill["name"],
+                )
+                # The boundary is the half a reader most needs and the half a
+                # catalogue most often omits.
+                self.assertTrue(skill["examples"]["nonTriggers"], f"{skill['name']} publishes no boundary")
+
     def test_validate_workflow_holds_the_registry_current(self) -> None:
         """Nothing else notices a stale catalogue before a reader fetches it."""
 

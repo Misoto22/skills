@@ -45,6 +45,7 @@ PLUGINS_ROOT = ROOT / "plugins"
 MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
 GROUPING_MANIFEST = ROOT / "skills.sh.json"
 TRANSLATIONS = ROOT / "i18n"
+EVALS_ROOT = ROOT / "evals"
 REGISTRY = ROOT / "registry.json"
 
 # Locales carried alongside the English. Adding one means adding i18n/<code>.json
@@ -117,6 +118,62 @@ def _body(text: str) -> str:
 
     lines = text.splitlines()
     return "\n".join(lines[lines.index("---", 1) + 1 :]).lstrip("\n")
+
+
+def _examples(skill: str) -> dict:
+    """Return the prompts a skill must fire on, and the ones it must stay out of.
+
+    Lifted from evals/<skill>/evals.json, which every published skill already has
+    because `run-evals.py --check` fails without it. That makes these the only
+    examples in the repository that are executed rather than asserted: a prompt
+    here is one CI actually scored the skill against, in both languages, so it
+    cannot drift from what the skill does the way a hand-written example would.
+
+    The `expected` prose is deliberately dropped. It is written for whoever reads
+    a failing evaluation, not for a reader deciding whether to install something.
+    """
+
+    path = EVALS_ROOT / skill / "evals.json"
+    if not path.is_file():
+        raise SystemExit(
+            f"error: {path.relative_to(ROOT)} does not exist. Every published skill"
+            " carries evaluation cases; run-evals.py --check enforces it."
+        )
+    suite = _read_json(path)
+    return {
+        "triggers": [case["prompt"] for case in suite.get("triggers", [])],
+        "nonTriggers": [case["prompt"] for case in suite.get("non_triggers", [])],
+    }
+
+
+def _bookmarks(marketplace: dict, published: set[str]) -> list[dict]:
+    """Return the marketplace entries that are somebody else's work.
+
+    They install from this marketplace but nothing in this tree reaches them —
+    no plugin directory, no skills, no version. What can honestly be published
+    is the name, where it comes from, and the commit it is pinned to. The pin is
+    the whole guarantee, so it travels with the entry rather than being dropped
+    as an implementation detail.
+    """
+
+    bookmarks = []
+    for entry in marketplace.get("plugins", []):
+        source = entry.get("source")
+        # A local plugin's source is a relative path string; a bookmark's is an
+        # object naming another repository. That difference is the definition.
+        if not isinstance(source, dict) or entry["name"] in published:
+            continue
+        bookmarks.append(
+            {
+                "name": entry["name"],
+                "category": entry.get("category", ""),
+                "url": source["url"].removesuffix(".git"),
+                "ref": source.get("ref", ""),
+                "sha": source.get("sha", ""),
+                "install": f"/plugin install {entry['name']}@{marketplace['name']}",
+            }
+        )
+    return bookmarks
 
 
 def _translations(groups: dict[str, list[str]]) -> dict[str, dict]:
@@ -215,6 +272,7 @@ def _skill_entry(name: str, directory: Path, validator: ModuleType, repository: 
         "path": relative,
         "sourceUrl": f"{repository}/blob/{SOURCE_REF}/{relative}/SKILL.md",
         "body": _body(text),
+        "examples": _examples(name),
         # Filled after the structural checks — see the injection site in build().
         "i18n": {},
     }
@@ -331,6 +389,7 @@ def build() -> dict:
         # sample, and an empty catalogue still has to answer the question.
         "locales": list(LOCALES),
         "groups": groups,
+        "bookmarks": _bookmarks(marketplace, set(published)),
     }
 
 
