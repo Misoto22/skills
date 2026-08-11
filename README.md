@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twelve skills in five plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Thirteen skills in five plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -146,7 +146,7 @@ Maintainers who want editable installs rather than copies can run `bash scripts/
 
 ### Directories
 
-This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same twelve skills grouped by plugin.
+This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same skills grouped by plugin.
 
 The rest index Agent Skills repositories at large. None of them carry this one — they are here for the skills it does not cover:
 
@@ -182,7 +182,7 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
 
-Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the twelve skills above.
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the skills listed above.
 
 > [!NOTE]
 > The pinned commit is the point. A bookmark tracking a branch would install

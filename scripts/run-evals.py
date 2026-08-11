@@ -18,6 +18,7 @@ invisible until a user reports it.
   python3 scripts/run-evals.py --report email    Print one skill's cases, ready to paste
   python3 scripts/run-evals.py --run             Score every case against a model
   python3 scripts/run-evals.py --run email       Score one skill's cases
+  python3 scripts/run-evals.py --run-behaviors   Execute every behavior case
   python3 scripts/run-evals.py --run-behaviors synastry-reading
                                                 Execute one skill's behavior cases
 
@@ -44,13 +45,27 @@ EVALS_ROOT = ROOT / "evals"
 
 MINIMUM_TRIGGERS = 3
 MINIMUM_NON_TRIGGERS = 2
-READING_VALIDATOR = (
-    PLUGINS_ROOT / "astrology" / "skills" / "synastry-reading" / "scripts" / "validate_reading.py"
-)
-SOURCE_VALIDATOR = (
-    PLUGINS_ROOT / "astrology" / "skills" / "synastry-reading" / "scripts" / "validate_synastry.py"
-)
-SYNASTRY_SCHEMA = PLUGINS_ROOT / "astrology" / "skills" / "synastry-reading" / "shared" / "synastry_schema.py"
+
+# Which skills can check a draft mechanically, and with what. A behavior case
+# carrying a `fixture` asserts its output is checkable against that artifact
+# rather than only by a judge, so its skill has to appear here; the lookup
+# failing is the error, not a check quietly skipped.
+#
+# Only synastry-reading qualifies today, because it is the only skill whose
+# output is derived from a validated artifact it must not contradict. A reading
+# skill added later registers here rather than editing the function below, which
+# is what `skill != "synastry-reading"` used to make necessary.
+_SYNASTRY_READING = PLUGINS_ROOT / "astrology" / "skills" / "synastry-reading"
+MECHANICAL_VALIDATORS = {
+    "synastry-reading": {
+        "reading": _SYNASTRY_READING / "scripts" / "validate_reading.py",
+        "source": _SYNASTRY_READING / "scripts" / "validate_synastry.py",
+        "schema": _SYNASTRY_READING / "shared" / "synastry_schema.py",
+    },
+}
+READING_VALIDATOR = MECHANICAL_VALIDATORS["synastry-reading"]["reading"]
+SOURCE_VALIDATOR = MECHANICAL_VALIDATORS["synastry-reading"]["source"]
+SYNASTRY_SCHEMA = MECHANICAL_VALIDATORS["synastry-reading"]["schema"]
 
 
 def published_skills() -> list[str]:
@@ -378,7 +393,14 @@ JUDGE_MAX_TOKENS = 4096
 # single-line, even when a model or validator returns hostile or accidental bulk.
 FAILURE_LINE_MAX_CHARS = 512
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((?P<target>[^)]+)\)")
-SCRIPT_COMMAND = re.compile(r"python3[ \t]+scripts/(?P<script>[\w.-]+\.py)(?:[ \t]+(?P<command>[\w-]+))?")
+# A subcommand starts with a letter. `[\w-]+` also matched the option that
+# usually follows a script name, so `compute_chart.py --json` was rendered as
+# `compute_chart.py --json --help`, which argparse rejects for want of a value —
+# and _cli_contracts raises on a nonzero exit. Nothing saw it while behaviors
+# ran for one skill whose SKILL.md happens to name no options here.
+SCRIPT_COMMAND = re.compile(
+    r"python3[ \t]+scripts/(?P<script>[\w.-]+\.py)(?:[ \t]+(?P<command>[a-z][\w-]*))?"
+)
 VALIDATOR_PROBLEMS_CODE = """
 import json
 import sys
@@ -555,9 +577,14 @@ def _mechanical_failures(skill: str, case: dict, markdown: str) -> list[str]:
     fixture = case.get("fixture")
     if fixture is None:
         return []
-    if skill != "synastry-reading":
-        return ["mechanical validation is not configured for this fixture-bearing skill"]
+    validators = MECHANICAL_VALIDATORS.get(skill)
+    if validators is None:
+        return [
+            f"{skill} has a fixture-bearing behavior case but no entry in MECHANICAL_VALIDATORS,"
+            " so its draft would be judged without being checked against the artifact"
+        ]
 
+    reading_validator = validators["reading"]
     fixture_path = _fixture_path(skill, fixture)
     modules = case.get("modules", [])
     with tempfile.TemporaryDirectory(prefix="behavior-eval-") as temporary:
@@ -566,7 +593,7 @@ def _mechanical_failures(skill: str, case: dict, markdown: str) -> list[str]:
         command = [
             sys.executable,
             "-B",
-            str(READING_VALIDATOR),
+            str(reading_validator),
             str(fixture_path),
             str(draft),
             "--language",
@@ -577,7 +604,9 @@ def _mechanical_failures(skill: str, case: dict, markdown: str) -> list[str]:
         result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
         if result.returncode == 0:
             return []
-        problems = _validator_problems(fixture_path, draft, case.get("language", "en"), modules)
+        problems = _validator_problems(
+            fixture_path, draft, case.get("language", "en"), modules, reading_validator
+        )
     return [_bounded_failure("mechanical violation", problem) for problem in problems]
 
 
@@ -586,6 +615,7 @@ def _validator_problems(
     draft: Path,
     language: str,
     modules: list[str],
+    reading_validator: Path = READING_VALIDATOR,
 ) -> list[str]:
     """Read the validator's deduplicated problems in an isolated child process."""
 
@@ -595,8 +625,8 @@ def _validator_problems(
             "-B",
             "-c",
             VALIDATOR_PROBLEMS_CODE,
-            str(READING_VALIDATOR.parent),
-            str(READING_VALIDATOR.parent.parent / "shared"),
+            str(reading_validator.parent),
+            str(reading_validator.parent.parent / "shared"),
             str(fixture),
             str(draft),
             language,
@@ -712,7 +742,14 @@ def run_behaviors(skills: list[str]) -> list[str]:
         if suite is None:
             continue
         for case in suite.get("behaviors") or []:
-            violations = run_behavior_case(client, skill, case)
+            # Contained per case. The loop spans every published skill now, and
+            # an exception raised part-way through — a validator that will not
+            # run, a fixture that will not load — used to abort the run and
+            # discard every result already paid for.
+            try:
+                violations = run_behavior_case(client, skill, case)
+            except Exception as error:
+                violations = [_bounded_failure("behavior case could not run", error)]
             scored += 1
             if not violations:
                 print(f"  pass  {skill}/{case['id']}")

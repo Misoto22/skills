@@ -15,9 +15,11 @@ uvx ruff check . && uvx ruff format .
 uvx coverage run -m unittest discover -s tests && uvx coverage report
 ```
 
-Coverage is measured on `plugins/` — the Python that actually ships — and floors at 75%. The repository's own
-`scripts/` run through subprocess in the contract tests, where the number would describe the harness rather than
-the code. Raise the floor in `.coveragerc` when the real figure rises; never lower it to make a run pass.
+Coverage is measured on `plugins/` — the Python that actually ships — and floored at whatever `fail_under` in
+[`.coveragerc`](.coveragerc) declares. The figure is deliberately not repeated here: a number written down twice
+drifts, and the copy nobody runs is the one that goes stale. The repository's own `scripts/` run through
+subprocess in the contract tests, where the number would describe the harness rather than the code. Raise the
+floor when the real figure rises; never lower it to make a run pass.
 
 ## Adding a skill
 
@@ -64,7 +66,17 @@ python3 scripts/validate-repository.py
 
 The last one runs the metadata checks and then the full test suite. CI runs the same seven plus an install of every plugin through all four routes.
 
-The CLI versions CI installs live in `.ci-pins.json` and nowhere else — workflows ask for a spec with `python3 scripts/ci-pins.py spec <id>`, and `check` rejects any version written down that the file does not account for. Move one with `python3 scripts/ci-pins.py bump <id> <version>`. A literal pin is not just duplication: `CI_CHANNEL=latest` cannot override it, so it would be the one route the weekly canary silently keeps testing at the old version.
+Every version CI depends on lives in `.ci-pins.json` and nowhere else — the CLIs it installs, the Python and Node
+runtimes its jobs run on, and the model the weekly evaluation bills against. Workflows ask for a spec with
+`python3 scripts/ci-pins.py spec <id>`, and `check` rejects any version written down that the file does not
+account for. Move one with `python3 scripts/ci-pins.py bump <id> <version>`. A literal pin is not just
+duplication: `CI_CHANNEL=latest` cannot override it, so it would be the one route the weekly canary silently
+keeps testing at the old version. A pin whose version is not a semver — a runtime, a model name — declares its
+own `version_pattern`.
+
+Names are derived rather than written down for the same reason. `scripts/list-plugins.sh`,
+`scripts/list-skills.sh`, `scripts/marketplace-name.sh` and `scripts/install-skill-requirements.sh` are what the
+install workflow calls, so adding a plugin, a skill, or a skill's first dependency never edits CI.
 
 Tests come before implementation, and a change to what a script asserts needs a test that fails without it.
 

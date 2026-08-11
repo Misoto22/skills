@@ -12,8 +12,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
-MARKETPLACE_NAME = "misoto22"
+TESTS_ROOT = ROOT / "tests"
+MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
 VERSION = "0.8.4"
+
+# Lowercase letters, digits and hyphens. Claude Code is lenient about a plugin
+# or marketplace name; the claude.ai marketplace sync is not, and a keyword that
+# does not match is one a plugin directory will not surface.
+KEBAB_CASE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 
 # The published surface, asserted exactly: a plugin or skill that appears on disk
 # without being added here is unregistered somewhere, and one listed here without
@@ -25,11 +31,15 @@ PUBLISHED = {
     "docs": ["readme"],
     "writing": ["email", "personal-blog", "tempering"],
 }
-PLUGIN_LICENSES = {
+# Exceptions only. MIT is what new-skill.py stamps on a new plugin and what
+# every plugin carries unless a dependency forces otherwise, so listing the MIT
+# ones restates the default and makes this look like a registry that has to be
+# complete — it is not, and a plugin missing from it is not a bug. astrology is
+# here because pyswisseph is AGPL and a skill cannot be licensed more loosely
+# than the library it imports.
+DEFAULT_LICENSE = "MIT"
+PLUGIN_LICENSE_EXCEPTIONS = {
     "astrology": "AGPL-3.0-or-later",
-    "dev": "MIT",
-    "docs": "MIT",
-    "writing": "MIT",
 }
 
 # Other people's plugins, registered so they install from this marketplace too.
@@ -82,11 +92,10 @@ AGENT_PLUGIN_FIELDS = {
 }
 AGENT_PLUGIN_SHARED = ("name", "version", "description", "license", "author")
 REPOSITORY_URL = "https://github.com/Misoto22/skills"
-# What a client's plugin directory searches on. Held to one shape so a search
+# What a client's plugin directory searches on. Held to KEBAB_CASE so a search
 # matches whatever a person typed, and held off the plugin's own name — a
 # directory already indexes that, so restating it buys no reach and crowds out
 # a term that would have.
-KEYWORD = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 MINIMUM_KEYWORDS = 3
 # Where a client puts what only it understands. Nothing here uses it yet, and
 # the shape is guarded anyway: the one thing a namespace has to do is not
@@ -103,6 +112,12 @@ EXTENSION_NAMESPACE = re.compile(r"\A[a-z0-9-]+(?:\.[a-z0-9-]+)+\Z")
 # per-skill install routes cannot mistake it for one. Its dependency list is
 # asserted against both registries: a bookmark added without a matching entry
 # here would be a plugin the one-command install silently skips.
+#
+# Those dependencies are spelled `<plugin>@<marketplace>`, which is why the
+# marketplace name is read from the manifest rather than declared here. It is
+# also the install suffix a user types, so it reaches the scaffold, the
+# retirement, the install workflow and both READMEs; one file declares it and
+# every other reader asks that file. See marketplace_name().
 BUNDLE = "all"
 BUNDLE_ROOT = ROOT / "bundle"
 
@@ -130,6 +145,69 @@ FORBIDDEN_RUNTIME_TEXT = (
     "provider-specific mail command",
 )
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+
+
+def _english_quantity(value: int) -> str:
+    """Spell a count the way the English README writes it."""
+
+    ones = ("", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+    teens = (
+        "ten",
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen",
+    )
+    tens = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+    if value >= 100:
+        return str(value)
+    if value < 10:
+        return ones[value]
+    if value < 20:
+        return teens[value - 10]
+    ten, one = divmod(value, 10)
+    return tens[ten] + (f"-{ones[one]}" if one else "")
+
+
+def _chinese_quantity(value: int) -> str:
+    """Spell a count the way the Chinese README writes it."""
+
+    digits = "〇一二三四五六七八九"
+    if value >= 100:
+        return str(value)
+    if value < 10:
+        return digits[value]
+    ten, one = divmod(value, 10)
+    return f"{'' if ten == 1 else digits[ten]}十{digits[one] if one else ''}"
+
+
+# A count written into prose is a registry too, and it was the one nothing read:
+# both READMEs said "twelve skills" for two releases after the thirteenth
+# shipped, with every other check green. The count now appears once per README —
+# the two other sentences carrying it were anaphoric and lost nothing — and each
+# language declares how its own numerals are read. A translation with no entry
+# here fails rather than going quietly stale, which is the rule the rest of the
+# registry is already held to.
+STATED_COUNTS = {
+    "README.md": (
+        re.compile(r"(?m)^(?P<skills>[A-Za-z-]+) skills in (?P<plugins>[A-Za-z-]+) plugins\b"),
+        _english_quantity,
+    ),
+    "README.zh-CN.md": (
+        # The fullwidth comma is the one in the sentence being matched, not a
+        # mistyped ASCII one; RUF001 cannot tell the difference.
+        re.compile(
+            r"(?P<plugins>[〇一二三四五六七八九十]+)个 plugin，"  # noqa: RUF001
+            r"(?P<skills>[〇一二三四五六七八九十]+)个 skill"
+        ),
+        _chinese_quantity,
+    ),
+}
 SKILL_REFERENCE = re.compile(r"[\w-]+/SKILL\.md")
 PUBLISHED_REFERENCE = re.compile(r"plugins/[\w-]+/skills/[\w-]+/SKILL\.md")
 # Retired and unfinished material lives outside plugins/, so no installer, no
@@ -145,9 +223,66 @@ NON_PORTABLE_TEXT = (
 )
 
 
+def marketplace_name() -> str:
+    """Return the marketplace name, from the one file that has to declare it.
+
+    Every other reader — the scaffold, the retirement, the install workflow, the
+    contract tests — calls this or reads the same field, rather than restating
+    `misoto22`. The name is the install suffix a user types, so a second copy of
+    it is a rename that half the repository silently does not follow.
+    """
+
+    return str(json.loads(MARKETPLACE_MANIFEST.read_text(encoding="utf-8"))["name"])
+
+
+def restate_counts() -> list[str]:
+    """Move the count each README states to match the tree, and report what moved.
+
+    The one writer for the one reader above. `new-skill.py` and `remove-skill.py`
+    call it, because a check the tooling cannot satisfy is a chore rather than a
+    guard: scaffolding a skill would otherwise leave a failing build for the
+    author to fix by hand, in prose, in every translation.
+    """
+
+    counts = {
+        "skills": len(list(PLUGINS_ROOT.glob("*/skills/*/SKILL.md"))),
+        "plugins": len(list(PLUGINS_ROOT.glob("*/.claude-plugin/plugin.json"))),
+    }
+    changed: list[str] = []
+    for path in sorted(ROOT.glob("README*.md")):
+        declared = STATED_COUNTS.get(path.name)
+        if declared is None:
+            continue
+        pattern, numeral = declared
+        text = path.read_text(encoding="utf-8")
+        match = pattern.search(text)
+        if match is None:
+            continue
+
+        # Rebuilt from the group spans rather than by string replacement: two
+        # nouns can state the same numeral, and replacing it would rewrite
+        # whichever came first instead of the one that moved.
+        pieces: list[str] = []
+        cursor = match.start()
+        for noun in sorted(counts, key=match.start):
+            start, end = match.span(noun)
+            stated = match.group(noun)
+            wanted = numeral(counts[noun])
+            pieces.append(text[cursor:start])
+            pieces.append(wanted.capitalize() if stated[:1].isupper() else wanted)
+            cursor = end
+        pieces.append(text[cursor : match.end()])
+
+        updated = text[: match.start()] + "".join(pieces) + text[match.end() :]
+        if updated != text:
+            path.write_text(updated, encoding="utf-8")
+            changed.append(path.name)
+    return changed
+
+
 def validate_repository(*, run_tests: bool) -> list[str]:
     errors: list[str] = []
-    marketplace = _load_json(ROOT / ".claude-plugin" / "marketplace.json", errors)
+    marketplace = _load_json(MARKETPLACE_MANIFEST, errors)
     # Every root README, not only the English one. A translation becomes a second
     # registry the moment it lists skills, and one nothing checks goes stale on the
     # next skill added — silently, because the file it was translated from is the
@@ -169,8 +304,12 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     if found_portable != sorted(PUBLISHED):
         errors.append(f"Agent Plugins manifests must be {sorted(PUBLISHED)}; found {found_portable}")
 
-    if marketplace.get("name") != MARKETPLACE_NAME:
-        errors.append(f"marketplace name must be {MARKETPLACE_NAME!r}")
+    # Held to a shape, not to a literal: the literal would be the same name
+    # written down a second time, which is the thing this file exists to stop.
+    name = marketplace.get("name")
+    if not isinstance(name, str) or not KEBAB_CASE.match(name):
+        errors.append(f"marketplace name must be kebab-case; found {name!r}")
+        name = ""
     metadata = marketplace.get("metadata")
     # pluginRoot is the one field the two installers read differently: Claude Code
     # resolves a source against the repository root regardless, while the skills
@@ -197,7 +336,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     }
     if published_entries != expected_entries:
         errors.append(f"marketplace must register exactly {expected_entries}; found {published_entries}")
-    _validate_bundle(registered.get(BUNDLE), errors)
+    _validate_bundle(registered.get(BUNDLE), name, errors)
     for entry in entries:
         name = entry.get("name") if isinstance(entry, dict) else None
         if name is None or name == BUNDLE:
@@ -216,7 +355,7 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     for plugin_name, expected_skills in sorted(PUBLISHED.items()):
         plugin_root = PLUGINS_ROOT / plugin_name
         skills_root = plugin_root / "skills"
-        plugin_license = PLUGIN_LICENSES.get(plugin_name, "MIT")
+        plugin_license = PLUGIN_LICENSE_EXCEPTIONS.get(plugin_name, DEFAULT_LICENSE)
         skill_paths = sorted(path.parent for path in skills_root.glob("*/SKILL.md"))
         names = [path.name for path in skill_paths]
         if names != expected_skills:
@@ -259,12 +398,20 @@ def validate_repository(*, run_tests: bool) -> list[str]:
         # runtime-neutrality rule as the skills that read it.
         _validate_runtime_text(plugin_root / "shared", errors)
 
+    _validate_scripts_are_tested(errors)
+
     # One spec version across the repository. Half the plugins targeting an older
     # schema is a release nobody meant to make, and each manifest reads correct.
     if len(declared_schemas) > 1:
         errors.append(f"plugins target more than one Agent Plugins schema: {sorted(declared_schemas)}")
 
+    published_counts = {
+        "skills": sum(len(skills) for skills in PUBLISHED.values()),
+        "plugins": len(PUBLISHED),
+    }
     for readme_name, readme in root_readmes.items():
+        _validate_stated_counts(readme_name, readme, published_counts, errors)
+
         for reference in PUBLISHED_REFERENCE.findall(readme):
             if not (ROOT / reference).is_file():
                 errors.append(f"{readme_name} links {reference}, which does not exist")
@@ -320,7 +467,65 @@ def validate_repository(*, run_tests: bool) -> list[str]:
     return errors
 
 
-def _validate_bundle(entry: tuple[object, object] | None, errors: list[str]) -> None:
+def _validate_scripts_are_tested(errors: list[str]) -> None:
+    """Every shipped script module has to be named by something under tests/.
+
+    AGENTS.md has always said a skill shipping `scripts/` also requires unit
+    tests, and nothing checked it. The coverage floor is the only thing that
+    noticed, and only for an addition large enough to move the number.
+
+    Named, not imported: tests reach these modules by path and by
+    `importlib.util.spec_from_file_location`, so there is no import graph to
+    read. The stem appearing somewhere under tests/ is the weakest claim that
+    cannot be satisfied by accident, and it is checked against the module a
+    plugin actually ships rather than against a directory naming convention —
+    two bazi skills share one test package, and that is fine.
+    """
+
+    tested = "\n".join(
+        path.read_text(encoding="utf-8", errors="ignore") for path in sorted(TESTS_ROOT.rglob("*.py"))
+    )
+    for script in sorted(PLUGINS_ROOT.glob("*/skills/*/scripts/*.py")):
+        if script.stem.startswith("__"):
+            continue
+        if not re.search(rf"\b{re.escape(script.stem)}\b", tested):
+            relative = script.relative_to(ROOT).as_posix()
+            errors.append(
+                f"{relative}: no test under tests/ names {script.stem!r}."
+                " A skill shipping scripts/ requires unit tests; see AGENTS.md."
+            )
+
+
+def _validate_stated_counts(
+    readme_name: str,
+    readme: str,
+    counts: dict[str, int],
+    errors: list[str],
+) -> None:
+    """Hold the one count each README writes out to the tree it describes."""
+
+    declared = STATED_COUNTS.get(readme_name)
+    if declared is None:
+        errors.append(
+            f"{readme_name}: no count pattern is registered for it in STATED_COUNTS."
+            " A README that states a total nothing reads is the drift this catches."
+        )
+        return
+    pattern, numeral = declared
+    match = pattern.search(readme)
+    if match is None:
+        expected = ", ".join(f"{numeral(total)} {noun}" for noun, total in counts.items())
+        errors.append(f"{readme_name}: states no published count; the tree has {expected}")
+        return
+    for noun, total in counts.items():
+        stated = match.group(noun)
+        if stated.lower() != numeral(total):
+            errors.append(
+                f"{readme_name}: states {stated!r} {noun}; the tree has {total}, {numeral(total)!r}"
+            )
+
+
+def _validate_bundle(entry: tuple[object, object] | None, name: str, errors: list[str]) -> None:
     """The one-command install: an entry that carries nothing but dependencies."""
 
     if entry is None:
@@ -336,7 +541,7 @@ def _validate_bundle(entry: tuple[object, object] | None, errors: list[str]) -> 
     for field, expected in (
         ("name", BUNDLE),
         ("version", VERSION),
-        ("license", "MIT"),
+        ("license", DEFAULT_LICENSE),
     ):
         if manifest.get(field) != expected:
             errors.append(f"{BUNDLE} bundle {field} must be {expected!r}")
@@ -348,7 +553,7 @@ def _validate_bundle(entry: tuple[object, object] | None, errors: list[str]) -> 
 
     # Both registries, in one list. A plugin registered but left out here is one
     # the advertised single command quietly does not install.
-    expected_dependencies = sorted(f"{name}@{MARKETPLACE_NAME}" for name in (*PUBLISHED, *BOOKMARKED))
+    expected_dependencies = sorted(f"{plugin}@{name}" for plugin in (*PUBLISHED, *BOOKMARKED))
     dependencies = manifest.get("dependencies")
     if not isinstance(dependencies, list) or sorted(dependencies) != expected_dependencies:
         errors.append(f"{BUNDLE} bundle must depend on exactly {expected_dependencies}")
@@ -422,7 +627,7 @@ def _validate_keywords(path: Path, manifest: dict[str, object], errors: list[str
 
     name = manifest.get("name")
     for keyword in keywords:
-        if not isinstance(keyword, str) or not KEYWORD.match(keyword):
+        if not isinstance(keyword, str) or not KEBAB_CASE.match(keyword):
             errors.append(f"{path}: keyword {keyword!r} must be lowercase kebab-case")
         elif keyword == name:
             errors.append(f"{path}: keyword {keyword!r} restates the plugin name")

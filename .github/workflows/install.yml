@@ -44,12 +44,16 @@ jobs:
 
       - run: npm install --global "$(python3 scripts/ci-pins.py spec claude-code)"
 
+      # Read from the marketplace manifest, so a rename never edits this file.
+      - name: Resolve the marketplace name
+        run: echo "MARKETPLACE=$(bash scripts/marketplace-name.sh)" >> "$GITHUB_ENV"
+
       # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
         run: |
           claude plugin marketplace add "$PWD"
           for plugin in $(bash scripts/list-plugins.sh); do
-            claude plugin install "$plugin@misoto22"
+            claude plugin install "$plugin@$MARKETPLACE"
           done
 
       # Derived from the tree, so adding a skill never edits this step.
@@ -58,14 +62,14 @@ jobs:
           for skill_file in $(bash scripts/list-skills.sh); do
             plugin=$(echo "$skill_file" | cut -d/ -f2)
             skill=$(basename "$(dirname "$skill_file")")
-            claude plugin details "$plugin@misoto22" | grep -qE "Skills \(.*\b$skill\b" \
-              || { echo "::error::$plugin@misoto22 does not list $skill"; exit 1; }
+            claude plugin details "$plugin@$MARKETPLACE" | grep -qE "Skills \(.*\b$skill\b" \
+              || { echo "::error::$plugin@$MARKETPLACE does not list $skill"; exit 1; }
           done
 
       - name: Installed trees are complete and self-contained
         run: |
           python3 scripts/verify-install.py \
-            "$HOME/.claude/plugins/cache/misoto22" \
+            "$HOME/.claude/plugins/cache/$MARKETPLACE" \
             $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
   codex:
@@ -83,18 +87,22 @@ jobs:
 
       - run: npm install --global "$(python3 scripts/ci-pins.py spec codex)"
 
+      # Read from the marketplace manifest, so a rename never edits this file.
+      - name: Resolve the marketplace name
+        run: echo "MARKETPLACE=$(bash scripts/marketplace-name.sh)" >> "$GITHUB_ENV"
+
       # Derived from the tree, so adding a plugin never edits this step.
       - name: Install every plugin
         run: |
           codex plugin marketplace add "$PWD"
           for plugin in $(bash scripts/list-plugins.sh); do
-            codex plugin add "$plugin@misoto22"
+            codex plugin add "$plugin@$MARKETPLACE"
           done
 
       - name: Installed trees are complete and self-contained
         run: |
           python3 scripts/verify-install.py \
-            "$HOME/.codex/plugins/cache/misoto22" \
+            "$HOME/.codex/plugins/cache/$MARKETPLACE" \
             $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
   agent-skills-cli:

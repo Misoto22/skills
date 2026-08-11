@@ -45,6 +45,46 @@
       "spec": "{package}=={version}",
       "spec_latest": "{package}",
       "documented_in": []
+    },
+    {
+      "id": "python",
+      "package": "python",
+      "version": "3.13",
+      "version_pattern": "\\d+\\.\\d+",
+      "match": "python-version: \"{version}\"",
+      "spec": "{version}",
+      "spec_latest": "{version}",
+      "documented_in": [
+        ".github/workflows/evals.yml",
+        ".github/workflows/install.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/validate.yml"
+      ]
+    },
+    {
+      "id": "node",
+      "package": "node",
+      "version": "22",
+      "version_pattern": "\\d+",
+      "match": "node-version: {version}",
+      "spec": "{version}",
+      "spec_latest": "{version}",
+      "documented_in": [
+        ".github/workflows/install.yml",
+        ".github/workflows/validate.yml"
+      ]
+    },
+    {
+      "id": "evals-model",
+      "package": "claude-opus-5",
+      "version": "claude-opus-5",
+      "version_pattern": "[a-z][a-z0-9.-]*",
+      "match": "ROUTER_MODEL = \"{version}\"",
+      "spec": "{version}",
+      "spec_latest": "{version}",
+      "documented_in": [
+        "scripts/run-evals.py"
+      ]
     }
   ],
   "scan": {

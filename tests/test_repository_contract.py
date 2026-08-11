@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 from typing import ClassVar
 
@@ -24,6 +26,17 @@ README_PATH = ROOT / "README.md"
 # to be snapshotted and restored by the round-trip tests below. Naming only the
 # English one leaves a translation holding a scaffolded PLACEHOLDER afterwards.
 ROOT_READMES = [path.name for path in sorted(ROOT.glob("README*.md"))]
+# Everything the scaffold writes to and the retirement has to put back. Named
+# once: three tests asserted against their own copy of this list, and a registry
+# added to one of them was silently unchecked by the other two.
+REGISTRIES = [
+    ".claude-plugin/marketplace.json",
+    "bundle/.claude-plugin/plugin.json",
+    "scripts/validate-repository.py",
+    ".version-bump.json",
+    "skills.sh.json",
+    *ROOT_READMES,
+]
 SKILLS_README_PATH = SKILLS / "README.md"
 PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
@@ -39,6 +52,40 @@ def declared_version() -> str:
     match = re.search(r'^VERSION = "([^"]+)"', text, re.MULTILINE)
     assert match, "validate-repository.py declares no VERSION"
     return match.group(1)
+
+
+def marketplace_name() -> str:
+    """Read the install suffix from the manifest that declares it.
+
+    Restating `misoto22` here would put the name back in a seventh file, which
+    is the thing the scripts under test stopped doing.
+    """
+
+    return json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))["name"]
+
+
+def bumped_version(pin: dict) -> str:
+    """Return a probe value of the shape this pin declares, different from its current one.
+
+    Pins no longer all take a semver: a runtime is `3.13` or `22`, and the model
+    an evaluation bills against is a name. A test that bumped everything to
+    9.9.9 would be asserting the old, narrower rule.
+    """
+
+    pattern = pin.get("version_pattern", r"\d+\.\d+\.\d+")
+    for candidate in ("9.9.9", "9.9", "9", f"{pin['version']}-probe", "probe-9"):
+        if candidate != pin["version"] and re.fullmatch(pattern, candidate):
+            return candidate
+    raise AssertionError(f"no probe version matches {pin['id']}'s shape {pattern!r}")
+
+
+def published_skills() -> dict[str, list[str]]:
+    """Return {plugin: [skill, ...]} from the tree, sorted the way the registries are."""
+
+    found: dict[str, list[str]] = {}
+    for skill_file in sorted(PLUGINS.glob("*/skills/*/SKILL.md")):
+        found.setdefault(skill_file.parent.parent.parent.name, []).append(skill_file.parent.name)
+    return {plugin: sorted(skills) for plugin, skills in sorted(found.items())}
 
 
 def bookmarked_plugins() -> set[str]:
@@ -66,18 +113,44 @@ def copy_repository_fixture(destination: Path) -> Path:
     shutil.copytree(
         ROOT,
         copied,
-        ignore=shutil.ignore_patterns(".git", ".superpowers", "__pycache__", "*.pyc", ".coverage"),
+        ignore=shutil.ignore_patterns(
+            ".git",
+            ".claude",
+            ".superpowers",
+            "__pycache__",
+            "*.pyc",
+            ".coverage",
+        ),
     )
     return copied
+
+
+@contextlib.contextmanager
+def repository_copy() -> Iterator[Path]:
+    """Yield a throwaway checkout for a test that has to edit one.
+
+    Every test below that rewrites a registry, drops a registration, or retires
+    a real skill used to do it to this checkout and put it back in a `finally`.
+    That works until the run is interrupted — Ctrl-C, a killed runner, an
+    assertion that raises somewhere unexpected — and then the tree is left
+    half-edited, and the suite cannot run two of these at once either. A copy
+    costs about 0.15s and removes both problems.
+    """
+
+    with tempfile.TemporaryDirectory() as temporary:
+        yield copy_repository_fixture(Path(temporary))
 
 
 class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
 
+        # Derived from the tree. Written out, this list is a fourth registry —
+        # one the scaffold does not know about, so adding a writing skill would
+        # fail here rather than anywhere that names it.
         self.assertEqual(
             plugin["skills"],
-            ["./skills/email", "./skills/personal-blog", "./skills/tempering"],
+            [f"./skills/{skill}" for skill in published_skills()[PLUGIN.name]],
         )
         self.assertEqual(plugin["author"]["name"], "skills contributors")
         self.assertNotIn("drafts", json.dumps(plugin))
@@ -86,7 +159,10 @@ class RepositoryContractTests(unittest.TestCase):
     def test_marketplace_registers_the_writing_plugin(self) -> None:
         marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
-        self.assertEqual(marketplace["name"], "misoto22")
+        # Held to a shape rather than to a literal: this file is where the name
+        # is declared, so asserting it equals itself proves nothing, and the
+        # claude.ai marketplace sync is what actually rejects a bad one.
+        self.assertRegex(marketplace["name"], r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
         # Claude Code resolves a source against the repository root and the skills
         # CLI prepends pluginRoot to it, so setting pluginRoot breaks one of them
         # whichever way the sources are then written.
@@ -112,14 +188,15 @@ class RepositoryContractTests(unittest.TestCase):
         manifest = json.loads((ROOT / "bundle" / ".claude-plugin" / "plugin.json").read_text())
 
         registered = {entry["name"] for entry in marketplace["plugins"]}
+        suffix = marketplace_name()
         self.assertIn(bundle, registered)
         self.assertEqual(
             sorted(manifest["dependencies"]),
-            sorted(f"{name}@misoto22" for name in registered - {bundle}),
+            sorted(f"{name}@{suffix}" for name in registered - {bundle}),
         )
         # Depending on itself is a cycle, and carrying skills would make the
         # bundle a fourth plugin to maintain rather than a way to install three.
-        self.assertNotIn(f"{bundle}@misoto22", manifest["dependencies"])
+        self.assertNotIn(f"{bundle}@{suffix}", manifest["dependencies"])
         self.assertNotIn("skills", manifest)
         self.assertFalse((PLUGINS / bundle).exists())
 
@@ -211,28 +288,26 @@ class RepositoryContractTests(unittest.TestCase):
     def test_the_validator_rejects_a_translation_that_dropped_a_skill(self) -> None:
         """The check above only means something if the validator fails without it."""
 
-        translation = next(path for path in sorted(ROOT.glob("README*.md")) if path.name != "README.md")
-        original = translation.read_bytes()
         skill_file = sorted(PLUGINS.glob("*/skills/*/SKILL.md"))[0]
         registered = (
             f"plugins/{skill_file.parent.parent.parent.name}/skills/{skill_file.parent.name}/SKILL.md"
         )
-        try:
+        with repository_copy() as copied:
+            translation = next(path for path in sorted(copied.glob("README*.md")) if path.name != "README.md")
             # Drop one skill's registration, exactly as forgetting to translate it would.
-            edited = original.decode("utf-8").replace(registered, "", 1)
-            translation.write_bytes(edited.encode("utf-8"))
+            text = translation.read_text(encoding="utf-8")
+            translation.write_text(text.replace(registered, "", 1), encoding="utf-8")
             result = subprocess.run(
                 [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            self.assertNotEqual(result.returncode, 0, "a translation missing a skill validated")
-            self.assertIn(translation.name, result.stderr)
-            self.assertIn("does not register", result.stderr)
-        finally:
-            translation.write_bytes(original)
+
+        self.assertNotEqual(result.returncode, 0, "a translation missing a skill validated")
+        self.assertIn(translation.name, result.stderr)
+        self.assertIn("does not register", result.stderr)
 
     def test_every_plugin_ships_both_manifests_and_they_agree(self) -> None:
         """Claude Code reads one file, every Agent Plugins client reads the other."""
@@ -269,10 +344,9 @@ class RepositoryContractTests(unittest.TestCase):
     def test_the_validator_rejects_a_portable_manifest_that_drifted(self) -> None:
         """The agreement above only means something if disagreeing fails the build."""
 
-        manifest = PLUGINS / "docs" / "plugin.json"
-        original = manifest.read_bytes()
-        document = json.loads(original)
-        try:
+        with repository_copy() as copied:
+            manifest = copied / "plugins" / "docs" / "plugin.json"
+            document = json.loads(manifest.read_text(encoding="utf-8"))
             for field, value, expected in (
                 ("description", "Something else entirely.", "description disagrees"),
                 ("skills", ["./skills/readme"], "outside the Agent Plugins schema"),
@@ -288,15 +362,13 @@ class RepositoryContractTests(unittest.TestCase):
                 manifest.write_text(json.dumps({**document, field: value}, indent=2) + "\n")
                 result = subprocess.run(
                     [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
-                    cwd=ROOT,
+                    cwd=copied,
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 self.assertNotEqual(result.returncode, 0, field)
                 self.assertIn(expected, result.stderr, f"{field} was not the rule that fired")
-        finally:
-            manifest.write_bytes(original)
 
     def test_validator_rejects_astrology_license_downgrades(self) -> None:
         """MIT in either astrology metadata layer must not silently weaken the plugin license."""
@@ -377,28 +449,125 @@ class RepositoryContractTests(unittest.TestCase):
     def test_the_validator_resolves_every_relative_readme_link(self) -> None:
         """Links between the registry links and the skill links had no owner."""
 
-        readme = README_PATH
-        original = readme.read_bytes()
-        try:
-            readme.write_bytes(original + b"\nSee [the handbook](docs/no-such-file.md).\n")
+        with repository_copy() as copied:
+            readme = copied / README_PATH.name
+            readme.write_bytes(readme.read_bytes() + b"\nSee [the handbook](docs/no-such-file.md).\n")
             result = subprocess.run(
                 [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("docs/no-such-file.md, which does not resolve", result.stderr)
-        finally:
-            readme.write_bytes(original)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("docs/no-such-file.md, which does not resolve", result.stderr)
+
+    def test_every_readme_states_a_count_the_tree_agrees_with(self) -> None:
+        """Both READMEs said "twelve skills" for two releases, with CI green."""
+
+        validator = (ROOT / "scripts" / "validate-repository.py").read_text(encoding="utf-8")
+        self.assertIn("STATED_COUNTS", validator)
+
+        for path in sorted(ROOT.glob("README*.md")):
+            self.assertIn(
+                f'"{path.name}"',
+                validator,
+                f"{path.name} has no entry in STATED_COUNTS, so its count is unchecked",
+            )
+
+    def test_the_validator_rejects_a_readme_whose_count_went_stale(self) -> None:
+        """The registration above only means something if a wrong count fails."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            english = copied / "README.md"
+            text = english.read_text(encoding="utf-8")
+            match = re.search(r"(?m)^([A-Za-z-]+) skills in ([A-Za-z-]+) plugins\b", text)
+            self.assertIsNotNone(match, "README.md states no count for the validator to hold")
+
+            for replacement, expected in (
+                (f"Twelve skills in {match.group(2)} plugins", "skills"),
+                (f"{match.group(1)} skills in nine plugins", "plugins"),
+                ("A pile of skills, in some plugins", "states no published count"),
+            ):
+                english.write_text(text.replace(match.group(0), replacement, 1), encoding="utf-8")
+                result = subprocess.run(
+                    [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, replacement)
+                self.assertIn("README.md", result.stderr)
+                self.assertIn(expected, result.stderr, replacement)
+
+    def test_the_scaffold_and_the_retirement_move_the_stated_count(self) -> None:
+        """A check the tooling cannot satisfy is a chore, not a guard."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            readmes = {path.name: path.read_bytes() for path in sorted(copied.glob("README*.md"))}
+            self.assertTrue(readmes)
+
+            self._run_in(copied, "scripts/new-skill.py", "countprobe", "probe")
+            for name in readmes:
+                self.assertNotEqual((copied / name).read_bytes(), readmes[name], f"{name} kept its old count")
+
+            self._run_in(copied, "scripts/remove-skill.py", "countprobe", "probe", "--delete")
+            for name, content in readmes.items():
+                self.assertEqual((copied / name).read_bytes(), content, name)
+
+    def test_every_shipped_script_is_named_by_a_test(self) -> None:
+        """AGENTS.md has always required this, and only coverage ever noticed."""
+
+        # Assembled rather than written out. This file lives under tests/, and
+        # the rule is that the module's name appears somewhere there — so a
+        # literal here would satisfy the very check being probed.
+        stem = "unreferenced" + "_probe_module"
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            scripts = copied / "plugins" / "docs" / "skills" / "readme" / "scripts"
+            scripts.mkdir(parents=True, exist_ok=True)
+            (scripts / f"{stem}.py").write_text("def probe():\n    return None\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(stem, result.stderr)
+        self.assertIn("requires unit tests", result.stderr)
+
+    def test_the_coverage_floor_is_written_down_once(self) -> None:
+        """CONTRIBUTING said 75% while .coveragerc said 82, and nothing compared them."""
+
+        floor = re.search(r"(?m)^fail_under = (\d+)$", (ROOT / ".coveragerc").read_text(encoding="utf-8"))
+        self.assertIsNotNone(floor)
+
+        contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+        self.assertIn(".coveragerc", contributing)
+        self.assertNotRegex(
+            contributing,
+            r"floors? at \d+%",
+            "CONTRIBUTING restates the coverage floor; point at .coveragerc instead",
+        )
 
     def test_docs_plugin_declares_the_readme_skill(self) -> None:
         plugin = json.loads((DOCS_PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(plugin["name"], "docs")
-        self.assertEqual(plugin["skills"], ["./skills/readme"])
-        self.assertEqual(plugin["version"], "0.8.4")
+        self.assertEqual(
+            plugin["skills"],
+            [f"./skills/{skill}" for skill in published_skills()["docs"]],
+        )
+        self.assertEqual(plugin["version"], declared_version())
         self.assertFalse((DOCS_PLUGIN / "shared").exists(), "docs has one skill and needs no shared/")
 
     def test_link_script_never_recursively_deletes_targets(self) -> None:
@@ -473,8 +642,9 @@ class RepositoryContractTests(unittest.TestCase):
         skill = (SKILLS / "email" / "SKILL.md").read_text(encoding="utf-8")
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.8.4")
-        self.assertIn('version: "0.8.4"', skill)
+        version = declared_version()
+        self.assertEqual(plugin["version"], version)
+        self.assertIn(f'version: "{version}"', skill)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("actions/checkout@", workflow)
         self.assertIn("actions/setup-python@", workflow)
@@ -554,19 +724,21 @@ class RepositoryContractTests(unittest.TestCase):
     def test_eval_check_rejects_a_missing_suite_and_a_dangling_hand_off(self) -> None:
         """A suite for a skill nobody publishes, or a hand-off to one, is drift."""
 
-        def run() -> subprocess.CompletedProcess[str]:
-            return subprocess.run(
-                [sys.executable, "scripts/run-evals.py", "--check"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+        with repository_copy() as copied:
 
-        suite = ROOT / "evals" / "sync" / "evals.json"
-        original = suite.read_text(encoding="utf-8")
-        moved = suite.with_suffix(".json.moved")
-        try:
+            def run() -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "scripts/run-evals.py", "--check"],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+            suite = copied / "evals" / "sync" / "evals.json"
+            original = suite.read_text(encoding="utf-8")
+            moved = suite.with_suffix(".json.moved")
+
             suite.rename(moved)
             self.assertIn("missing", run().stderr)
             moved.rename(suite)
@@ -580,39 +752,34 @@ class RepositoryContractTests(unittest.TestCase):
             suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             self.assertIn("its own skill", run().stderr)
 
-            suite.write_text(original, encoding="utf-8")
             document = json.loads(original)
             document["triggers"] = document["triggers"][:1]
             suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             self.assertIn("needs at least", run().stderr)
-        finally:
-            if moved.exists():
-                moved.rename(suite)
-            suite.write_text(original, encoding="utf-8")
 
     def test_behavior_fixtures_stay_in_their_suite_and_validate_as_v2_json(self) -> None:
         """A missing, escaping, or malformed artifact must fail before model billing."""
 
-        suite = ROOT / "evals" / "synastry-reading" / "evals.json"
-        invalid = suite.parent / "invalid-behavior-fixture.json"
-        stale = suite.parent / "stale-integrity-behavior-fixture.json"
-        escaping_link = suite.parent / "escaping-behavior-fixture.json"
-        original = suite.read_text(encoding="utf-8")
+        with repository_copy() as copied:
+            suite = copied / "evals" / "synastry-reading" / "evals.json"
+            invalid = suite.parent / "invalid-behavior-fixture.json"
+            stale = suite.parent / "stale-integrity-behavior-fixture.json"
+            escaping_link = suite.parent / "escaping-behavior-fixture.json"
+            original = suite.read_text(encoding="utf-8")
 
-        def run_with(fixture: str) -> subprocess.CompletedProcess[str]:
-            document = json.loads(original)
-            document["behaviors"][0]["fixture"] = fixture
-            document["behaviors"][0]["language"] = "en"
-            suite.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
-            return subprocess.run(
-                [sys.executable, "scripts/run-evals.py", "--check"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            def run_with(fixture: str) -> subprocess.CompletedProcess[str]:
+                document = json.loads(original)
+                document["behaviors"][0]["fixture"] = fixture
+                document["behaviors"][0]["language"] = "en"
+                suite.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+                return subprocess.run(
+                    [sys.executable, "scripts/run-evals.py", "--check"],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
 
-        try:
             missing = run_with("fixtures/does-not-exist.json")
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("does not exist", missing.stderr)
@@ -626,7 +793,7 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertNotEqual(malformed.returncode, 0)
             self.assertIn("synastry v2 validation", malformed.stderr)
 
-            escaping_link.symlink_to(ROOT / "evals" / "synastry" / "evals.json")
+            escaping_link.symlink_to(copied / "evals" / "synastry" / "evals.json")
             symlink_escape = run_with(escaping_link.name)
             self.assertNotEqual(symlink_escape.returncode, 0)
             self.assertIn("inside its eval suite", symlink_escape.stderr)
@@ -637,11 +804,6 @@ class RepositoryContractTests(unittest.TestCase):
             integrity_mismatch = run_with(stale.name)
             self.assertNotEqual(integrity_mismatch.returncode, 0)
             self.assertIn("synastry v2 validation", integrity_mismatch.stderr)
-        finally:
-            invalid.unlink(missing_ok=True)
-            stale.unlink(missing_ok=True)
-            escaping_link.unlink(missing_ok=True)
-            suite.write_text(original, encoding="utf-8")
 
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
         result = subprocess.run(
@@ -656,35 +818,34 @@ class RepositoryContractTests(unittest.TestCase):
     def test_description_rules_reject_what_they_are_written_to_reject(self) -> None:
         """Each rule is checked on its own, so a passing suite means all four hold."""
 
-        skill_file = SKILLS / "email" / "SKILL.md"
-        original = skill_file.read_text(encoding="utf-8")
-        current = next(line for line in original.splitlines() if line.startswith("description:"))
-        tempering = next(
-            line
-            for line in (SKILLS / "tempering" / "SKILL.md").read_text(encoding="utf-8").splitlines()
-            if line.startswith("description:")
-        )
-        cases = {
-            "placeholder": ("description: PLACEHOLDER, " + "rewrite this line. " * 8 + "Not for anything.",),
-            "over 1024": ("description: " + "words to overflow the ceiling. " * 40 + "Not for anything.",),
-            "under 120": ("description: Short. Not for much.",),
-            "not for": (current.split(" Not for ")[0],),
-            "consecutive words": (tempering,),
-        }
-        try:
-            for expected, (replacement,) in cases.items():
+        with repository_copy() as copied:
+            skills = copied / "plugins" / "writing" / "skills"
+            skill_file = skills / "email" / "SKILL.md"
+            original = skill_file.read_text(encoding="utf-8")
+            current = next(line for line in original.splitlines() if line.startswith("description:"))
+            tempering = next(
+                line
+                for line in (skills / "tempering" / "SKILL.md").read_text(encoding="utf-8").splitlines()
+                if line.startswith("description:")
+            )
+            cases = {
+                "placeholder": "description: PLACEHOLDER, " + "rewrite this line. " * 8 + "Not for anything.",
+                "over 1024": "description: " + "words to overflow the ceiling. " * 40 + "Not for anything.",
+                "under 120": "description: Short. Not for much.",
+                "not for": current.split(" Not for ")[0],
+                "consecutive words": tempering,
+            }
+            for expected, replacement in cases.items():
                 skill_file.write_text(original.replace(current, replacement, 1), encoding="utf-8")
                 result = subprocess.run(
                     [sys.executable, "scripts/check-descriptions.py"],
-                    cwd=ROOT,
+                    cwd=copied,
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 self.assertNotEqual(result.returncode, 0, expected)
                 self.assertIn(expected, result.stderr, f"{expected} was not the rule that fired")
-        finally:
-            skill_file.write_text(original, encoding="utf-8")
 
     def test_canary_runs_the_install_routes_against_the_latest_clis(self) -> None:
         """A pinned route never fails on upstream drift, so Install alone cannot find it."""
@@ -729,7 +890,83 @@ class RepositoryContractTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
 
         self.assertIn("--run-behaviors", runner)
-        self.assertIn("--run-behaviors synastry-reading", workflow)
+        # Every skill's, not one skill's. Naming a skill here left 51 of the 58
+        # written behavior cases unexecuted — the expensive half of the suites,
+        # and the half whose absence no other check can see.
+        self.assertIn("run-evals.py --run-behaviors 2>&1", workflow)
+        self.assertNotIn("--run-behaviors synastry-reading", workflow)
+
+    def test_every_behavior_case_is_reachable_by_the_weekly_run(self) -> None:
+        """A case nobody runs is documentation, and it is billed for as neither."""
+
+        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+        written = {
+            path.parent.name: len(json.loads(path.read_text(encoding="utf-8")).get("behaviors") or [])
+            for path in sorted((ROOT / "evals").glob("*/evals.json"))
+        }
+        carrying = {skill for skill, count in written.items() if count}
+
+        self.assertGreater(len(carrying), 1, "only one skill writes behavior cases")
+        for skill in sorted(carrying):
+            self.assertNotIn(
+                f"--run-behaviors {skill}",
+                workflow,
+                f"{skill} would be the only skill scored; drop the argument to score them all",
+            )
+
+    def test_mechanical_validation_is_a_registry_rather_than_a_skill_name(self) -> None:
+        """A fixture-bearing case in an unregistered skill must fail, not be skipped."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        self.assertIn("synastry-reading", module.MECHANICAL_VALIDATORS)
+        for paths in module.MECHANICAL_VALIDATORS.values():
+            for role in ("reading", "source", "schema"):
+                self.assertTrue(paths[role].is_file(), paths[role])
+
+        # A skill with no entry is reported, not silently judged semantically.
+        failures = module._mechanical_failures(
+            "readme", {"id": "x", "fixture": "fixtures/whatever.json"}, "# draft\n"
+        )
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("MECHANICAL_VALIDATORS", failures[0])
+
+        # Every skill whose cases carry a fixture has to be registered.
+        for path in sorted((ROOT / "evals").glob("*/evals.json")):
+            suite = json.loads(path.read_text(encoding="utf-8"))
+            if any(case.get("fixture") for case in suite.get("behaviors") or []):
+                self.assertIn(path.parent.name, module.MECHANICAL_VALIDATORS, path.parent.name)
+
+    def test_every_skill_can_build_its_behavior_prompt(self) -> None:
+        """The weekly run spans every skill now, and this half of it costs nothing.
+
+        `_cli_contracts` renders `--help` for each script SKILL.md names, and
+        raises when one exits nonzero. It matched an option as a subcommand, so
+        three skills raised here — before a single billable call — and nothing
+        noticed while behaviors ran for one skill.
+        """
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        built = 0
+        for path in sorted((ROOT / "evals").glob("*/evals.json")):
+            skill = path.parent.name
+            cases = json.loads(path.read_text(encoding="utf-8")).get("behaviors") or []
+            if not cases:
+                continue
+            built += 1
+            with self.subTest(skill=skill):
+                self.assertTrue(module.behavior_system_prompt(skill).strip())
+                self.assertTrue(module._behavior_user_message(skill, cases[0]).strip())
+        self.assertGreater(built, 1)
 
     def test_a_reading_behavior_runs_mechanical_and_semantic_checks(self) -> None:
         """A valid draft still fails once for each expectation the judge rejects."""
@@ -1001,9 +1238,12 @@ class RepositoryContractTests(unittest.TestCase):
             # template. The default is the npm form every other one uses.
             pinned = pin.get("spec", "{package}@{version}")
             latest = pin.get("spec_latest", "{package}@latest")
+            # Both templates see both fields. A pin that cannot float — a
+            # runtime, the evaluation model — says so by resolving `latest` to
+            # the version it already declares, which needs {version} here.
             for channel, expected in (
                 ("pinned", pinned.format(package=pin["package"], version=pin["version"])),
-                ("latest", latest.format(package=pin["package"])),
+                ("latest", latest.format(package=pin["package"], version=pin["version"])),
             ):
                 result = subprocess.run(
                     [sys.executable, "scripts/ci-pins.py", "spec", pin["id"]],
@@ -1025,39 +1265,61 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotEqual(unknown.returncode, 0)
 
     def test_ci_pin_bump_moves_every_documented_occurrence(self) -> None:
-        config_path = ROOT / ".ci-pins.json"
-        pins = json.loads(config_path.read_text(encoding="utf-8"))["pins"]
-        documented = [pin for pin in pins if pin.get("documented_in")]
-        self.assertTrue(documented, "no pin is written down outside .ci-pins.json")
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            config_path = copied / ".ci-pins.json"
+            pins = json.loads(config_path.read_text(encoding="utf-8"))["pins"]
+            documented = [pin for pin in pins if pin.get("documented_in")]
+            self.assertTrue(documented, "no pin is written down outside .ci-pins.json")
 
-        before = {
-            path: (ROOT / path).read_bytes()
-            for path in [config_path.name, *(file for pin in documented for file in pin["documented_in"])]
-        }
-        try:
+            before = {
+                path: (copied / path).read_bytes() for pin in documented for path in pin["documented_in"]
+            }
             for pin in documented:
+                target = bumped_version(pin)
+                self.assertNotEqual(target, pin["version"], pin["id"])
                 moved = subprocess.run(
-                    [sys.executable, "scripts/ci-pins.py", "bump", pin["id"], "9.9.9"],
-                    cwd=ROOT,
+                    [sys.executable, "scripts/ci-pins.py", "bump", pin["id"], target],
+                    cwd=copied,
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 self.assertEqual(moved.returncode, 0, moved.stderr)
                 for path in pin["documented_in"]:
-                    self.assertNotEqual((ROOT / path).read_bytes(), before[path], path)
+                    self.assertNotEqual((copied / path).read_bytes(), before[path], path)
+
             # Every occurrence moved together, so the tree agrees with itself again.
             checked = subprocess.run(
                 [sys.executable, "scripts/ci-pins.py", "check"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
             )
             self.assertEqual(checked.returncode, 0, checked.stderr)
-        finally:
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
+
+    def test_ci_pin_bump_refuses_a_version_of_the_wrong_shape(self) -> None:
+        """A runtime is `3.13` and a model is a name; only semver pins take semver."""
+
+        pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        shaped = [pin for pin in pins if pin.get("version_pattern")]
+        self.assertTrue(shaped, "no pin declares its own version shape")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            for pin in shaped:
+                # A three-part semver is the wrong shape for every pin that had
+                # to declare one; that is why they declare one.
+                refused = subprocess.run(
+                    [sys.executable, "scripts/ci-pins.py", "bump", pin["id"], "9.9.9"],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(refused.returncode, 0, pin["id"])
+                self.assertIn("does not match", refused.stderr, pin["id"])
 
     def test_coverage_floors_the_python_that_ships(self) -> None:
         """A floor nobody runs is a floor that does not exist, so CI has to run it."""
@@ -1164,10 +1426,11 @@ class RepositoryContractTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
 
         for route in (
-            'claude plugin install "$plugin@misoto22"',
-            'codex plugin add "$plugin@misoto22"',
+            'claude plugin install "$plugin@$MARKETPLACE"',
+            'codex plugin add "$plugin@$MARKETPLACE"',
             "bash scripts/list-plugins.sh",
             "bash scripts/list-skills.sh",
+            "bash scripts/marketplace-name.sh",
             "scripts/package-skill.py",
             "ci-pins.py spec claude-code",
             "ci-pins.py spec codex",
@@ -1176,12 +1439,15 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(route, workflow)
         self.assertEqual(workflow.count("scripts/verify-install.py"), 4)
 
-    def test_install_workflow_names_no_plugin_or_skill(self) -> None:
+    def test_install_workflow_names_no_plugin_skill_or_marketplace(self) -> None:
         """A name written here is a name that has to be maintained here. Derive them."""
 
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")
         published = {path.parent.name for path in PLUGINS.glob("*/skills/*/SKILL.md")}
         published |= {path.parent.parent.name for path in PLUGINS.glob("*/.claude-plugin/plugin.json")}
+        # The marketplace name too: it is the install suffix, so writing it here
+        # is the same rename spread over a seventh file.
+        published |= {marketplace_name()}
 
         for name in sorted(published):
             self.assertNotRegex(
@@ -1190,6 +1456,33 @@ class RepositoryContractTests(unittest.TestCase):
                 f"install.yml names {name!r}; derive it from the tree instead",
             )
         self.assertEqual(workflow.count("--expect"), 4, "every route asserts a derived --expect list")
+
+    def test_no_workflow_names_a_skill_requirements_file(self) -> None:
+        """A skill declares its own dependencies; CI must not name the path."""
+
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            self.assertNotIn(
+                "requirements.txt",
+                path.read_text(encoding="utf-8"),
+                f"{path.name} names a requirements path; use scripts/install-skill-requirements.sh",
+            )
+
+    def test_install_skill_requirements_finds_every_declared_dependency(self) -> None:
+        """The script is what CI runs, so what it finds has to be the whole set."""
+
+        result = subprocess.run(
+            ["bash", "scripts/install-skill-requirements.sh", "--list"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        declared = sorted(
+            path.relative_to(ROOT).as_posix() for path in PLUGINS.glob("*/skills/*/requirements.txt")
+        )
+
+        self.assertTrue(declared, "no skill declares a dependency; this test has nothing to hold")
+        self.assertEqual(sorted(result.stdout.split()), declared)
 
     def test_list_script_prints_only_published_plugins(self) -> None:
         result = subprocess.run(
@@ -1223,18 +1516,17 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("the install dropped shared material", result.stderr)
 
     def test_verify_install_accepts_the_published_tree(self) -> None:
+        # Every published skill, derived. Naming three of them asserted less on
+        # each skill added, and silently: the check kept passing while covering
+        # a smaller share of the tree.
+        expected: list[str] = []
+        for skills in published_skills().values():
+            for skill in skills:
+                expected.extend(("--expect", skill))
+        self.assertTrue(expected)
+
         subprocess.run(
-            [
-                sys.executable,
-                "scripts/verify-install.py",
-                str(PLUGINS),
-                "--expect",
-                "email",
-                "--expect",
-                "tempering",
-                "--expect",
-                "readme",
-            ],
+            [sys.executable, "scripts/verify-install.py", str(PLUGINS), *expected],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -1257,18 +1549,16 @@ class RepositoryContractTests(unittest.TestCase):
     def test_version_audit_reaches_the_workflows_directory(self) -> None:
         """Excluding `.git` by string prefix excluded `.github` with it, silently."""
 
-        probe = ROOT / ".github" / "workflows" / "audit-probe.yml"
-        probe.write_text(f"probe: {declared_version()}\n", encoding="utf-8")
-        try:
+        with repository_copy() as copied:
+            probe = copied / ".github" / "workflows" / "audit-probe.yml"
+            probe.write_text(f"probe: {declared_version()}\n", encoding="utf-8")
             result = subprocess.run(
                 [sys.executable, "scripts/bump-version.py", "--audit"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
             )
-        finally:
-            probe.unlink()
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
@@ -1282,73 +1572,67 @@ class RepositoryContractTests(unittest.TestCase):
         has one open, reporting files they did not write as undeclared.
         """
 
-        probe = ROOT / ".claude" / "worktrees" / "scanner-probe" / "CHANGELOG.md"
-        probe.parent.mkdir(parents=True, exist_ok=True)
-        pin = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"][0]
-        probe.write_text(
-            f"version {declared_version()}\n{pin['package']}@{pin['version']}\n",
-            encoding="utf-8",
-        )
-        try:
+        with repository_copy() as copied:
+            probe = copied / ".claude" / "worktrees" / "scanner-probe" / "CHANGELOG.md"
+            probe.parent.mkdir(parents=True, exist_ok=True)
+            pin = json.loads((copied / ".ci-pins.json").read_text(encoding="utf-8"))["pins"][0]
+            probe.write_text(
+                f"version {declared_version()}\n{pin['package']}@{pin['version']}\n",
+                encoding="utf-8",
+            )
             for command in (
                 ("scripts/bump-version.py", "--audit"),
                 ("scripts/ci-pins.py", "check"),
             ):
                 result = subprocess.run(
                     [sys.executable, *command],
-                    cwd=ROOT,
+                    cwd=copied,
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, f"{command}: {result.stderr}")
                 self.assertNotIn("scanner-probe", result.stderr, str(command))
-        finally:
-            shutil.rmtree(probe.parent, ignore_errors=True)
 
     def test_version_bump_round_trips_without_drift(self) -> None:
-        config = json.loads((ROOT / ".version-bump.json").read_text(encoding="utf-8"))
-        declared = [entry["path"] for entry in config["json"]] + config["text"]
-        before = {path: (ROOT / path).read_bytes() for path in declared}
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            config = json.loads((copied / ".version-bump.json").read_text(encoding="utf-8"))
+            declared = [entry["path"] for entry in config["json"]] + config["text"]
+            before = {path: (copied / path).read_bytes() for path in declared}
+            original = declared_version()
 
-        def run(*args: str) -> subprocess.CompletedProcess[str]:
-            return subprocess.run(
-                [sys.executable, "scripts/bump-version.py", *args],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            def run(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "scripts/bump-version.py", *args],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
 
-        try:
             self.assertEqual(run("9.9.9").returncode, 0)
             self.assertIn("current version: 9.9.9", run("--check").stdout)
             for path in declared:
-                self.assertNotEqual((ROOT / path).read_bytes(), before[path], path)
-            self.assertEqual(run("0.8.4").returncode, 0)
-        finally:
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
+                self.assertNotEqual((copied / path).read_bytes(), before[path], path)
 
-        self.assertNotEqual(run("bad-version").returncode, 0)
+            # Back to where it started, byte for byte. Read from the validator
+            # rather than written here: a literal in this file would be one more
+            # occurrence for the bumper to declare and move.
+            self.assertEqual(run(original).returncode, 0)
+            for path in declared:
+                self.assertEqual((copied / path).read_bytes(), before[path], path)
+
+            self.assertNotEqual(run("bad-version").returncode, 0)
 
     def test_new_skill_scaffold_leaves_only_the_description_to_write(self) -> None:
         """The scaffold owes the registries nothing, and owes the description everything."""
 
-        touched = [
-            ".claude-plugin/marketplace.json",
-            "bundle/.claude-plugin/plugin.json",
-            "scripts/validate-repository.py",
-            ".version-bump.json",
-            "skills.sh.json",
-            *ROOT_READMES,
-        ]
-        before = {path: (ROOT / path).read_bytes() for path in touched}
-        scaffolded = ROOT / "plugins" / "scaffoldtest"
-        try:
+        with repository_copy() as copied:
+            scaffolded = copied / "plugins" / "scaffoldtest"
             created = subprocess.run(
                 [sys.executable, "scripts/new-skill.py", "scaffoldtest", "probe"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -1357,7 +1641,7 @@ class RepositoryContractTests(unittest.TestCase):
 
             validated = subprocess.run(
                 [sys.executable, "scripts/validate-repository.py", "--skip-tests"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -1380,10 +1664,6 @@ class RepositoryContractTests(unittest.TestCase):
                 scaffolded / ".claude-plugin" / "plugin.json",
             ):
                 self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["license"], "MIT")
-        finally:
-            shutil.rmtree(scaffolded, ignore_errors=True)
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
 
     def test_new_skill_inherits_an_existing_plugin_license(self) -> None:
         """A new astrology skill must not be scaffolded under a conflicting MIT license."""
@@ -1421,53 +1701,35 @@ class RepositoryContractTests(unittest.TestCase):
     def test_remove_skill_is_the_exact_inverse_of_new_skill(self) -> None:
         """Scaffold then retire has to leave every registry byte-identical."""
 
-        registries = [
-            ".claude-plugin/marketplace.json",
-            "bundle/.claude-plugin/plugin.json",
-            "scripts/validate-repository.py",
-            ".version-bump.json",
-            "skills.sh.json",
-            *ROOT_READMES,
-        ]
-        before = {path: (ROOT / path).read_bytes() for path in registries}
-        scaffolded = ROOT / "plugins" / "roundtrip"
-        retired = ROOT / "deprecated" / "roundtrip"
-        try:
-            self._run("scripts/new-skill.py", "roundtrip", "probe")
+        with repository_copy() as copied:
+            registries = REGISTRIES
+            before = {path: (copied / path).read_bytes() for path in registries}
+
+            self._run_in(copied, "scripts/new-skill.py", "roundtrip", "probe")
             self.assertNotEqual(
-                (ROOT / "README.md").read_bytes(), before["README.md"], "scaffold changed nothing"
+                (copied / "README.md").read_bytes(), before["README.md"], "scaffold changed nothing"
             )
 
-            self._run("scripts/remove-skill.py", "roundtrip", "probe", "--delete")
+            self._run_in(copied, "scripts/remove-skill.py", "roundtrip", "probe", "--delete")
             for path in registries:
-                self.assertEqual((ROOT / path).read_bytes(), before[path], path)
-            self.assertFalse(scaffolded.exists(), "the emptied plugin was left behind")
-        finally:
-            shutil.rmtree(scaffolded, ignore_errors=True)
-            shutil.rmtree(retired, ignore_errors=True)
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
+                self.assertEqual((copied / path).read_bytes(), before[path], path)
+            self.assertFalse(
+                (copied / "plugins" / "roundtrip").exists(), "the emptied plugin was left behind"
+            )
 
     def test_a_retired_skill_leaves_every_published_surface(self) -> None:
         """deprecated/ is only useful if nothing published can still see into it."""
 
-        registries = [
-            ".claude-plugin/marketplace.json",
-            "bundle/.claude-plugin/plugin.json",
-            "scripts/validate-repository.py",
-            ".version-bump.json",
-            "skills.sh.json",
-            *ROOT_READMES,
-        ]
-        before = {path: (ROOT / path).read_bytes() for path in registries}
-        scaffolded = ROOT / "plugins" / "roundtrip"
-        retired = ROOT / "deprecated" / "roundtrip"
-        try:
-            self._run("scripts/new-skill.py", "roundtrip", "probe")
-            unwritten = self._run("scripts/validate-repository.py", "--skip-tests", expect_success=False)
+        with repository_copy() as copied:
+            retired = copied / "deprecated" / "roundtrip"
+
+            self._run_in(copied, "scripts/new-skill.py", "roundtrip", "probe")
+            unwritten = self._run_in(
+                copied, "scripts/validate-repository.py", "--skip-tests", expect_success=False
+            )
             self.assertNotEqual(unwritten.returncode, 0, "a placeholder description validated")
 
-            self._run("scripts/remove-skill.py", "roundtrip", "probe")
+            self._run_in(copied, "scripts/remove-skill.py", "roundtrip", "probe")
             self.assertTrue((retired / "probe" / "SKILL.md").is_file(), "the material was not kept")
 
             # The retired tree still carries a version and a description that no
@@ -1479,67 +1741,69 @@ class RepositoryContractTests(unittest.TestCase):
                 ("scripts/run-evals.py", "--check"),
                 ("scripts/ci-pins.py", "check"),
             ):
-                self._run(*command)
+                self._run_in(copied, *command)
 
             listed = subprocess.run(
                 ["bash", "scripts/list-skills.sh"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=True,
             )
             self.assertNotIn("probe", listed.stdout)
-        finally:
-            shutil.rmtree(scaffolded, ignore_errors=True)
-            shutil.rmtree(retired, ignore_errors=True)
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
 
     def test_retiring_a_skill_clears_the_hand_offs_that_named_it(self) -> None:
         """A routes_to naming a retired skill fails --check, so removal has to own it."""
 
-        routed_evals = ["evals/email/evals.json", "evals/personal-blog/evals.json"]
-        edited = [
-            "scripts/validate-repository.py",
-            *ROOT_READMES,
-            ".version-bump.json",
-            "skills.sh.json",
-            *routed_evals,
-            "plugins/writing/.claude-plugin/plugin.json",
-            "plugins/writing/skills/README.md",
-        ]
-        before = {path: (ROOT / path).read_bytes() for path in edited}
-        routed_case_ids = {
-            path: {case["id"] for case in json.loads(before[path])["non_triggers"]} for path in routed_evals
-        }
-        for path in routed_evals:
-            self.assertIn(b'"routes_to": "tempering"', before[path], path)
-        retired = ROOT / "deprecated" / "writing" / "tempering"
-        try:
+        # A real skill, moved to deprecated/ and its hand-offs cleared. In the
+        # checkout this used to put `writing/tempering` back with shutil.move in
+        # a finally block; an interrupted run left the skill sitting under
+        # deprecated/ and the registries half-rewritten.
+        routed_evals = sorted(
+            path.relative_to(ROOT).as_posix()
+            for path in (ROOT / "evals").glob("*/evals.json")
+            if '"routes_to": "tempering"' in path.read_text(encoding="utf-8")
+        )
+        self.assertTrue(routed_evals, "no suite hands off to tempering; this test holds nothing")
+
+        with repository_copy() as copied:
+            before = {path: (copied / path).read_bytes() for path in routed_evals}
+            routed_case_ids = {
+                path: {case["id"] for case in json.loads(before[path])["non_triggers"]}
+                for path in routed_evals
+            }
+
             # Without --delete, so the move is reversible and nothing is destroyed.
-            self._run("scripts/remove-skill.py", "writing", "tempering")
+            self._run_in(copied, "scripts/remove-skill.py", "writing", "tempering")
+            self.assertTrue((copied / "deprecated" / "writing" / "tempering" / "SKILL.md").is_file())
             for path in routed_evals:
-                self.assertNotIn(b'"routes_to": "tempering"', (ROOT / path).read_bytes(), path)
-                suite = json.loads((ROOT / path).read_text(encoding="utf-8"))
+                self.assertNotIn(b'"routes_to": "tempering"', (copied / path).read_bytes(), path)
+                suite = json.loads((copied / path).read_text(encoding="utf-8"))
                 self.assertEqual(
                     {case["id"] for case in suite["non_triggers"]},
                     routed_case_ids[path],
                     path,
                 )
-            self._run("scripts/run-evals.py", "--check")
-        finally:
-            if (retired / "evals").is_dir():
-                shutil.move(str(retired / "evals"), str(ROOT / "evals" / "tempering"))
-            if retired.is_dir():
-                shutil.move(str(retired), str(SKILLS / "tempering"))
-            shutil.rmtree(ROOT / "deprecated", ignore_errors=True)
-            for path, content in before.items():
-                (ROOT / path).write_bytes(content)
+            self._run_in(copied, "scripts/run-evals.py", "--check")
 
     def _run(self, *command: str, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
+        return self._run_in(ROOT, *command, expect_success=expect_success)
+
+    def _run_in(
+        self,
+        cwd: Path,
+        *command: str,
+        expect_success: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        """Run one of the repository's scripts against a chosen checkout.
+
+        Most callers want a copy rather than this one: a script that rewrites
+        registries, interrupted, leaves the real tree half-edited.
+        """
+
         result = subprocess.run(
             [sys.executable, *command],
-            cwd=ROOT,
+            cwd=cwd,
             capture_output=True,
             text=True,
             check=False,
@@ -1549,16 +1813,19 @@ class RepositoryContractTests(unittest.TestCase):
         return result
 
     def test_new_skill_rejects_names_the_marketplace_sync_would_reject(self) -> None:
-        for name in ("Writing", "my_skill", "1skill"):
-            result = subprocess.run(
-                [sys.executable, "scripts/new-skill.py", "writing", name],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            self.assertNotEqual(result.returncode, 0, name)
-            self.assertIn("kebab-case", result.stderr)
+        # In a copy: a name that slipped past the check would otherwise scaffold
+        # a skill into the checkout, and this test has no cleanup for that.
+        with repository_copy() as copied:
+            for name in ("Writing", "my_skill", "1skill"):
+                result = subprocess.run(
+                    [sys.executable, "scripts/new-skill.py", "writing", name],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, name)
+                self.assertIn("kebab-case", result.stderr)
 
     def test_contributor_guardrails_exist(self) -> None:
         for relative in (
@@ -1749,22 +2016,67 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertTrue(copied.is_file(), f"{copied} is missing")
                 self.assertEqual(copied.read_bytes(), content, f"{copied} is stale")
 
+    def test_no_test_writes_into_the_checkout_it_is_running_from(self) -> None:
+        """An interrupted run must not be able to leave this repository half-edited.
+
+        Sixteen tests here used to edit the tree and put it back in a `finally`.
+        That holds until the process does not reach the `finally` — Ctrl-C, a
+        killed runner, an OOM — and it is also what stops the suite running two
+        of them at once. `repository_copy()` costs about 0.15s and removes both.
+
+        Read from the source rather than observed at runtime, because the
+        failure mode being prevented is precisely a test that does not finish.
+        """
+
+        source = Path(__file__).read_text(encoding="utf-8")
+        bodies = re.split(r"\n    def ", source)[1:]
+        mutating = re.compile(
+            r"\.(write_text|write_bytes|unlink|rename|symlink_to|mkdir)\(|shutil\.(move|rmtree)\("
+        )
+        # Two rules, both cheap and both aimed at the shape that actually
+        # regressed. First: a mutating test has to open some throwaway scope at
+        # all — none of the sixteen did. Second: no test may write through an
+        # expression rooted at a repository constant, which is how each of them
+        # named its target. A test that opens a copy and then writes to ROOT
+        # anyway defeats both, and only review catches that.
+        scoped = ("repository_copy()", "copy_repository_fixture", "TemporaryDirectory")
+        roots = "ROOT|PLUGIN|PLUGINS|SKILLS|DOCS_PLUGIN|README_PATH|SKILLS_README_PATH|CHANGELOG_PATH"
+        writes_to_checkout = re.compile(
+            rf"\((?:{roots})\s*/[^)]*\)\s*\.(?:write_text|write_bytes|unlink|rename|symlink_to|mkdir)\("
+            rf"|\b(?:{roots})\.(?:write_text|write_bytes|unlink|rename|symlink_to)\("
+            rf"|shutil\.(?:move|rmtree)\(\s*(?:str\()?(?:{roots})\b"
+        )
+
+        unscoped: list[str] = []
+        aimed_at_checkout: list[str] = []
+        for body in bodies:
+            name = body.split("(")[0]
+            if not name.startswith("test_") or not mutating.search(body):
+                continue
+            if not any(marker in body for marker in scoped):
+                unscoped.append(name)
+            if writes_to_checkout.search(body):
+                aimed_at_checkout.append(name)
+
+        self.assertEqual(unscoped, [], "these tests mutate without a throwaway scope; use repository_copy()")
+        self.assertEqual(
+            aimed_at_checkout, [], "these tests write through a repository path; write to the copy"
+        )
+
     def test_sync_shared_reports_drift(self) -> None:
-        target = SKILLS / "email" / "shared" / "tone.md"
-        original = target.read_bytes()
-        target.write_bytes(original + b"\ndrift\n")
-        try:
+        with repository_copy() as copied:
+            target = copied / "plugins" / "writing" / "skills" / "email" / "shared" / "tone.md"
+            target.write_bytes(target.read_bytes() + b"\ndrift\n")
             result = subprocess.run(
                 [sys.executable, "scripts/sync-shared.py", "--check"],
-                cwd=ROOT,
+                cwd=copied,
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("stale vendored copy", result.stderr)
-        finally:
-            target.write_bytes(original)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stale vendored copy", result.stderr)
 
 
 if __name__ == "__main__":

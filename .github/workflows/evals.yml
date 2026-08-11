@@ -24,9 +24,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Routing is one call per case; a behavior case is two, a draft and a judge.
+  # This ran only synastry-reading's behaviors for a while, which left 51 of the
+  # 58 written cases never executed — the expensive half of every eval suite,
+  # unread. Running all of them is roughly three times the work, so the timeout
+  # below moves with it rather than turning a full run into a killed one.
   score:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
@@ -52,7 +57,11 @@ jobs:
             python3 scripts/run-evals.py --run 2>&1 | tee "$REPORT"
           fi
           routing_status=${PIPESTATUS[0]}
-          python3 scripts/run-evals.py --run-behaviors synastry-reading 2>&1 | tee -a "$REPORT"
+          if [ -n "$SKILL" ]; then
+            python3 scripts/run-evals.py --run-behaviors "$SKILL" 2>&1 | tee -a "$REPORT"
+          else
+            python3 scripts/run-evals.py --run-behaviors 2>&1 | tee -a "$REPORT"
+          fi
           behavior_status=${PIPESTATUS[0]}
           if [ "$routing_status" -ne 0 ] || [ "$behavior_status" -ne 0 ]; then
             exit 1
