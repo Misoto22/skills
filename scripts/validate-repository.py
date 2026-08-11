@@ -41,6 +41,7 @@ BOOKMARKED = {
     "codex",
     "everything-claude-code",
     "i-have-adhd",
+    "mattpocock-skills",
     "obsidian",
     "warp",
 }

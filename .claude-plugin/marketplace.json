@@ -78,6 +78,15 @@
       }
     },
     {
+      "name": "mattpocock-skills",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/mattpocock/skills.git",
+        "sha": "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
+      }
+    },
+    {
       "name": "warp",
       "category": "monitoring",
       "source": {
