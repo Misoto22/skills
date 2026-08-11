@@ -25,6 +25,7 @@ is rewritten. Everything mechanical is done; the one judgement call is not.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
@@ -162,6 +163,8 @@ def main() -> int:
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
     _register_skills_sh(args.plugin, args.skill, created)
+    # Last: it counts the tree, which the steps above have just changed.
+    _restate_counts(created)
 
     for path in created:
         print(f"  {path}")
@@ -178,6 +181,41 @@ def main() -> int:
     print("     on and two it must stay out of. run-evals.py --check fails until it exists.")
     print("  4. python3 scripts/validate-repository.py")
     return 0
+
+
+def _load_validator():
+    """Load validate-repository.py, which owns the registries this script edits.
+
+    Imported by path because the filename is hyphenated. Executing it defines
+    the registries and their helpers and runs nothing; `main()` is guarded.
+    """
+
+    path = ROOT / "scripts" / "validate-repository.py"
+    spec = importlib.util.spec_from_file_location("validate_repository", path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"error: cannot load {path.relative_to(ROOT)}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _restate_counts(created: list[str]) -> None:
+    """The READMEs state a published count, and the tree just changed under it."""
+
+    for name in _load_validator().restate_counts():
+        created.append(f"{name} (count restated)")
+
+
+def _marketplace_name() -> str:
+    """Read the install suffix from the manifest that has to declare it anyway.
+
+    `<plugin>@<marketplace>` is what a user types and what the bundle depends
+    on. Writing the name here as well would make a rename something half the
+    repository follows.
+    """
+
+    manifest = ROOT / ".claude-plugin" / "marketplace.json"
+    return str(json.loads(manifest.read_text(encoding="utf-8"))["name"])
 
 
 def _current_version() -> str:
@@ -294,7 +332,7 @@ def _register_bundle(plugin: str, created: list[str]) -> None:
 
     path = ROOT / "bundle" / ".claude-plugin" / "plugin.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    entry = f"{plugin}@misoto22"
+    entry = f"{plugin}@{_marketplace_name()}"
     if entry in manifest["dependencies"]:
         return
     manifest["dependencies"] = sorted([*manifest["dependencies"], entry])

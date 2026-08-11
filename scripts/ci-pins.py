@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve, verify, and move the CLI versions CI installs.
+"""Resolve, verify, and move every version CI depends on.
 
 A pin is what makes a CI result reproducible. It is also what goes quietly two
 years stale, because nothing fails while it is pinned. `.ci-pins.json` is the
@@ -10,9 +10,16 @@ refuses any literal occurrence the file does not account for.
   python3 scripts/ci-pins.py check               Fail on drift, or an undeclared occurrence
   python3 scripts/ci-pins.py bump ruff 0.15.0    Move one pin everywhere it is written
 
-`CI_CHANNEL=latest` makes `spec` resolve to `@latest`. That is how the canary
-run reaches the same install routes as the pinned run without a second copy of
-them, and it is why a workflow must never write a version down itself: a literal
+Not only npm and pip packages. A runtime is asked for as `3.13` or `22`, and the
+model an unattended evaluation bills against is not a version at all — both used
+to sit as literals in four workflows and a script, where nothing compared them.
+A pin declares its own `version_pattern` when the default semver does not fit.
+
+`CI_CHANNEL=latest` makes `spec` resolve to the floating form, which is how the
+canary reaches the same install routes as the pinned run without a second copy
+of them. A pin that cannot float says so by declaring a `spec_latest` that
+resolves to the version it already holds — a runtime is chosen, not upgraded to.
+That is also why a workflow must never write a version down itself: a literal
 cannot be overridden by a channel.
 """
 
@@ -27,9 +34,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".ci-pins.json"
-SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 SCAN_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh", ".toml"}
-VERSION_GROUP = r"(?P<version>\d+\.\d+\.\d+)"
+# What a version looks like, for the pins that are npm or pip packages. A pin
+# may override it with `version_pattern`: a runtime is asked for as `3.13` or
+# `22`, and the model an unattended run bills against is not a version at all.
+# Holding those to semver would have meant either leaving them written into four
+# workflows or inventing a third digit nobody could install.
+DEFAULT_VERSION_PATTERN = r"\d+\.\d+\.\d+"
 
 
 def load_config() -> dict:
@@ -48,20 +59,31 @@ def spec(pin: dict, channel: str) -> str:
     """Return the installable spec, or the floating one when asked for latest.
 
     npm and pip spell a pin differently, so a pin may carry its own template
-    rather than the npm form every other one uses.
+    rather than the npm form every other one uses. Both templates see both
+    fields: a pin that cannot float — a runtime, or the model an eval bills
+    against — says so by resolving `latest` to the version it already declares.
     """
 
-    if channel == "latest":
-        return pin.get("spec_latest", "{package}@latest").format(package=pin["package"])
-    template = pin.get("spec", "{package}@{version}")
+    template = (
+        pin.get("spec_latest", "{package}@latest")
+        if channel == "latest"
+        else pin.get("spec", "{package}@{version}")
+    )
     return template.format(package=pin["package"], version=pin["version"])
+
+
+def _version_pattern(pin: dict) -> re.Pattern[str]:
+    """Return what a version of this pin is allowed to look like."""
+
+    return re.compile(f"\\A{pin.get('version_pattern', DEFAULT_VERSION_PATTERN)}\\Z")
 
 
 def _matcher(pin: dict) -> re.Pattern[str]:
     """Match this pin written out literally, whatever version it names."""
 
     template = pin.get("match") or f"{re.escape(pin['package'])}@{{version}}"
-    return re.compile(template.replace("{version}", VERSION_GROUP))
+    group = f"(?P<version>{pin.get('version_pattern', DEFAULT_VERSION_PATTERN)})"
+    return re.compile(template.replace("{version}", group))
 
 
 def occurrences(config: dict, pin: dict) -> list[tuple[str, str]]:
@@ -96,8 +118,8 @@ def check(config: dict) -> list[str]:
     errors: list[str] = []
     for pin in config["pins"]:
         declared = pin["version"]
-        if not SEMVER.match(declared):
-            errors.append(f"{pin['id']}: {declared!r} is not a semantic version")
+        if not _version_pattern(pin).match(declared):
+            errors.append(f"{pin['id']}: {declared!r} does not match the shape this pin declares")
         found = occurrences(config, pin)
         documented = set(pin.get("documented_in", []))
 
@@ -162,8 +184,9 @@ def main() -> int:
         return 0
 
     pin = find_pin(config, args.id)
-    if not SEMVER.match(args.version):
-        print(f"error: {args.version!r} is not a semantic version", file=sys.stderr)
+    if not _version_pattern(pin).match(args.version):
+        shape = pin.get("version_pattern", DEFAULT_VERSION_PATTERN)
+        print(f"error: {args.version!r} does not match {pin['id']}'s shape, {shape}", file=sys.stderr)
         return 1
     if args.version == pin["version"]:
         print(f"error: {pin['id']} is already at {pin['version']}", file=sys.stderr)

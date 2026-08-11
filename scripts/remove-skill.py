@@ -19,6 +19,7 @@ entry, and its group on the directory page.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import shutil
@@ -56,6 +57,8 @@ def main() -> int:
 
     _retire_files(args.plugin, args.skill, skill_dir, retires_plugin, args.delete, touched)
     _unregister_published(args.plugin, args.skill, retires_plugin, touched)
+    if retires_plugin:
+        _unregister_license_exception(args.plugin, touched)
     _unregister_root_readme(args.plugin, args.skill, touched)
     _unregister_version_bump(args.plugin, args.skill, retires_plugin, touched)
     _unregister_skills_sh(args.plugin, args.skill, touched)
@@ -66,6 +69,8 @@ def main() -> int:
     else:
         _unregister_plugin_manifest(plugin_root, args.skill, touched)
         _unregister_plugin_readme(plugin_root / "skills" / "README.md", args.skill, touched)
+    # Last: it counts the tree, which the steps above have just changed.
+    _restate_counts(touched)
 
     for entry in touched:
         print(f"  {entry}")
@@ -127,6 +132,22 @@ def _unregister_published(plugin: str, skill: str, retires_plugin: bool, touched
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 
 
+def _unregister_license_exception(plugin: str, touched: list[str]) -> None:
+    """Drop a retired plugin's non-default license, if it declared one.
+
+    Left behind, the entry is inert until someone reuses the name — and then a
+    brand-new MIT plugin is silently held to the retired one's license.
+    """
+
+    path = ROOT / "scripts" / "validate-repository.py"
+    text = path.read_text(encoding="utf-8")
+    match = re.search(rf'^    "{plugin}": "[^"]+",\n', text, re.MULTILINE)
+    if not match:
+        return
+    path.write_text(text.replace(match.group(0), "", 1), encoding="utf-8")
+    touched.append(f"{path.relative_to(ROOT)} (license exception cleared)")
+
+
 def _unregister_root_readme(plugin: str, skill: str, touched: list[str]) -> None:
     """Every root README, translations included — the scaffold registered them all."""
 
@@ -165,12 +186,37 @@ def _unregister_marketplace(plugin: str, touched: list[str]) -> None:
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 
 
+def _restate_counts(touched: list[str]) -> None:
+    """The READMEs state a published count, and the tree just shrank under it.
+
+    validate-repository.py owns both the pattern and the writer; it is loaded by
+    path because the filename is hyphenated. See new-skill.py, which does the
+    same thing in the other direction.
+    """
+
+    path = ROOT / "scripts" / "validate-repository.py"
+    spec = importlib.util.spec_from_file_location("validate_repository", path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"error: cannot load {path.relative_to(ROOT)}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for name in module.restate_counts():
+        touched.append(f"{name} (count restated)")
+
+
+def _marketplace_name() -> str:
+    """Read the install suffix from the manifest that declares it; see new-skill.py."""
+
+    manifest = ROOT / ".claude-plugin" / "marketplace.json"
+    return str(json.loads(manifest.read_text(encoding="utf-8"))["name"])
+
+
 def _unregister_bundle(plugin: str, touched: list[str]) -> None:
     """A retired plugin left in the bundle makes the one-command install fail."""
 
     path = ROOT / "bundle" / ".claude-plugin" / "plugin.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    entry = f"{plugin}@misoto22"
+    entry = f"{plugin}@{_marketplace_name()}"
     if entry not in manifest["dependencies"]:
         return
     manifest["dependencies"] = [name for name in manifest["dependencies"] if name != entry]

@@ -29,8 +29,10 @@ PLUGINS_ROOT = ROOT / "plugins"
 # grows by being rewritten rather than by being appended to.
 MAX_CHARACTERS = 1024
 MIN_CHARACTERS = 120
-# The longest run two descriptions share today is 4 words. Seven leaves room to
-# describe neighbouring subjects without room to describe the same one twice.
+# The longest run two descriptions share today is 6 words, between synastry and
+# synastry-reading — a two-stage pair is the case that presses hardest on this.
+# Seven leaves room to describe neighbouring subjects without room to describe
+# the same one twice. Read `--report` before raising it: the headroom is a word.
 MAX_SHARED_RUN = 7
 
 WORD = re.compile(r"[\w']+")
@@ -117,10 +119,14 @@ def _longest_shared_run(first: str, second: str) -> tuple[int, str]:
 
 
 def report(found: dict[str, tuple[Path, str]]) -> None:
-    print(f"{'skill':<14}{'chars':>7}  ends with a boundary")
+    # Widened to the longest name rather than to a constant: a fixed column is a
+    # number that goes stale on the next skill, and the row that overflows it is
+    # the one whose length nobody can then read off.
+    width = max(len("skill"), *(len(name) for name in found))
+    print(f"{'skill':<{width}}{'chars':>8}  ends with a boundary")
     for name, (_, description) in sorted(found.items()):
         boundary = "yes" if NEGATIVE_SCOPE.search(description) else "NO"
-        print(f"{name:<14}{len(description):>7}  {boundary}")
+        print(f"{name:<{width}}{len(description):>8}  {boundary}")
 
     print(f"\nlongest shared run of words (ceiling {MAX_SHARED_RUN}):")
     overlaps = sorted(

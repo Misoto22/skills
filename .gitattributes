@@ -1,0 +1,10 @@
+# Vendored copies, written by scripts/sync-shared.py and committed so a plain
+# clone installs correctly. They are 81 of the 185 files under plugins/, and a
+# one-line edit to a plugin's shared/ lands as five identical diffs — over three
+# months, 17 commits produced 109 file changes here. Marking them generated
+# collapses that in review and keeps them out of the language statistics. The
+# copies are still committed, still installed, and still held byte-identical to
+# their source by `sync-shared.py --check`; this changes how they are displayed,
+# never whether they are checked.
+plugins/*/skills/*/shared/** linguist-generated=true
+plugins/*/skills/*/shared/** -diff

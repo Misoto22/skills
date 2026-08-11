@@ -31,7 +31,7 @@
 
 ### Skills
 
-五个 plugin，十二个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+五个 plugin，十三个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -144,7 +144,7 @@ gh attestation verify email.skill --repo Misoto22/skills
 
 ### 目录站
 
-这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这十二个 skill。
+这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这些 skill。
 
 其余几个是 Agent Skills 仓库的综合索引。它们都没有收录本仓库 —— 列在这里是为了这个仓库覆盖不到的 skill：
 
@@ -180,7 +180,7 @@ claude plugin install obsidian@misoto22
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
 
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十二个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面列出的那些 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，
