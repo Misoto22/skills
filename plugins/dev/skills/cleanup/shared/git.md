@@ -86,4 +86,12 @@ Build the slug from the commit subject's content words — drop the leading verb
 
 A worktree cannot remove itself while you are standing in it, and a shell whose working directory has been deleted breaks every command that follows. Run `git worktree remove` from the primary checkout, and change directory out of the worktree first.
 
+**A worktree the current session runs in is never removed by that session**, and changing directory does not make it safe. The session's tooling, its scratch state, and its open file handles stay behind, and nothing running inside can undo the deletion. Whoever recycles that worktree does it from outside, once the session has ended.
+
+Decide that before moving anywhere. Once you are in the primary checkout the question can no longer be asked, because `git rev-parse --show-toplevel` then answers for the primary:
+
+```bash
+git rev-parse --show-toplevel   # record at the start of the run, compare later
+```
+
 `git worktree list` reports the primary checkout too. More than one line means a worktree exists; one line means there is nothing to clean.
