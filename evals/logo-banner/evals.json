@@ -1,0 +1,71 @@
+{
+  "skill": "logo-banner",
+  "triggers": [
+    {
+      "id": "new-project-identity",
+      "prompt": "Design a logo and GitHub banner for my new personal knowledge app.",
+      "expected": "Fires, reads the project first, and establishes a confirmed visual direction before generating assets."
+    },
+    {
+      "id": "chinese-brand-request",
+      "prompt": "帮我给这个项目设计一套日系极简 logo、favicon 和 README banner。",
+      "expected": "Fires on the Chinese request, asks the user to select or confirm a direction, and uses ChatGPT Image for the raster assets."
+    },
+    {
+      "id": "dark-mode-banner",
+      "prompt": "The light Hero exists. Please make a matching dark-mode brand banner and put it in the README.",
+      "expected": "Fires, treats the light banner as the edit target, preserves composition and copy, and asks for a separate post-generation approval before integration."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "css-layout",
+      "prompt": "Make the cards on this landing page line up better on mobile.",
+      "expected": "Does not fire. This is interface layout work, not a visual-identity asset request."
+    },
+    {
+      "id": "svg-conversion",
+      "prompt": "Convert this existing SVG icon to inline HTML so I can animate it.",
+      "expected": "Does not fire. The skill deliberately does not create code-drawn or inline SVG graphics."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "style-before-generation",
+      "prompt": "Make a logo for my app; I have no visual direction yet.",
+      "expectations": [
+        "Inspects available project facts before proposing a direction.",
+        "Offers exactly three concise, project-specific style directions.",
+        "Does not generate an image before the user selects and confirms a direction."
+      ]
+    },
+    {
+      "id": "chatgpt-image-only",
+      "prompt": "I chose the quiet natural direction. Generate the identity system now.",
+      "expectations": [
+        "Uses the built-in ChatGPT Image generator for every creative visual asset.",
+        "Stops and explains the blocked requirement when the current host lacks the built-in ChatGPT Image generator.",
+        "Does not substitute SVG, Canvas, HTML, CSS, stock imagery, or another image generator.",
+        "Uses ordinary raster resizing only for derived delivery sizes."
+      ]
+    },
+    {
+      "id": "theme-and-tab-validation",
+      "prompt": "Ship the approved light and dark banners, app icon, and favicon.",
+      "expectations": [
+        "Checks that light and dark banners retain identical composition and wording.",
+        "Checks that the favicon remains recognizable at browser-tab size without a wordmark.",
+        "Records saved asset paths, use, prompts, and visual checks before following the requested publishing process."
+      ]
+    },
+    {
+      "id": "asset-approval-before-integration",
+      "prompt": "I picked the natural direction, and I want the final banner added to the README. Generate it now.",
+      "expectations": [
+        "Generates and presents the banner without editing project files.",
+        "Asks for explicit approval of the selected generated asset after it is shown.",
+        "Does not treat the earlier style choice or integration request as approval to modify the README."
+      ]
+    }
+  ]
+}

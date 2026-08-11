@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Thirteen skills in five plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Fourteen skills in six plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -48,6 +48,10 @@ Thirteen skills in five plugins. The plugin name is the command prefix, and each
 - **[sync](plugins/dev/skills/sync/SKILL.md)** (`/dev:sync`) — fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards; a diverged branch is reported, never rebased.
 - **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
+
+#### `brand` — visual identity assets
+
+- **[logo-banner](plugins/brand/skills/logo-banner/SKILL.md)** (`/brand:logo-banner`) — creates confirmed raster logos, icons, favicons, and light/dark social banners through ChatGPT Image; style comes before generation.
 
 #### `astrology` — positions computed from birth data
 
@@ -70,7 +74,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` carries no skills. It depends on the five plugins above and the six [bookmarks](#bookmarks) below, so one command installs all eleven. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
+`all` carries no skills. It depends on the six plugins above and the six [bookmarks](#bookmarks) below, so one command installs everything. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
@@ -181,8 +185,7 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
-
-Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the skills listed above.
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the fourteen skills above.
 
 > [!NOTE]
 > The pinned commit is the point. A bookmark tracking a branch would install

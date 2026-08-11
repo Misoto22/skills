@@ -43,9 +43,18 @@
     {
       "path": "plugins/chinese-metaphysics/plugin.json",
       "field": "version"
+    },
+    {
+      "path": "plugins/brand/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/brand/plugin.json",
+      "field": "version"
     }
   ],
   "text": [
+    "plugins/brand/skills/logo-banner/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md",
