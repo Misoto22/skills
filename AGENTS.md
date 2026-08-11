@@ -12,6 +12,7 @@
 - `plugins/<plugin>/shared/` is the only copy anyone edits. `scripts/sync-shared.py` vendors it into `skills/<skill>/shared/`, and those copies are committed so a plain clone installs correctly. The validator, `package-skill.py`, and CI all fail on drift.
 - Only release-ready skills may live under a plugin's `skills/`; use a top-level `drafts/` for unfinished work and `deprecated/` for retired material. Both sit outside `plugins/`, so no installer, packager, or registry sees them, and the version audit and pin scan skip them.
 - Retire a skill with `python3 scripts/remove-skill.py <plugin> <skill>` rather than unwinding seven registrations by hand. It moves the skill and its evaluation cases under `deprecated/`, clears any `routes_to` that named it, and retires the plugin when that was its last skill.
+- `registry.json` is the published catalogue every reader outside Claude Code fetches, and the personal site renders it from the default branch. `scripts/build-registry.py` generates it from `skills.sh.json`, `marketplace.json`, each `plugin.json` and each `SKILL.md` — never edit it, and never add a field to it that no other file declares. `new-skill.py`, `remove-skill.py` and `bump-version.py` rebuild it; CI runs `--check`, which fails when a description was edited without one. The output carries no timestamp, which is what lets that check be a byte comparison.
 
 ## Content
 

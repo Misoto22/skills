@@ -8,3 +8,12 @@
 # never whether they are checked.
 plugins/*/skills/*/shared/** linguist-generated=true
 plugins/*/skills/*/shared/** -diff
+
+# The published catalogue, written by scripts/build-registry.py from the files
+# that already declare its contents. It is committed because readers fetch it
+# from the default branch rather than building it, but reviewing it means reading
+# the same descriptions twice — the SKILL.md diff above it is where the change
+# actually is. `build-registry.py --check` holds it byte-identical to what the
+# tree generates, so nothing here weakens what is verified.
+registry.json linguist-generated=true
+registry.json -diff

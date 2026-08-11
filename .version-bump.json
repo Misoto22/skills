@@ -80,7 +80,8 @@
       "CHANGELOG.md",
       "deprecated",
       "dist",
-      "drafts"
+      "drafts",
+      "registry.json"
     ]
   }
 }

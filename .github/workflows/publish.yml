@@ -1,0 +1,57 @@
+name: Publish
+
+# Tell the readers outside Claude Code that the catalogue moved.
+#
+# registry.json is served from raw.githubusercontent.com, so the file is current
+# the moment it lands on main. What is not current is whatever cached it: the
+# personal site holds it under an ISR tag with an hour's revalidation, so without
+# this a merged skill stays invisible there for up to an hour.
+#
+# Scoped to the one file. Editing a README or a workflow changes nothing any
+# reader fetches, and a purge on every push is a purge nobody reads as meaning
+# anything.
+
+on:
+  push:
+    branches: [main]
+    paths: ["registry.json"]
+  # The same purge, for when a cache has to be dropped without an edit to force
+  # it — a site redeploy that came up holding a stale copy, most often.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Both reach the script through the environment rather than being
+      # interpolated into it: an expression expanded into a shell line is
+      # expanded before the shell sees it, which is how a secret reaches a trace.
+      - name: Purge the site's cached catalogue
+        env:
+          URL: ${{ secrets.SITE_REVALIDATE_URL }}
+          TOKEN: ${{ secrets.SITE_REVALIDATE_TOKEN }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ]; then
+            echo "::notice::no site configured — set SITE_REVALIDATE_URL and SITE_REVALIDATE_TOKEN to enable"
+            exit 0
+          fi
+          # --fail-with-body so a 401 or a 400 fails the run. A purge that never
+          # landed looks exactly like one that did, and the symptom surfaces an
+          # hour later as a page still showing last week's catalogue.
+          status=$(curl --silent --show-error --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer $TOKEN" \
+            --write-out '%{http_code}' \
+            --output /dev/stderr \
+            --max-time 30 \
+            --retry 3 --retry-delay 5 --retry-connrefused \
+            "$URL?tag=agent-skills")
+          echo "::notice::revalidate returned $status"

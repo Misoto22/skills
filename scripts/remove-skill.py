@@ -23,6 +23,7 @@ import importlib.util
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -69,8 +70,10 @@ def main() -> int:
     else:
         _unregister_plugin_manifest(plugin_root, args.skill, touched)
         _unregister_plugin_readme(plugin_root / "skills" / "README.md", args.skill, touched)
-    # Last: it counts the tree, which the steps above have just changed.
+    # Last two, in this order: both read the tree the steps above changed, and
+    # the registry reads skills.sh.json among it.
     _restate_counts(touched)
+    _rebuild_registry(touched)
 
     for entry in touched:
         print(f"  {entry}")
@@ -202,6 +205,23 @@ def _restate_counts(touched: list[str]) -> None:
     spec.loader.exec_module(module)
     for name in module.restate_counts():
         touched.append(f"{name} (count restated)")
+
+
+def _rebuild_registry(touched: list[str]) -> None:
+    """The published catalogue is generated, so a retirement has to regenerate it.
+
+    Without this the retired skill keeps being served to every reader fetching
+    registry.json until someone happens to rebuild it.
+    """
+
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build-registry.py")],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    touched.append("registry.json (rebuilt)")
 
 
 def _marketplace_name() -> str:

@@ -28,6 +28,7 @@ import argparse
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -163,8 +164,10 @@ def main() -> int:
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
     _register_skills_sh(args.plugin, args.skill, created)
-    # Last: it counts the tree, which the steps above have just changed.
+    # Last two, in this order: both read the tree the steps above changed, and
+    # the registry reads skills.sh.json among it.
     _restate_counts(created)
+    _rebuild_registry(created)
 
     for path in created:
         print(f"  {path}")
@@ -392,6 +395,23 @@ def _register_skills_sh(plugin: str, skill: str, created: list[str]) -> None:
         group["skills"].append(skill)
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _rebuild_registry(created: list[str]) -> None:
+    """The published catalogue is generated, so a new skill has to regenerate it.
+
+    Leaving it to CI would mean every scaffold starts with a red build for a file
+    the author never edited.
+    """
+
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build-registry.py")],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    created.append("registry.json (rebuilt)")
 
 
 def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
