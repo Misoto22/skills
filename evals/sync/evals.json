@@ -47,5 +47,51 @@
       "routes_to": "ship"
     }
   ],
-  "behaviors": []
+  "behaviors": [
+    {
+      "id": "diverged-branch-not-rebased",
+      "prompt": "Sync this repo. The current branch feat/parser is 3 commits ahead of its upstream and 7 behind, and main is 12 behind origin/main.",
+      "expectations": [
+        "Fast-forwards main and reports it.",
+        "Reports feat/parser as diverged, 3 ahead and 7 behind, without rebasing, merging, or resetting it.",
+        "States that choosing between rebase and merge is the user's call instead of picking one."
+      ]
+    },
+    {
+      "id": "dirty-tree-on-base",
+      "prompt": "Sync. I am on main, main is 4 behind origin/main, and I have uncommitted edits to src/parser.rs.",
+      "expectations": [
+        "Does not stash, commit, or discard the uncommitted edits.",
+        "Explains that git merge --ff-only refuses when the incoming commits touch a modified file, and that the refusal leaves the working tree exactly as it was.",
+        "Names src/parser.rs rather than reporting a skip without saying what blocked it."
+      ]
+    },
+    {
+      "id": "base-checked-out-elsewhere",
+      "prompt": "Sync. I am on feat/api, and main is checked out in a second worktree at ../review.",
+      "expectations": [
+        "Reports main as skipped and names ../review as the worktree holding it.",
+        "Treats it as a normal outcome, not an error or a failed run.",
+        "Does not detach, remove, or check anything out to work around it."
+      ]
+    },
+    {
+      "id": "all-skips-what-it-cannot-fast-forward",
+      "prompt": "Sync --all. Of six local branches: two are strictly behind, one is 2 ahead and 1 behind, one has no upstream, one is marked [gone], and one is the branch I am standing on.",
+      "expectations": [
+        "Fast-forwards only the two strictly behind branches.",
+        "Skips the diverged branch, the one with no upstream, the [gone] branch, and the checked-out branch, giving each its own reason.",
+        "Deletes nothing, and points the [gone] branch at cleanup rather than removing it here."
+      ]
+    },
+    {
+      "id": "ahead-behind-not-transposed",
+      "prompt": "同步一下，看看现在跟远端差多少",
+      "expectations": [
+        "Reports in Chinese, because that is the language of the question.",
+        "Reports ahead and behind the right way round — commits only on the local branch are ahead, commits only on the upstream are behind.",
+        "Fast-forwards only, and reports a diverged branch instead of rebasing it."
+      ]
+    }
+  ]
 }
