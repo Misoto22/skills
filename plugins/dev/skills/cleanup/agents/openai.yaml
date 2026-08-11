@@ -1,6 +1,6 @@
 interface:
   display_name: "Cleanup"
-  short_description: "Delete merged branches, worktrees, and stranded residue"
-  default_prompt: "Use $cleanup to remove merged branches, their worktrees, and ignored residue; list everything first, verify each deletion against the forge, and keep whatever you cannot explain."
+  short_description: "Delete merged local and remote branches, worktrees, and stranded residue"
+  default_prompt: "Use $cleanup to remove merged branches on both the local side and the remote, their worktrees, and ignored residue; list everything first, verify each deletion against the forge, keep any branch carrying an open pull request, and keep whatever you cannot explain."
 policy:
   allow_implicit_invocation: true

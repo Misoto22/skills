@@ -1,10 +1,10 @@
 ---
 name: cleanup
-description: Remove what shipping left behind — local branches whose pull request merged, worktrees for those branches, and ignored residue a move stranded, such as a __pycache__ that git mv could not see. Every deletion is verified against the forge first, and anything unmerged or unexplained is reported rather than removed. Use when asked to clean up, tidy the repo, delete merged branches, remove stale branches, clear out old worktrees, 清理一下, 清掉合并过的分支, 删掉没用的分支, 收拾一下仓库. Not for discarding uncommitted work, resetting a branch, or removing untracked files you have not been shown.
+description: Remove what shipping left behind — local and remote branches whose pull request merged, worktrees for those branches, and ignored residue a move stranded, such as a __pycache__ that git mv could not see. Every deletion is verified against the forge first, and anything unmerged or unexplained is reported rather than removed. Use when asked to clean up, tidy the repo, delete merged branches, remove stale branches, prune the remote branches, clear out old worktrees, 清理一下, 清掉合并过的分支, 删掉没用的分支, 清理远程分支, 收拾一下仓库. Not for discarding uncommitted work, resetting a branch, or removing untracked files you have not been shown.
 license: MIT
 metadata:
   version: "0.8.4"
-argument-hint: "[--base=<branch>] [--branches] [--worktrees] [--residue] [--dry-run]"
+argument-hint: "[--base=<branch>] [--branches] [--remote] [--worktrees] [--residue] [--no-remote] [--dry-run]"
 ---
 
 # Cleanup
@@ -13,7 +13,7 @@ Remove what shipping left behind. Nothing else.
 
 Read [shared/git.md](shared/git.md) first — in particular that a rebase or squash merge rewrites commits, so `git branch --merged` does not list a branch that landed. Every deletion here is verified against the forge, never against git alone.
 
-**Default to `--dry-run` reasoning even without the flag: list everything, then delete.** With no scope flag, all three passes run. With any of `--branches`, `--worktrees`, `--residue`, only those.
+**Default to `--dry-run` reasoning even without the flag: list everything, then delete.** With no scope flag, all four passes run. With any of `--branches`, `--remote`, `--worktrees`, `--residue`, only those. `--no-remote` drops the remote pass and keeps the rest — for a fork you cannot push to, or when you only want the local side tidied.
 
 ## 0. Inventory, before deleting anything
 
@@ -22,15 +22,21 @@ git fetch --prune
 git branch -vv
 git worktree list
 git status --porcelain
+git ls-remote --heads origin
 ```
+
+`git fetch --prune` only deletes local `origin/*` tracking refs. It does not touch
+a single branch on the remote, which is why the remote list is read separately —
+a branch missing from `git branch -vv` may still be sitting on the forge.
 
 Print one table. Nothing is removed until it is printed:
 
 ```
 Cleanup <repo> → <base>
-  branch <name>       <merged #12 | unmerged: N commits | no PR> → <delete | keep: reason>
-  worktree <path>     <clean, branch merged | dirty> → <remove | keep: reason>
-  residue <path>      <N ignored files, no tracked sibling> → <remove | keep: reason>
+  branch <name>          <merged #12 | unmerged: N commits | no PR, contained in base> → <delete | keep: reason>
+  remote <name>          <merged #12 | open #22 | no PR> → <delete | keep: reason>
+  worktree <path>        <clean, branch merged | dirty> → <remove | keep: reason>
+  residue <path>         <N ignored files, no tracked sibling> → <remove | keep: reason>
 ```
 
 Stop here if `--dry-run`.
@@ -44,26 +50,62 @@ gh pr list --head <branch> --state merged --json number,mergedAt
 ```
 
 - Merged → `git branch -D <branch>`. `-d` refuses after a rebase merge, for the reason in `shared/git.md`; `-D` is correct here precisely because the SHAs were rewritten.
-- Marked `[gone]` by `git branch -vv` but no merged pull request → the remote branch was deleted without merging. **Keep it and say so.** That is either abandoned work or someone else's mistake, and it is not recoverable once the local copy is gone.
+- No pull request, but every commit is already on the base → delete. Prove it rather than assuming it:
+  ```bash
+  git merge-base --is-ancestor <branch> <base>
+  ```
+  A branch merged by hand, or one whose pull request was deleted, lands here. Nothing is lost, so the missing pull request is not a reason to keep it — but report which test cleared it, because "no PR" and "deleted" together look alarming in a report.
+- Marked `[gone]` by `git branch -vv`, no merged pull request, **and** commits not on the base → the remote branch was deleted without merging. **Keep it and say so.** That is either abandoned work or someone else's mistake, and it is not recoverable once the local copy is gone.
 - No pull request, commits not on the base → unmerged local work. Keep, report.
-- The base branch, and the branch currently checked out anywhere → never.
+- The base branch → never.
+- A branch checked out in any worktree → not deletable *while* it is checked out. Two cases, and neither is "keep it forever":
+  - Checked out in a worktree this pass is about to remove → step 2 removes the worktree, then this rule is re-applied to the branch. Do not decide it before step 2 runs.
+  - Checked out in the primary repo, and merged, and its tree is clean → the checkout itself is the leftover. Say so and offer to `git checkout <base>` and delete it. Never switch someone's checkout without asking; a branch name is often the only record of what they were in the middle of.
 
 ## 2. Worktrees
 
 Per `git worktree list`, skipping the primary checkout:
 
-1. `git -C <path> status --porcelain` — anything at all, including untracked files, means keep. Say what is dirty.
-2. Its branch must be deletable by the rule in step 1.
-3. Remove from the primary checkout, never from inside the worktree:
+1. **The worktree you are running in is never removed.** Report it as kept, with that as the reason. Changing directory does not make it safe: a session's tooling, its scratch state, and its open file handles all live there, and the deletion cannot be undone from inside it. Whoever recycles that worktree does it from outside, after the session ends.
+2. `git -C <path> status --porcelain` — anything at all, including untracked files, means keep. Say what is dirty.
+3. Its branch must be deletable by the rule in step 1.
+4. Remove from the primary checkout, never from inside the worktree:
    ```bash
    git worktree remove <path>
    ```
-   On `Directory not empty`, retry with `--force` only if step 1 found the tree clean — the residue is ignored files, which is step 3's business.
-4. `git worktree prune`.
+   On `Directory not empty`, retry with `--force` only if step 2 found the tree clean — the residue is ignored files, which is step 4's business.
+5. `git worktree prune`.
+6. Re-apply step 1 to each branch just released. It was held back as "checked out", not as unmerged, and nothing else will come back for it.
 
-If the current working directory is inside the worktree being removed, change out of it first. A shell whose directory has been deleted breaks every command after it.
+A worktree outside this repository's own directory — another tool's session directory, say — is clean and merged like any other, but a live session may still be standing in it. List it and ask rather than removing it unprompted.
 
-## 3. Residue
+## 3. Remote branches
+
+Runs by default. Skip only on `--no-remote`, or when a scope flag other than `--remote` was passed.
+
+The forge is asked twice, because merged and open are not opposites — a branch can carry a merged pull request and a newer open one, and deleting it would close that open one. Per `shared/git.md`, GitHub closes any pull request whose head branch is deleted.
+
+```bash
+gh pr list --head <branch> --state merged --json number
+gh pr list --head <branch> --state open   --json number
+```
+
+- Merged, and no open pull request → delete.
+- Any open pull request → keep, and name the pull request. This is the one case where a merged branch is still in use.
+- No pull request at all → keep. A remote branch nobody opened a pull request for is someone else's work in progress, and it is not yours to guess about.
+- The base branch, and any branch the remote protects → never.
+
+Delete them in one push rather than one per branch — a stale-branch backlog is usually a dozen, and each push is a round trip:
+
+```bash
+git push origin --delete <branch> <branch> …
+```
+
+If the push is rejected for permissions, stop and report it: a fork, or a repository where you have read access only. Do not retry per branch — the rejection is the same every time.
+
+Local and remote are decided independently. A branch can be deletable on the remote while its local copy is held back by a worktree, and reporting them as one line hides that.
+
+## 4. Residue
 
 Directories holding nothing but ignored files, left behind because `git mv` moves only what git tracks. `git status` stays clean, which is why these survive for months.
 
@@ -84,12 +126,13 @@ git ls-files --error-unmatch <dir> >/dev/null 2>&1
 
 Never remove `.git`, `.venv`, `node_modules`, or anything named in `.gitignore` that sits beside tracked files. Deleting a build cache costs a rebuild; deleting `.venv` costs an afternoon. If a directory is large and expensive to recreate, list it and ask instead.
 
-## 4. Verify
+## 5. Verify
 
 ```bash
 git branch -vv
 git worktree list
 git status --porcelain
+git ls-remote --heads origin
 ```
 
 The working tree must be exactly as clean as it was in step 0. If cleanup made it dirty, something tracked was removed — restore it with `git restore` and stop.
@@ -99,9 +142,12 @@ The working tree must be exactly as clean as it was in step 0. If cleanup made i
 ```
 Cleaned <repo>.
   branches   <deleted: a, b | none>
+  remote     <deleted: a, b | none>
   worktrees  <removed: path | none>
   residue    <removed: path (N files) | none>
   kept       <name — reason; …>
 ```
 
-`kept` is the important half. Every line in it is something that looked removable and was not, and each needs its reason stated — an unmerged branch, a dirty worktree, an ignored directory with tracked siblings.
+`kept` is the important half. Every line in it is something that looked removable and was not, and each needs its reason stated — an unmerged branch, a remote branch with an open pull request, a dirty worktree, the worktree this session is running in, an ignored directory with tracked siblings.
+
+Anything held back only because a human has to decide — a merged branch checked out in the primary repo, a worktree belonging to another tool's session — is reported as a question, not filed under `kept` and forgotten.

@@ -20,6 +20,16 @@
       "id": "chinese-delete-merged",
       "prompt": "清掉已经合并过的分支",
       "expected": "Fires on a second Chinese phrasing rather than only on 清理一下."
+    },
+    {
+      "id": "remote-branches",
+      "prompt": "There are a dozen merged branches still sitting on GitHub. Prune them.",
+      "expected": "Fires, and deletes the branches on the remote rather than only pruning local tracking refs."
+    },
+    {
+      "id": "chinese-remote-branches",
+      "prompt": "远程还留着一堆合并过的分支，清一下",
+      "expected": "Fires on the Chinese phrasing for the remote side."
     }
   ],
   "non_triggers": [
@@ -44,5 +54,33 @@
       "expected": "Does not fire. Discarding uncommitted work is destructive and outside this skill, in either language."
     }
   ],
-  "behaviors": []
+  "behaviors": [
+    {
+      "id": "remote-branch-with-open-pr",
+      "prompt": "Delete every remote branch that has already merged. One of them, dependabot/github_actions/actions-435dda8292, carries no merged pull request but does have open pull request #22.",
+      "expectations": [
+        "Keeps dependabot/github_actions/actions-435dda8292 and names open pull request #22 as the reason.",
+        "States that deleting the branch would close that pull request.",
+        "Deletes the merged branches without holding them back over the one exception."
+      ]
+    },
+    {
+      "id": "no-pr-but-contained-in-base",
+      "prompt": "Clean up. One local branch has no pull request at all and its upstream is gone, but git merge-base --is-ancestor says every one of its commits is already on main.",
+      "expectations": [
+        "Deletes it, because nothing is lost when the base already contains every commit.",
+        "Reports which test cleared it rather than only reporting that no pull request was found.",
+        "Does not treat the missing pull request alone as a reason to keep it."
+      ]
+    },
+    {
+      "id": "own-worktree",
+      "prompt": "Clean up the worktrees. You are running inside .claude/worktrees/foo, whose branch merged as #42 and whose tree is clean.",
+      "expectations": [
+        "Keeps .claude/worktrees/foo and gives running inside it as the reason.",
+        "Does not change directory out of it and remove it anyway.",
+        "Still removes any other worktree that is clean and merged."
+      ]
+    }
+  ]
 }

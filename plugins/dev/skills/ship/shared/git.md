@@ -41,6 +41,29 @@ A branch is safe to delete when its pull request reports `MERGED`, whatever git 
 
 A branch with no pull request at all and commits not on the base is unmerged work. Stop and ask before touching it.
 
+A branch with no pull request whose commits are *all* on the base is a different
+case, and a common one once a branch has been merged by hand or its pull request
+deleted. Nothing is lost by removing it, and git can prove that without the forge:
+
+```bash
+git merge-base --is-ancestor <branch> <base>
+```
+
+## Deleting a remote branch closes its open pull request
+
+GitHub closes any pull request whose head branch is deleted, so `--state merged`
+is not the only question to ask before deleting one. A branch can carry a merged
+pull request and a newer open one at the same time:
+
+```bash
+gh pr list --head <branch> --state open --json number
+```
+
+`gh pr merge --delete-branch` is supposed to remove the remote branch, but it
+deletes it after the merge lands and gives up on the first failure — a local
+checkout error is enough. The merge succeeds, the branch survives, and nothing
+reports it. That is where most stale remote branches come from.
+
 ## Ignored files survive a move, and git will not tell you
 
 `git mv` moves what git tracks. Anything matched by `.gitignore` — `__pycache__/`, `node_modules/`, `dist/`, `.venv/` — stays where it was, holding its parent directories alive. `git status` stays clean, because every file left behind is ignored.
