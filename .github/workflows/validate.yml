@@ -93,6 +93,11 @@ jobs:
         run: python3 scripts/run-evals.py --check
       - name: Check skill descriptions
         run: python3 scripts/check-descriptions.py --report
+      # The catalogue every reader outside Claude Code fetches. It is generated,
+      # so it goes stale silently: the tree is right, the build is green, and the
+      # site serves last week's skills until someone happens to rebuild it.
+      - name: Hold the published registry current
+        run: python3 scripts/build-registry.py --check
       - name: Validate repository metadata
         run: python3 scripts/validate-repository.py --skip-tests
       - name: Verify Agent Skills discovery

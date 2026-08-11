@@ -35,6 +35,7 @@ REGISTRIES = [
     "scripts/validate-repository.py",
     ".version-bump.json",
     "skills.sh.json",
+    "registry.json",
     *ROOT_READMES,
 ]
 SKILLS_README_PATH = SKILLS / "README.md"
@@ -2077,6 +2078,118 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("stale vendored copy", result.stderr)
+
+    def test_registry_publishes_exactly_the_tree(self) -> None:
+        """The site renders registry.json, so a skill missing from it is unpublished there."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        published = published_skills()
+
+        self.assertEqual(
+            {group["id"] for group in registry["groups"]},
+            set(published),
+            "registry.json and plugins/ disagree about which plugins exist",
+        )
+        for group in registry["groups"]:
+            self.assertEqual(
+                sorted(skill["name"] for skill in group["skills"]),
+                published[group["id"]],
+                f"registry.json and plugins/ disagree about {group['id']}",
+            )
+
+    def test_registry_is_reproducible(self) -> None:
+        """`--check` is a byte comparison, so a build id or timestamp would break it."""
+
+        rendered = [
+            subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+            for _ in range(2)
+        ]
+
+        self.assertEqual(rendered[0], rendered[1], "two builds of the same tree disagree")
+        self.assertEqual(
+            rendered[0], (ROOT / "registry.json").read_text(encoding="utf-8"), "registry.json is stale"
+        )
+
+    def test_registry_check_reports_an_unrebuilt_catalogue(self) -> None:
+        """The committed file is what readers fetch; editing a skill without it is a stale publish."""
+
+        with repository_copy() as copied:
+            target = copied / "plugins" / "docs" / "skills" / "readme" / "SKILL.md"
+            target.write_text(
+                target.read_text(encoding="utf-8").replace("license: MIT", "license: Apache-2.0"),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--check"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stale", result.stderr)
+
+    def test_registry_refuses_a_skill_no_grouping_files(self) -> None:
+        """`notGrouped: bottom` is skills.sh's fallback; publishing under no heading is not one here.
+
+        Dropped from a group with skills left in it, so this is the unfiled-skill
+        path rather than the emptied-group one below.
+        """
+
+        with repository_copy() as copied:
+            path = copied / "skills.sh.json"
+            config = json.loads(path.read_text(encoding="utf-8"))
+            for group in config["groupings"]:
+                if "cleanup" in group["skills"]:
+                    group["skills"].remove("cleanup")
+            path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cleanup", result.stderr)
+        self.assertIn("no skills.sh.json group", result.stderr)
+
+    def test_registry_refuses_an_emptied_group(self) -> None:
+        """An emptied group derives no plugin, and 'spans 0 plugins' names the wrong thing."""
+
+        with repository_copy() as copied:
+            path = copied / "skills.sh.json"
+            config = json.loads(path.read_text(encoding="utf-8"))
+            for group in config["groupings"]:
+                if group["title"] == "Docs":
+                    group["skills"] = []
+            path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("'Docs' lists no skills", result.stderr)
+
+    def test_validate_workflow_holds_the_registry_current(self) -> None:
+        """Nothing else notices a stale catalogue before a reader fetches it."""
+
+        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+        self.assertIn("scripts/build-registry.py --check", workflow)
 
 
 if __name__ == "__main__":

@@ -19,12 +19,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".version-bump.json"
+REGISTRY = ROOT / "registry.json"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 AUDIT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh", ".toml"}
 
@@ -142,10 +144,29 @@ def main() -> int:
         return 1
 
     changed = bump(config, current, args.version)
+    # registry.json restates the version fifteen times but is generated rather
+    # than declared — which is why the audit excludes it. Rebuilding here rather
+    # than leaving it to CI keeps a bump from landing a catalogue that still
+    # advertises the version before it.
+    changed.extend(rebuild_registry())
     for relative, count in sorted(Counter(changed).items()):
         print(f"{current} → {args.version}  {relative}" + (f" ({count} occurrences)" if count > 1 else ""))
     print(f"\n{len(set(changed))} files updated. Next: update CHANGELOG.md, then tag v{args.version}.")
     return 0
+
+
+def rebuild_registry() -> list[str]:
+    """Regenerate registry.json, and name it if it changed."""
+
+    before = REGISTRY.read_bytes() if REGISTRY.is_file() else b""
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build-registry.py")],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [] if REGISTRY.read_bytes() == before else ["registry.json"]
 
 
 if __name__ == "__main__":

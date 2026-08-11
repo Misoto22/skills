@@ -61,10 +61,13 @@ python3 scripts/bump-version.py --audit
 python3 scripts/ci-pins.py check
 python3 scripts/check-descriptions.py
 python3 scripts/run-evals.py --check
+python3 scripts/build-registry.py --check
 python3 scripts/validate-repository.py
 ```
 
-The last one runs the metadata checks and then the full test suite. CI runs the same seven plus an install of every plugin through all four routes.
+The last one runs the metadata checks and then the full test suite. CI runs the same eight plus an install of every plugin through all four routes.
+
+`build-registry.py --check` is the one that fails over a file you did not edit. `registry.json` is the catalogue every reader outside Claude Code fetches — the personal site renders it — and it is generated from `skills.sh.json`, `marketplace.json`, each `plugin.json` and each `SKILL.md`. `new-skill.py`, `remove-skill.py` and `bump-version.py` rebuild it for you; editing a description by hand does not, and a stale registry keeps serving the old wording. Run `python3 scripts/build-registry.py` and commit the result.
 
 Every version CI depends on lives in `.ci-pins.json` and nowhere else — the CLIs it installs, the Python and Node
 runtimes its jobs run on, and the model the weekly evaluation bills against. Workflows ask for a spec with
