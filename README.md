@@ -70,7 +70,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` carries no skills. It depends on the five plugins above and the five [bookmarks](#bookmarks) below, so one command installs all ten. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
+`all` carries no skills. It depends on the five plugins above and the six [bookmarks](#bookmarks) below, so one command installs all eleven. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
@@ -159,7 +159,7 @@ The rest index Agent Skills repositories at large. None of them carry this one �
 
 ### Bookmarks
 
-Five more plugins install from this marketplace, and none of them is mine. Nothing is vendored: each entry points at its owner's repository, pinned to one commit, and installs from there. `all@misoto22` above pulls in every one of them; these are the names to use when you want a single one.
+Six more plugins install from this marketplace, and none of them is mine. Nothing is vendored: each entry points at its owner's repository, pinned to one commit, and installs from there. `all@misoto22` above pulls in every one of them; these are the names to use when you want a single one.
 
 ```bash
 claude plugin install obsidian@misoto22
@@ -171,6 +171,7 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 
 - **[codex](https://github.com/openai/codex-plugin-cc)** (`codex@misoto22`) — hands a stuck task or a second review pass to Codex without leaving Claude Code.
 - **[everything-claude-code](https://github.com/affaan-m/everything-claude-code)** (`everything-claude-code@misoto22`) — one very large plugin: agents, skills, and legacy command shims collected in bulk.
+- **[mattpocock-skills](https://github.com/mattpocock/skills)** (`mattpocock-skills@misoto22`) — Matt Pocock's engineering skills. `grill-me` is the one worth arriving for: it interviews you about a plan until every branch of the design tree is resolved. The other twenty-four arrive with it — the plugin is the unit its owner publishes, and nothing here is vendored.
 
 #### `productivity`
 

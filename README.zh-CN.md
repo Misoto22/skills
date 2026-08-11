@@ -31,7 +31,7 @@
 
 ### Skills
 
-四个 plugin，八个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+五个 plugin，十二个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -54,6 +54,13 @@
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 验证两份用户提供的出生记录，写出一个能反映时间不确定性的 JSON v2 合盘文件，并记录实际使用的星历后端。默认只保留计算必需的最少隐私数据；只有用户明确要求归档模式时，才保留其提供的本地出生记录和地点来源。仅在精确时间时计算宫位叠加，然后自动进入独立解读流程。
 - **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 先私密验证 JSON v2 合盘文件，再写出自适应、逐条链接证据的 Markdown 报告；关系领域只按用户明确提出的内容展开。
 
+#### `chinese-metaphysics` —— 按农历排四柱
+
+- **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)**（`/chinese-metaphysics:bazi-chart`）—— 将单人出生资料计算为可复用的 JSON 命盘与纯数据 Markdown。
+- **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)**（`/chinese-metaphysics:bazi-reading`）—— 把已验证的单人命盘解读为证据可追溯的静态命局报告。
+- **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)**（`/chinese-metaphysics:bazi-compatibility`）—— 用双向证据和透明评分比较两份八字命盘。
+- **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)**（`/chinese-metaphysics:bazi-compatibility-reading`）—— 解读已完成的双人比较，不改动原始数据或模型分数。
+
 ---
 
 ### 安装
@@ -63,7 +70,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` 自己不带任何 skill。它依赖上面四个 plugin 和下面五个[书签](#书签)，所以一条命令装齐九个。只想要其中一类就单独装 —— `claude plugin install writing@misoto22`。
+`all` 自己不带任何 skill。它依赖上面五个 plugin 和下面六个[书签](#书签)，所以一条命令装齐十一个。只想要其中一类就单独装 —— `claude plugin install writing@misoto22`。
 
 > [!NOTE]
 > 下面四条安装路径每次 push 都跑 CI，验的是安装器真正产出的目录树，而不是这个仓库本身。
@@ -137,7 +144,7 @@ gh attestation verify email.skill --repo Misoto22/skills
 
 ### 目录站
 
-这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这八个 skill。
+这个仓库收录在 [skills.sh](https://skills.sh/Misoto22/skills)，它读 [`skills.sh.json`](skills.sh.json)，按 plugin 分组展示同样这十二个 skill。
 
 其余几个是 Agent Skills 仓库的综合索引。它们都没有收录本仓库 —— 列在这里是为了这个仓库覆盖不到的 skill：
 
@@ -150,7 +157,7 @@ gh attestation verify email.skill --repo Misoto22/skills
 
 ### 书签
 
-还有五个 plugin 可以从这个 marketplace 装，但都不是我写的。这里没有 vendor 任何代码：每一条都指向作者自己的仓库，钉死在某一个 commit 上，从那里安装。上面的 `all@misoto22` 会把它们全部拉进来；下面这些名字是你只想装其中一个时用的。
+还有六个 plugin 可以从这个 marketplace 装，但都不是我写的。这里没有 vendor 任何代码：每一条都指向作者自己的仓库，钉死在某一个 commit 上，从那里安装。上面的 `all@misoto22` 会把它们全部拉进来；下面这些名字是你只想装其中一个时用的。
 
 ```bash
 claude plugin install obsidian@misoto22
@@ -162,6 +169,7 @@ claude plugin install obsidian@misoto22
 
 - **[codex](https://github.com/openai/codex-plugin-cc)**（`codex@misoto22`）—— 把卡住的任务或第二轮 review 交给 Codex，不用离开 Claude Code。
 - **[everything-claude-code](https://github.com/affaan-m/everything-claude-code)**（`everything-claude-code@misoto22`）—— 一个非常大的 plugin：agent、skill 和遗留的命令垫片，成批收在一起。
+- **[mattpocock-skills](https://github.com/mattpocock/skills)**（`mattpocock-skills@misoto22`）—— Matt Pocock 的工程向 skill。冲着 `grill-me` 来的：它会围绕一份计划反复追问，直到设计树上每一个分岔都有答案。另外二十四个是一起来的 —— 作者发布的单位是整个 plugin，而这里不 vendor 任何代码。
 
 #### `productivity`
 
@@ -171,12 +179,8 @@ claude plugin install obsidian@misoto22
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
-- **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)** (`/chinese-metaphysics:bazi-chart`) — 将单人出生资料计算为可复用的 JSON 命盘与纯数据 Markdown。
-- **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)** (`/chinese-metaphysics:bazi-reading`) — 把已验证的单人命盘解读为证据可追溯的静态命局报告。
-- **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility`) — 用双向证据和透明评分比较两份八字命盘。
-- **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility-reading`) — 解读已完成的双人比较，不改动原始数据或模型分数。
 
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面八个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十二个 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，
