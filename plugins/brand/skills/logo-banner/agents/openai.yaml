@@ -1,0 +1,6 @@
+interface:
+  display_name: "Brand Identity"
+  short_description: "Create raster logos and social banners"
+  default_prompt: "Use $logo-banner to establish a style and create a cohesive raster logo and banner."
+policy:
+  allow_implicit_invocation: true

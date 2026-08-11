@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "brand",
+  "version": "0.8.4",
+  "description": "Raster brand-identity skills for consistent logos, icons, favicons, and social banners.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "logo-design",
+    "brand-identity",
+    "social-banner",
+    "favicon"
+  ],
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}

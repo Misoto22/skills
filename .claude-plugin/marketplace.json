@@ -116,6 +116,14 @@
         "./skills/bazi-compatibility-reading",
         "./skills/bazi-reading"
       ]
+    },
+    {
+      "name": "brand",
+      "category": "productivity",
+      "source": "./plugins/brand",
+      "skills": [
+        "./skills/logo-banner"
+      ]
     }
   ]
 }
