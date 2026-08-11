@@ -42,6 +42,24 @@
   ],
   "behaviors": [
     {
+      "id": "tests-declared-only-in-ci",
+      "prompt": "Ship this. The repository has no package.json, pyproject.toml, Cargo.toml, Makefile or justfile, but tests/ holds 538 tests and .github/workflows/validate.yml runs `python3 -m unittest discover -s tests -v`.",
+      "expectations": [
+        "Runs the test suite rather than reporting that no test command was detected.",
+        "Takes the command from the CI workflow, dropping the CI-only -v flag.",
+        "Does not mark step 2 SKIP on the grounds that no packaging marker matched."
+      ]
+    },
+    {
+      "id": "test-command-found-but-unrunnable",
+      "prompt": "Ship this. The test command is python3 -m unittest discover -s tests, but one test aborts because it requires Python 3.11-3.13 and this machine runs 3.14.",
+      "expectations": [
+        "Names the command it found and why it could not complete, rather than reporting no test command.",
+        "Does not claim a passing run it did not get.",
+        "Says which failures are unrelated to the change being shipped."
+      ]
+    },
+    {
       "id": "chinese-conversation-english-commit",
       "prompt": "帮我把这个 bug fix 发出去，改的是登录超时",
       "expectations": [
