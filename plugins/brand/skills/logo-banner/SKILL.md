@@ -1,6 +1,6 @@
 ---
 name: logo-banner
-description: Create cohesive raster logo, app-icon, favicon, and repository-hero systems through ChatGPT Image when a user asks to design or refresh visual identity, a logo, a banner, branding assets, or light and dark brand variants; not for code-drawn SVG icons, general website layout, or ordinary photo retouching.
+description: Create cohesive raster logo, app-icon, favicon, and repository-hero systems through ChatGPT Image when a user asks to design or refresh visual identity, a logo, a banner, branding assets, or light and dark brand variants; stop clearly when the host lacks that generator rather than substituting another tool; not for code-drawn SVG icons, general website layout, or ordinary photo retouching.
 license: MIT
 metadata:
   version: "0.8.4"
@@ -31,6 +31,11 @@ directions or resolve a genuinely open decision. Continue without either when
 the user can choose a style directly.
 
 ## Generate only with ChatGPT Image
+
+Before generating or promising an asset, verify that the current host exposes the
+built-in ChatGPT Image generator. If it does not, explain that this skill needs
+that capability and stop. Do not claim that an image was generated, substitute
+another generator, or offer an SVG, code-drawn, or stock-asset fallback.
 
 Use the built-in ChatGPT Image generator for every logo, mark, app icon,
 favicon source, banner, pattern, or in-image wordmark. Never replace it with
@@ -76,10 +81,12 @@ exactly across themes, and keep it away from the symbol and crop edges.
    and absence of watermarks or unintended objects.
 2. Compare light and dark banners side by side. Reject any pair whose composition
    or wording diverges rather than merely adapting its contrast.
-3. Present the selected assets for user approval. Do not replace project assets,
-   edit a README, or publish changes until the user approves the visual direction
-   and asks for integration.
-4. Save approved raster files in the project's established asset location; use
+3. Present the selected generated assets and ask for explicit approval before
+   integration. Style confirmation and a pre-generation request such as “put it
+   in the README” do not count as approval of the generated output. Do not
+   replace project assets, edit a README, or publish changes until the user gives
+   that separate approval.
+4. Save explicitly approved raster files in the project's established asset location; use
    `assets/brand/` only when the project has no better convention. Record each
    asset's intended use and palette in a short asset guide.
 5. When asked to use a Hero in a README, use a `<picture>` element so light and
