@@ -7,6 +7,7 @@ import argparse
 import errno
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -504,7 +505,12 @@ def _start(arguments: argparse.Namespace) -> int:
         try:
             root = _root(create=True)
             _sweep_expired(root)
-            created_at = int(time.time())
+            # Round the observation up to the next whole second. Truncating it
+            # instead would spend up to a second of the requested lifetime before
+            # the session exists, so a short TTL could reach the construction
+            # guard below already expired. Rounding up keeps the recorded span
+            # exactly ttl_seconds, which _persisted_expiry still accepts.
+            created_at = math.ceil(time.time())
             expires_at = created_at + arguments.ttl_seconds
             while True:
                 token = secrets.token_hex(16)

@@ -243,6 +243,36 @@ raise SystemExit(
         self.assertFalse(pages_path.exists())
         self.assertFalse(pages_path.parent.exists())
 
+    def test_short_lifetime_survives_construction_across_a_second(self) -> None:
+        # A requested lifetime is a floor, not a budget the helper may spend
+        # before the session exists. Truncating the creation stamp used to hand
+        # a one-second session anywhere from zero to one second of real life, so
+        # any construction crossing a whole-second tick tripped the "expired
+        # during construction" guard and rejected a perfectly valid start.
+        observed = float(int(time.time())) + 0.4
+        elapsed = {"seconds": 0.0}
+
+        def crossing_spawn(token: str, expires_at: int) -> None:
+            # Watchdog arming sits between the creation stamp and the guard.
+            elapsed["seconds"] = 0.9
+
+        stdout = io.StringIO()
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(os.environ, self.environment, clear=False))
+            stack.enter_context(
+                patch.object(reading_session.sys, "stdin", io.StringIO(json.dumps(source_with())))
+            )
+            stack.enter_context(patch.object(reading_session.sys, "stdout", stdout))
+            stack.enter_context(
+                patch.object(reading_session.time, "time", lambda: observed + elapsed["seconds"])
+            )
+            stack.enter_context(patch.object(reading_session, "_spawn_watchdog", side_effect=crossing_spawn))
+
+            status = reading_session.main(["start", "-", "--ttl-seconds", "1"])
+
+        self.assertEqual(status, 0)
+        self.assertGreaterEqual(int(json.loads(stdout.getvalue())["expires_at"]), int(observed) + 1)
+
     def test_base_exception_at_each_start_stage_leaves_no_sensitive_artifacts(self) -> None:
         class InjectedInterruption(BaseException):
             pass
