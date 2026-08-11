@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Eight skills in four plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twelve skills in five plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -54,6 +54,13 @@ Eight skills in four plugins. The plugin name is the command prefix, and each pl
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — validates two supplied birth records and writes one uncertainty-aware JSON v2 chart artifact with recorded backend provenance. It is privacy-minimal by default; only an explicitly requested archival mode retains supplied local birth and location provenance. Exact records can include house overlays, then it starts the separate reading automatically.
 - **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — privately validates a JSON v2 chart artifact before writing an adaptive, evidence-linked Markdown report with only explicitly requested relationship domains.
 
+#### `chinese-metaphysics` — four pillars computed from the Chinese calendar
+
+- **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)** (`/chinese-metaphysics:bazi-chart`) — computes one reusable BaZi chart as canonical JSON and data-only Markdown.
+- **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)** (`/chinese-metaphysics:bazi-reading`) — interprets a verified single-person chart as a reader-first natal report with a separate audit artifact.
+- **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility`) — compares two charts with auditable directional evidence and transparent scores.
+- **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility-reading`) — explains a completed comparison as a reader report with separate evidence, without altering its source data or model results.
+
 ---
 
 ### Install
@@ -63,7 +70,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` carries no skills. It depends on the four plugins above and the five [bookmarks](#bookmarks) below, so one command installs all nine. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
+`all` carries no skills. It depends on the five plugins above and the five [bookmarks](#bookmarks) below, so one command installs all ten. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
@@ -139,7 +146,7 @@ Maintainers who want editable installs rather than copies can run `bash scripts/
 
 ### Directories
 
-This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same eight skills grouped by plugin.
+This repository is listed on [skills.sh](https://skills.sh/Misoto22/skills), which reads [`skills.sh.json`](skills.sh.json) and offers the same twelve skills grouped by plugin.
 
 The rest index Agent Skills repositories at large. None of them carry this one — they are here for the skills it does not cover:
 
@@ -173,12 +180,8 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
-- **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)** (`/chinese-metaphysics:bazi-chart`) — computes one reusable BaZi chart as canonical JSON and data-only Markdown.
-- **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)** (`/chinese-metaphysics:bazi-reading`) — interprets a verified single-person chart as a reader-first natal report with a separate audit artifact.
-- **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility`) — compares two charts with auditable directional evidence and transparent scores.
-- **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)** (`/chinese-metaphysics:bazi-compatibility-reading`) — explains a completed comparison as a reader report with separate evidence, without altering its source data or model results.
 
-Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the eight skills above.
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the twelve skills above.
 
 > [!NOTE]
 > The pinned commit is the point. A bookmark tracking a branch would install
