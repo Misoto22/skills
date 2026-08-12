@@ -31,13 +31,18 @@ a branch missing from `git branch -vv` may still be sitting on the forge.
 
 Print one table. Nothing is removed until it is printed:
 
-```
-Cleanup <repo> → <base>
-  branch <name>          <merged #12 | unmerged: N commits | no PR, contained in base> → <delete | keep: reason>
-  remote <name>          <merged #12 | open #22 | no PR> → <delete | keep: reason>
-  worktree <path>        <clean, branch merged | dirty> → <remove | keep: reason>
-  residue <path>         <N ignored files, no tracked sibling> → <remove | keep: reason>
-```
+> **Cleanup `<repo>` → `<base>`**
+>
+> | Kind | Name | Finding | Action |
+> |---|---|---|---|
+> | branch | `<name>` | merged #12 · unmerged: N commits · no PR, contained in base | delete · keep: reason |
+> | remote | `<name>` | merged #12 · open #22 · no PR | delete · keep: reason |
+> | worktree | `<path>` | clean, branch merged · dirty: N files | remove · keep: reason |
+> | residue | `<path>` | N ignored files, no tracked sibling | remove · keep: reason |
+
+A markdown table, never a fixed-width block. Branch names run past forty characters and the finding is written in the reader's language, so any column width computed here is wrong in their terminal: one long row wraps, and every column under it is thrown out of alignment. A table wraps inside its own cell and the rest of the row stays where it belongs.
+
+Strip a prefix every name shares — `claude/`, `feature/`, `dependabot/` — and say once that you stripped it. Repeated down twelve rows it costs a column and tells the reader nothing.
 
 Stop here if `--dry-run`.
 
@@ -139,15 +144,21 @@ The working tree must be exactly as clean as it was in step 0. If cleanup made i
 
 ## Reporting
 
-```
-Cleaned <repo>.
-  branches   <deleted: a, b | none>
-  remote     <deleted: a, b | none>
-  worktrees  <removed: path | none>
-  residue    <removed: path (N files) | none>
-  kept       <name — reason; …>
-```
+Two tables, in the same shape as step 0's — what went, then what stayed.
 
-`kept` is the important half. Every line in it is something that looked removable and was not, and each needs its reason stated — an unmerged branch, a remote branch with an open pull request, a dirty worktree, the worktree this session is running in, an ignored directory with tracked siblings.
+> **Cleaned `<repo>`.**
+>
+> | Pass | Removed |
+> |---|---|
+> | branches | `a`, `b` · none |
+> | remote | `a`, `b` · none |
+> | worktrees | `<path>` · none |
+> | residue | `<path>` (N files) · none |
+>
+> | Kept | Why |
+> |---|---|
+> | `<name>` | `<reason>` |
+
+The kept table is the important half. Every row in it is something that looked removable and was not, and each needs its reason stated — an unmerged branch, a remote branch with an open pull request, a dirty worktree, the worktree this session is running in, an ignored directory with tracked siblings. It is a table rather than a run-on line because those reasons are sentences, and a dozen of them separated by semicolons is unreadable.
 
 Anything held back only because a human has to decide — a merged branch checked out in the primary repo, a worktree belonging to another tool's session — is reported as a question, not filed under `kept` and forgotten.
