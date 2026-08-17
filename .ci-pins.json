@@ -39,9 +39,9 @@
       "documented_in": []
     },
     {
-      "id": "anthropic",
-      "package": "anthropic",
-      "version": "0.120.2",
+      "id": "openai",
+      "package": "openai",
+      "version": "3.1.0",
       "spec": "{package}=={version}",
       "spec_latest": "{package}",
       "documented_in": []
@@ -76,8 +76,8 @@
     },
     {
       "id": "evals-model",
-      "package": "claude-opus-5",
-      "version": "claude-opus-5",
+      "package": "deepseek-default",
+      "version": "deepseek-default",
       "version_pattern": "[a-z][a-z0-9.-]*",
       "match": "ROUTER_MODEL = \"{version}\"",
       "spec": "{version}",

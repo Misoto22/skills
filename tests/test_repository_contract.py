@@ -876,9 +876,9 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertIn(required, workflow)
         # The key is the reason this job is not in the gate. Interpolating a
         # dispatch input into its shell would be injection into a job holding it.
-        self.assertIn("ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}", workflow)
+        self.assertIn("LITELLM_EVALS_API_KEY: ${{ secrets.LITELLM_EVALS_API_KEY }}", workflow)
         self.assertNotIn('"${{ inputs.skill }}"', workflow)
-        self.assertIn("ci-pins.py spec anthropic", workflow)
+        self.assertIn("ci-pins.py spec openai", workflow)
 
         # Scoring costs money and minutes; the free structural half stays on
         # every push, and only that half is allowed in the gate.
@@ -1016,16 +1016,18 @@ class RepositoryContractTests(unittest.TestCase):
         responses = [report, judge]
         requests: list[dict] = []
 
-        class Messages:
+        class Completions:
             @staticmethod
             def create(**kwargs):
                 requests.append(kwargs)
                 text = responses.pop(0)
-                block = type("Block", (), {"type": "text", "text": text})()
-                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+                message = type("Message", (), {"content": text})()
+                choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
+                return type("Response", (), {"choices": [choice]})()
 
         class Client:
-            messages = Messages()
+            class chat:
+                completions = Completions()
 
         failures = run_behavior_case(
             Client(),
@@ -1045,11 +1047,10 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertLessEqual(len(failures[0]), 512)
         self.assertEqual(len(requests), 2)
         self.assertNotIn("json_schema", json.dumps(requests[0]))
-        self.assertIn("[E-ASPECT-9DAF]", requests[0]["messages"][0]["content"])
-        self.assertEqual(requests[1]["output_config"]["effort"], "low")
-        self.assertEqual(requests[1]["output_config"]["format"]["type"], "json_schema")
-        self.assertIn("output-template.md", requests[0]["system"][0]["text"])
-        self.assertIn("usage:", requests[0]["system"][0]["text"])
+        self.assertIn("[E-ASPECT-9DAF]", requests[0]["messages"][1]["content"])
+        self.assertEqual(requests[1]["response_format"], {"type": "json_object"})
+        self.assertIn("output-template.md", requests[0]["messages"][0]["content"])
+        self.assertIn("usage:", requests[0]["messages"][0]["content"])
 
     def test_a_reading_behavior_reports_every_mechanical_validator_problem(self) -> None:
         """Removing or collapsing mechanical validation must make this test fail."""
@@ -1068,15 +1069,17 @@ class RepositoryContractTests(unittest.TestCase):
         )
         responses = [invalid_report, judge]
 
-        class Messages:
+        class Completions:
             @staticmethod
             def create(**kwargs):
                 del kwargs
-                block = type("Block", (), {"type": "text", "text": responses.pop(0)})()
-                return type("Response", (), {"stop_reason": "end_turn", "content": [block]})()
+                message = type("Message", (), {"content": responses.pop(0)})()
+                choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
+                return type("Response", (), {"choices": [choice]})()
 
         class Client:
-            messages = Messages()
+            class chat:
+                completions = Completions()
 
         failures = module.run_behavior_case(
             Client(),
@@ -1096,18 +1099,17 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(any("compatibility score" in failure for failure in failures))
         self.assertTrue(any("required universal heading" in failure for failure in failures))
 
-    def test_model_text_response_joins_every_text_block(self) -> None:
-        """A split Markdown response must not be silently truncated after its first block."""
+    def test_model_text_response_reads_the_first_chat_completion(self) -> None:
+        """The OpenAI-compatible API keeps the generated text on its first choice."""
 
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        first = type("Block", (), {"type": "text", "text": "first"})()
-        ignored = type("Block", (), {"type": "tool_use", "text": "ignored"})()
-        second = type("Block", (), {"type": "text", "text": " second"})()
-        response = type("Response", (), {"stop_reason": "end_turn", "content": [first, ignored, second]})()
+        message = type("Message", (), {"content": "first second"})()
+        choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
+        response = type("Response", (), {"choices": [choice]})()
 
         self.assertEqual(module._response_text(response), "first second")
 
@@ -1117,14 +1119,28 @@ class RepositoryContractTests(unittest.TestCase):
         source = (ROOT / "scripts" / "run-evals.py").read_text(encoding="utf-8")
         top_level = source.split("def ", 1)[0]
 
-        self.assertNotIn("import anthropic", top_level, "the SDK import must be lazy")
-        self.assertIn("import anthropic", source)
+        self.assertNotIn("import openai", top_level, "the SDK import must be lazy")
+        self.assertIn("import openai", source)
         # Named once, where the pin lives — a literal here could not be bumped
         # by ci-pins.py and would drift silently.
-        self.assertIn("ci-pins.py spec anthropic", source)
+        self.assertIn("ci-pins.py spec openai", source)
 
         pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
-        self.assertIn("anthropic", {pin["id"] for pin in pins})
+        self.assertIn("openai", {pin["id"] for pin in pins})
+
+    def test_evals_use_a_scoped_litellm_endpoint_not_a_provider_endpoint(self) -> None:
+        """The CI key must be a model-scoped gateway key, never a provider credential."""
+
+        source = (ROOT / "scripts" / "run-evals.py").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+
+        self.assertIn("def _litellm_client()", source)
+        self.assertIn('os.environ.get("LITELLM_EVALS_BASE_URL")', source)
+        self.assertIn('os.environ.get("LITELLM_EVALS_API_KEY")', source)
+        self.assertNotIn("https://api.deepseek.com", source)
+        self.assertIn("LITELLM_EVALS_BASE_URL: https://llm-evals.misoto22.com/v1", workflow)
+        self.assertIn("LITELLM_EVALS_API_KEY: ${{ secrets.LITELLM_EVALS_API_KEY }}", workflow)
+        self.assertNotIn("DEEPSEEK_API_KEY:", workflow)
 
     def test_the_router_request_is_shaped_the_way_the_api_expects(self) -> None:
         """This request runs unattended at 4am on a Monday. Pin its shape here.
@@ -1142,36 +1158,34 @@ class RepositoryContractTests(unittest.TestCase):
 
         sent = {}
 
-        block = type("Block", (), {"type": "text", "text": '{"skill": "ship", "reason": "x"}'})()
-
-        class Response:
-            stop_reason = "end_turn"
-            content: ClassVar[list] = [block]
+        message = type("Message", (), {"content": '{"skill": "ship", "reason": "x"}'})()
+        choice = type("Choice", (), {"message": message, "finish_reason": "stop"})()
+        response = type("Response", (), {"choices": [choice]})()
 
         class Client:
-            class messages:
-                @staticmethod
-                def create(**kwargs):
-                    sent.update(kwargs)
-                    return Response()
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        sent.update(kwargs)
+                        return response
 
         answer, reason = module.route(Client(), "<skills/>", "ship it")
         self.assertEqual((answer, reason), ("ship", "x"))
 
-        # Sampling parameters are rejected on this model, and thinking is on by
-        # default — disabling it is what leaks `<thinking>` tags into the answer.
-        for rejected in ("temperature", "top_p", "top_k", "thinking"):
+        # The OpenAI-compatible endpoint needs one JSON-object request shape;
+        # Anthropic-only cache controls, effort, and schema wrappers do not apply.
+        for rejected in ("temperature", "top_p", "top_k", "thinking", "output_config"):
             self.assertNotIn(rejected, sent, f"{rejected} must not be sent")
-        # effort and format share one object; a top-level `effort` is ignored.
-        self.assertEqual(sent["output_config"]["effort"], "low")
-        self.assertEqual(sent["output_config"]["format"]["type"], "json_schema")
-        self.assertEqual(sent["output_config"]["format"]["schema"]["additionalProperties"], False)
-        # The catalogue is byte-identical across every case in a run, and the
-        # prompt after it is the only variable — so it is the breakpoint.
-        self.assertEqual(sent["system"][0]["cache_control"], {"type": "ephemeral"})
-        # Adaptive thinking and the answer share this ceiling.
+        self.assertEqual(sent["response_format"], {"type": "json_object"})
         self.assertGreaterEqual(sent["max_tokens"], 1024)
-        self.assertEqual(sent["messages"], [{"role": "user", "content": "ship it"}])
+        self.assertEqual(
+            sent["messages"],
+            [
+                {"role": "system", "content": module.ROUTER_SYSTEM.format(catalogue="<skills/>")},
+                {"role": "user", "content": "ship it"},
+            ],
+        )
 
     def test_a_non_trigger_is_satisfied_by_no_skill_firing(self) -> None:
         """`none` is the right answer for most non-triggers, and must score as a pass."""
@@ -1207,14 +1221,14 @@ class RepositoryContractTests(unittest.TestCase):
         spec.loader.exec_module(module)
 
         class Refused:
-            stop_reason = "refusal"
-            content: ClassVar[list] = []
+            choices = [type("Choice", (), {"finish_reason": "content_filter", "message": None})()]
 
         class Client:
-            class messages:
-                @staticmethod
-                def create(**kwargs):
-                    return Refused()
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        return Refused()
 
         answer, reason = module.route(Client(), "<skills/>", "anything")
         self.assertEqual(answer, "refused")

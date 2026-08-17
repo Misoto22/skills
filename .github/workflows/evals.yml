@@ -37,12 +37,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
-      - name: Install the Anthropic SDK
-        run: python3 -m pip install --quiet "$(python3 scripts/ci-pins.py spec anthropic)"
+      - name: Install the OpenAI-compatible SDK
+        run: python3 -m pip install --quiet "$(python3 scripts/ci-pins.py spec openai)"
       - name: Score the evaluation cases
         id: score
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LITELLM_EVALS_BASE_URL: https://llm-evals.misoto22.com/v1
+          LITELLM_EVALS_API_KEY: ${{ secrets.LITELLM_EVALS_API_KEY }}
           # Through the environment, never interpolated into the script: this
           # job holds a key, which is not somewhere to expand an arbitrary
           # dispatch input into a shell.
