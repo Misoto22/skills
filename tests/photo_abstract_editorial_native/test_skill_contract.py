@@ -22,7 +22,7 @@ class SkillContractTests(unittest.TestCase):
             "## 5. Attribution and scope",
         ):
             self.assertIn(heading, skill)
-        self.assertEqual(skill.count('(assets/examples/'), 3)
+        self.assertEqual(skill.count("(assets/examples/"), 3)
         self.assertIn("Portrait side-by-side exception", contract)
         self.assertIn("source on the left", contract)
         self.assertIn("lower-art on the right", contract)
