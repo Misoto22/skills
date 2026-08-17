@@ -3,7 +3,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SKILL_DIR = ROOT / "plugins" / "photography" / "skills" / "photo-abstract-editorial-native"
 SKILL_PATH = SKILL_DIR / "SKILL.md"
