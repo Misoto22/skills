@@ -67,6 +67,14 @@ python3 scripts/validate-repository.py
 
 The last one runs the metadata checks and then the full test suite. CI runs the same eight plus an install of every plugin through all four routes.
 
+Model-scored evals are deliberately local at present: the public LiteLLM endpoint remains behind Cloudflare Bot Fight Mode, which GitHub-hosted runners cannot complete. Before pushing a routing or behavior change, export the scoped gateway key from the approved secret manager and run the affected suite:
+
+```bash
+LITELLM_EVALS_API_KEY=... bash scripts/run-evals-local.sh <skill>
+```
+
+Omit `<skill>` to score every routing and behavior case. The helper creates a temporary virtual environment, talks only to `https://llm-evals.misoto22.com/v1`, and removes the environment afterwards; it neither writes the key to disk nor contacts a model provider directly.
+
 `build-registry.py --check` is the one that fails over a file you did not edit. `registry.json` is the catalogue every reader outside Claude Code fetches — the personal site renders it — and it is generated from `skills.sh.json`, `marketplace.json`, each `plugin.json` and each `SKILL.md`. `new-skill.py`, `remove-skill.py` and `bump-version.py` rebuild it for you; editing a description by hand does not, and a stale registry keeps serving the old wording. Run `python3 scripts/build-registry.py` and commit the result.
 
 It also fails when a translation is missing. `i18n/<locale>.json` holds the reader-facing strings per language, and the build requires an entry for every published group and skill — and none for anything unpublished. The scaffold writes a PLACEHOLDER entry, which the build rejects until you write it, exactly as the validator rejects a scaffolded description. What is *not* translated is the SKILL.md body: it is the instruction an agent executes, so a second copy would be a second source nothing keeps in step. `overview` is the paragraph a reader in that language gets instead.

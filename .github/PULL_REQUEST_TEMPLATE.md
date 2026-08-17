@@ -13,6 +13,7 @@
 - [ ] `python3 scripts/ci-pins.py check`
 - [ ] `python3 scripts/check-descriptions.py`
 - [ ] `python3 scripts/run-evals.py --check`
+- [ ] For a routing or behavior change, `LITELLM_EVALS_API_KEY=... bash scripts/run-evals-local.sh <skill>`
 
 ## If this adds or changes a skill
 

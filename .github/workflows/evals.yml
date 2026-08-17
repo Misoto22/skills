@@ -3,11 +3,12 @@ name: Evals
 # Outside the pull-request gate on purpose. Scoring costs money and takes
 # minutes, and a description rarely breaks on the commit that edits it — it
 # breaks when a *neighbouring* skill's description grows into its territory.
-# Weekly catches that; a gate on every push would only bill for the cases the
-# author already had in mind.
+#
+# The public LiteLLM route remains protected by Cloudflare Bot Fight Mode, which
+# GitHub-hosted runners cannot satisfy. Local preflight handles scoring until a
+# private runner is available. Setting the repository variable
+# ENABLE_REMOTE_EVALS=true is an explicit, auditable way to re-enable this job.
 on:
-  schedule:
-    - cron: "17 4 * * 1"
   workflow_dispatch:
     inputs:
       skill:
@@ -30,6 +31,7 @@ jobs:
   # unread. Running all of them is roughly three times the work, so the timeout
   # below moves with it rather than turning a full run into a killed one.
   score:
+    if: vars.ENABLE_REMOTE_EVALS == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

@@ -866,22 +866,33 @@ class RepositoryContractTests(unittest.TestCase):
         for duplicated in ("verify-install.py", "list-skills.sh", "npx --yes"):
             self.assertNotIn(duplicated, canary, "canary must call Install, not restate it")
 
-    def test_evals_are_scored_against_a_model_off_the_pull_request_gate(self) -> None:
-        """`--check` proves a suite exists; only `--run` proves a description still routes."""
+    def test_remote_evals_are_opt_in_while_local_preflight_stays_available(self) -> None:
+        """Bot Fight Mode keeps the public gateway; expensive scoring happens locally for now."""
 
         workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
         validate = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+        preflight = (ROOT / "scripts" / "run-evals-local.sh").read_text(encoding="utf-8")
+        template = (ROOT / ".github" / "PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
 
-        for required in ("schedule:", "workflow_dispatch:", "issues: write", "run-evals.py --run"):
+        for required in ("workflow_dispatch:", "issues: write", "run-evals.py --run"):
             self.assertIn(required, workflow)
-        # The key is the reason this job is not in the gate. Interpolating a
-        # dispatch input into its shell would be injection into a job holding it.
+        self.assertNotIn("schedule:", workflow)
+        self.assertIn("if: vars.ENABLE_REMOTE_EVALS == 'true'", workflow)
+        # The key is the reason this job is not in the normal gate. Interpolating
+        # a dispatch input into its shell would be injection into a job holding it.
         self.assertIn("LITELLM_EVALS_API_KEY: ${{ secrets.LITELLM_EVALS_API_KEY }}", workflow)
         self.assertNotIn('"${{ inputs.skill }}"', workflow)
         self.assertIn("ci-pins.py spec openai", workflow)
 
+        self.assertIn("LITELLM_EVALS_BASE_URL", preflight)
+        self.assertIn("LITELLM_EVALS_API_KEY", preflight)
+        self.assertIn("https://llm-evals.misoto22.com/v1", preflight)
+        self.assertRegex(preflight, r'run-evals\.py"\s+--run(?:\s|$)')
+        self.assertRegex(preflight, r'run-evals\.py"\s+--run-behaviors(?:\s|$)')
+        self.assertIn("run-evals-local.sh", template)
+
         # Scoring costs money and minutes; the free structural half stays on
-        # every push, and only that half is allowed in the gate.
+        # every push, and only that half is allowed in the normal gate.
         self.assertIn("run-evals.py --check", validate)
         self.assertNotIn("--run", validate)
 
@@ -898,10 +909,10 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("run-evals.py --run-behaviors 2>&1", workflow)
         self.assertNotIn("--run-behaviors synastry-reading", workflow)
 
-    def test_every_behavior_case_is_reachable_by_the_weekly_run(self) -> None:
+    def test_every_behavior_case_is_reachable_by_the_local_preflight(self) -> None:
         """A case nobody runs is documentation, and it is billed for as neither."""
 
-        workflow = (ROOT / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+        preflight = (ROOT / "scripts" / "run-evals-local.sh").read_text(encoding="utf-8")
         written = {
             path.parent.name: len(json.loads(path.read_text(encoding="utf-8")).get("behaviors") or [])
             for path in sorted((ROOT / "evals").glob("*/evals.json"))
@@ -912,7 +923,7 @@ class RepositoryContractTests(unittest.TestCase):
         for skill in sorted(carrying):
             self.assertNotIn(
                 f"--run-behaviors {skill}",
-                workflow,
+                preflight,
                 f"{skill} would be the only skill scored; drop the argument to score them all",
             )
 
@@ -1143,7 +1154,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotIn("DEEPSEEK_API_KEY:", workflow)
 
     def test_the_router_request_is_shaped_the_way_the_api_expects(self) -> None:
-        """This request runs unattended at 4am on a Monday. Pin its shape here.
+        """This request runs in the local preflight. Pin its shape here.
 
         Every assertion below is a parameter the current API rejects outright or
         silently ignores if it is wrong — a 400 nobody sees for a week, or a run
@@ -1179,6 +1190,10 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertNotIn(rejected, sent, f"{rejected} must not be sent")
         self.assertEqual(sent["response_format"], {"type": "json_object"})
         self.assertGreaterEqual(sent["max_tokens"], 1024)
+        self.assertIn(
+            "never invent or paraphrase a skill name",
+            sent["messages"][0]["content"],
+        )
         self.assertEqual(
             sent["messages"],
             [
@@ -1186,6 +1201,30 @@ class RepositoryContractTests(unittest.TestCase):
                 {"role": "user", "content": "ship it"},
             ],
         )
+
+    def test_router_catalogue_uses_short_labels_not_skill_slugs(self) -> None:
+        """The gateway's secret guard must not redact the selected skill name."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        catalogue, labels = module.router_catalogue(
+            {
+                "cleanup": "Remove what a release left behind.",
+                "photo-abstract-editorial-native": "Compose a supplied comparison board.",
+            }
+        )
+
+        self.assertEqual(
+            labels,
+            {"s01": "cleanup", "s02": "photo-abstract-editorial-native"},
+        )
+        self.assertIn("<skill name='s01'>Remove what a release left behind.</skill>", catalogue)
+        self.assertIn("<skill name='s02'>Compose a supplied comparison board.</skill>", catalogue)
+        self.assertNotIn("photo-abstract-editorial-native", catalogue)
 
     def test_a_non_trigger_is_satisfied_by_no_skill_firing(self) -> None:
         """`none` is the right answer for most non-triggers, and must score as a pass."""
@@ -1221,7 +1260,9 @@ class RepositoryContractTests(unittest.TestCase):
         spec.loader.exec_module(module)
 
         class Refused:
-            choices = [type("Choice", (), {"finish_reason": "content_filter", "message": None})()]
+            choices: ClassVar[list[object]] = [
+                type("Choice", (), {"finish_reason": "content_filter", "message": None})()
+            ]
 
         class Client:
             class chat:
@@ -1233,6 +1274,128 @@ class RepositoryContractTests(unittest.TestCase):
         answer, reason = module.route(Client(), "<skills/>", "anything")
         self.assertEqual(answer, "refused")
         self.assertIn("declined", reason)
+
+    def test_an_empty_router_response_fails_a_case_without_crashing_evals(self) -> None:
+        """A gateway 200 without text is invalid model output, not valid JSON."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Empty:
+            choices: ClassVar[list[object]] = [
+                type(
+                    "Choice",
+                    (),
+                    {"finish_reason": "stop", "message": type("Message", (), {"content": ""})()},
+                )()
+            ]
+
+        class Client:
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        return Empty()
+
+        answer, reason = module.route(Client(), "<skills/>", "anything")
+        self.assertEqual(answer, "invalid")
+        self.assertIn("empty", reason)
+
+    def test_the_router_retries_one_transient_empty_response(self) -> None:
+        """A one-off empty LiteLLM response must not invalidate an otherwise sound suite."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Empty:
+            choices: ClassVar[list[object]] = [
+                type(
+                    "Choice",
+                    (),
+                    {"finish_reason": "stop", "message": type("Message", (), {"content": ""})()},
+                )()
+            ]
+
+        class Valid:
+            choices: ClassVar[list[object]] = [
+                type(
+                    "Choice",
+                    (),
+                    {
+                        "finish_reason": "stop",
+                        "message": type(
+                            "Message",
+                            (),
+                            {"content": '{"skill": "ship", "reason": "matches"}'},
+                        )(),
+                    },
+                )()
+            ]
+
+        class Client:
+            calls: ClassVar[int] = 0
+            responses: ClassVar[list[object]] = [Empty(), Valid()]
+
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        response = Client.responses[Client.calls]
+                        Client.calls += 1
+                        return response
+
+        answer, reason = module.route(Client(), "<skills/>", "anything")
+        self.assertEqual((answer, reason), ("ship", "matches"))
+        self.assertEqual(Client.calls, 2)
+
+    def test_semantic_judge_rejects_an_incomplete_evaluation_object(self) -> None:
+        """A missing verdict must be reported as invalid output instead of aborting a behavior run."""
+
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class Response:
+            choices: ClassVar[list[object]] = [
+                type(
+                    "Choice",
+                    (),
+                    {
+                        "finish_reason": "stop",
+                        "message": type(
+                            "Message",
+                            (),
+                            {
+                                "content": json.dumps(
+                                    {"evaluations": [{"expectation": 1, "reason": "missing verdict"}]}
+                                )
+                            },
+                        )(),
+                    },
+                )()
+            ]
+
+        class Client:
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        return Response()
+
+        result = module._semantic_failures(
+            Client(),
+            {"prompt": "anything", "expectations": ["The draft preserves the source."]},
+            "candidate markdown",
+        )
+        self.assertEqual(result, ["semantic judge returned an invalid result"])
 
     def test_ci_pins_are_the_only_place_a_cli_version_is_written(self) -> None:
         """A literal pin cannot be overridden by a channel, so the canary would miss it."""
@@ -1873,6 +2036,7 @@ class RepositoryContractTests(unittest.TestCase):
             "scripts/bump-version.py",
             "scripts/validate-repository.py",
             "shellcheck scripts/*.sh",
+            "scripts/run-evals-local.sh",
         ):
             self.assertIn(command, contributing)
 
