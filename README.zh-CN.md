@@ -31,7 +31,7 @@
 
 ### Skills
 
-六个 plugin，十四个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+七个 plugin，十五个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -52,6 +52,10 @@
 #### `brand` —— 视觉识别资产
 
 - **[logo-banner](plugins/brand/skills/logo-banner/SKILL.md)**（`/brand:logo-banner`）—— 先确定风格，再通过 ChatGPT Image 制作统一的 raster logo、图标、favicon 与浅深色社交横幅。
+
+#### `photography` —— 保真摄影对照板
+
+- **[photo-abstract-editorial-native](plugins/photography/skills/photo-abstract-editorial-native/SKILL.md)**（`/photography:photo-abstract-editorial-native`）—— 把原图和用户另行提供的下半艺术面板拼成清晰、不拉伸的上下对照成品，并留下可核对的来源清单。
 
 #### `astrology` —— 按出生时间和地点排盘
 
@@ -74,7 +78,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` 自己不带任何 skill。它依赖上面六个 plugin 和下面六个[书签](#书签)，所以一条命令装齐全部内容。只想要其中一类就单独装 —— `claude plugin install writing@misoto22`。
+`all` 自己不带任何 skill。它依赖上面七个 plugin 和下面六个[书签](#书签)，所以一条命令装齐全部内容。只想要其中一类就单独装 —— `claude plugin install writing@misoto22`。
 
 > [!NOTE]
 > 下面四条安装路径每次 push 都跑 CI，验的是安装器真正产出的目录树，而不是这个仓库本身。
@@ -183,7 +187,7 @@ claude plugin install obsidian@misoto22
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十四个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十五个 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，

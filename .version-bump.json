@@ -51,9 +51,18 @@
     {
       "path": "plugins/brand/plugin.json",
       "field": "version"
+    },
+    {
+      "path": "plugins/photography/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/photography/plugin.json",
+      "field": "version"
     }
   ],
   "text": [
+    "plugins/photography/skills/photo-abstract-editorial-native/SKILL.md",
     "plugins/brand/skills/logo-banner/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md",

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "photography",
+  "version": "0.8.4",
+  "description": "Source-faithful photography presentation: compose original photographs and supplied artwork without distortion, then audit visual provenance and quality.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "photo-editing",
+    "comparison-board",
+    "image-composition"
+  ],
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}

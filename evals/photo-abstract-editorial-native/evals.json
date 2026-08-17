@@ -1,0 +1,50 @@
+{
+  "skill": "photo-abstract-editorial-native",
+  "triggers": [
+    {
+      "id": "assemble-native-board",
+      "prompt": "Put my original photo above this supplied abstract panel, keep both sharp, and make a single comparison card.",
+      "expected": "Fires, preserves the photograph and lower panel without distortion, and writes a source manifest."
+    },
+    {
+      "id": "repair-stretched-diptych",
+      "prompt": "My editorial photo-and-illustration board has a blurred top and a squashed lower half. Rebuild it using the original file.",
+      "expected": "Fires, selects the original source, keeps both panels proportionate, and rejects an upscale."
+    },
+    {
+      "id": "photos-original-export",
+      "prompt": "Use the original from my Photos library and this lower artwork to make an upper-original lower-abstract poster without changing the photo.",
+      "expected": "Fires, exports or uses an authorized unmodified original when available, records provenance, and composes one board."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "generate-lower-art-only",
+      "prompt": "Turn this photograph into a sparse abstract memory panel.",
+      "expected": "Does not fire; this skill composes a supplied lower panel and does not generate the artistic panel."
+    },
+    {
+      "id": "ordinary-photo-retouch",
+      "prompt": "Remove glare and make this portrait look sharper.",
+      "expected": "Does not fire; ordinary retouching is outside the comparison-board workflow."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "portrait-lower-space",
+      "prompt": "Compose a board from a tall portrait source and a wide lower panel.",
+      "expectations": [
+        "Keeps the portrait source at its original aspect ratio and does not force the lower panel into portrait proportions.",
+        "Uses the portrait lower-canvas rule and records that neither panel was upscaled."
+      ]
+    },
+    {
+      "id": "derivative-fallback",
+      "prompt": "The original is unavailable; compose this Photos preview and lower panel anyway.",
+      "expectations": [
+        "Marks the top source as a derivative fallback in the sidecar manifest.",
+        "Does not claim that the result uses the original image."
+      ]
+    }
+  ]
+}

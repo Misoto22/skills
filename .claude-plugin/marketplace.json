@@ -124,6 +124,14 @@
       "skills": [
         "./skills/logo-banner"
       ]
+    },
+    {
+      "name": "photography",
+      "category": "design",
+      "source": "./plugins/photography",
+      "skills": [
+        "./skills/photo-abstract-editorial-native"
+      ]
     }
   ]
 }

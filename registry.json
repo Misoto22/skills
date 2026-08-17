@@ -557,6 +557,54 @@
           }
         }
       ]
+    },
+    {
+      "id": "photography",
+      "title": "Photography",
+      "description": "Source-faithful photography presentation: sharp original-photo and supplied-art comparison boards with provenance and no aspect-ratio distortion.",
+      "summary": "Source-faithful photography presentation: compose original photographs and supplied artwork without distortion, then audit visual provenance and quality.",
+      "category": "design",
+      "keywords": [
+        "photo-editing",
+        "comparison-board",
+        "image-composition"
+      ],
+      "install": "/plugin install photography@misoto22",
+      "i18n": {
+        "zh": {
+          "title": "摄影",
+          "description": "以原始影像为中心的摄影呈现：把原图和用户另行提供的艺术面板拼成上下对照成品，保留比例与来源记录，不拉伸、不放大、不把预览图冒充原片。",
+          "summary": "保真摄影对照板：原图清晰、版式克制、来源可核对。"
+        }
+      },
+      "skills": [
+        {
+          "name": "photo-abstract-editorial-native",
+          "description": "Assemble a source-faithful photograph above a supplied editorial abstraction panel as one sharp comparison board, preserving orientation, aspect ratio, source provenance, and lower-panel scale. Use for original-versus-abstract photography diptychs, photo comparison cards, or repairing blurred and stretched editorial boards; not for generating lower artwork or replacing a separately licensed art-direction skill.",
+          "license": "MIT",
+          "version": "0.8.4",
+          "path": "plugins/photography/skills/photo-abstract-editorial-native",
+          "sourceUrl": "https://github.com/Misoto22/skills/blob/main/plugins/photography/skills/photo-abstract-editorial-native/SKILL.md",
+          "body": "# Photo Abstract Editorial Native\n\nBuild a comparison board whose upper half contains the original photograph and whose lower half contains separately supplied abstract artwork, without cropping, upscaling, blurring, or stretching either.\n\n## 1. Establish the two inputs\n\nRequire both of these inputs before composing:\n\n- `source`: the user-approved original photograph.\n- `lower-art`: an abstract panel made from that photograph, supplied separately or created with a separately licensed skill.\n\nChoose the strongest available source in this order: an explicit original file, a user-exported unmodified Photos original, a downloaded cloud original, then a derivative only when the user accepts that limitation. Record which one was used. Never silently substitute a preview or a derivative for an original.\n\nDo not ask an image generator to recreate the upper photograph. Keep the source pixels in the upper section; only apply auto-orientation and a downscale when needed.\n\n## 2. Compose without distortion\n\nRead [the composition contract](references/composition-contract.md) before laying out the board. It defines the output geometry and the checks that prevent the two known failures: a soft upper photo and a squashed lower panel.\n\nUse a flat ivory lower background. Centre the lower artwork with generous breathing room. Keep its native aspect ratio and never upscale it. Preserve any title that belongs to the supplied lower panel; do not invent labels, frames, watermarks, or extra decoration.\n\n## 3. Audit before delivery\n\nCreate a small source manifest alongside the output. It must state the source path and type, original and output dimensions, orientation handling, lower-art dimensions, every resize operation, and confirmation that neither panel was upscaled or stretched.\n\nVisually inspect at least one landscape and one portrait result in a batch. Reject and regenerate a board if the top is visibly soft, either section is geometrically distorted, the source photo is altered, or the lower artwork loses its title or required whitespace.\n\n## Visual examples\n\nThe examples are real user-authorized boards produced during the native-resolution audit. They demonstrate the intended proportion-preserving result, not templates to reuse.\n\n![Whale comparison board: sharp photograph above a centered abstract panel](assets/examples/whale-native-board.jpg)\n\n![Harbour bridge comparison board: a wide source remains wide above its lower abstraction](assets/examples/harbour-bridge-native-board.jpg)\n\n![Portrait comparison board: a tall source remains tall without forcing the lower panel to match its ratio](assets/examples/portrait-native-board.jpg)\n\n## Attribution and scope\n\nThis is an independent composition and quality-assurance companion. It does not contain or reproduce the artistic-generation prompt from the upstream `photo-abstract-editorial` project. When the lower panel comes from [photo-abstract-editorial by ZzzLc0405](https://github.com/ZzzLc0405/photo-abstract-editorial), credit ZzzLc0405 and the requested attribution, **@AM.**, then read [the attribution and licence boundary](references/attribution.md) and comply with its terms.",
+          "examples": {
+            "triggers": [
+              "Put my original photo above this supplied abstract panel, keep both sharp, and make a single comparison card.",
+              "My editorial photo-and-illustration board has a blurred top and a squashed lower half. Rebuild it using the original file.",
+              "Use the original from my Photos library and this lower artwork to make an upper-original lower-abstract poster without changing the photo."
+            ],
+            "nonTriggers": [
+              "Turn this photograph into a sparse abstract memory panel.",
+              "Remove glare and make this portrait look sharper."
+            ]
+          },
+          "i18n": {
+            "zh": {
+              "description": "将原始照片放在上方、用户提供的抽象艺术面板放在下方，合成为一张清晰且不变形的对照图；同时保留方向、比例、来源与下半图尺寸的审计记录。适用于摄影原图与抽象编辑图的上下对照、修复模糊或压扁的拼图成品，或从 Photos 原始资产制作比对图；不负责生成下半部分艺术图，也不替代一个已获许可的艺术生成 skill。",
+              "overview": "这个 skill 只做之前真正需要修正的那一层：拼版与质量控制。上半部分始终是经自动校正方向后的原始照片，只允许按比例缩小；下半部分是用户提供、或由另一个已获许可 skill 制作的抽象面板，同样不允许被放大或压扁。它会按横幅、竖幅和方幅分别留出不同的下半区高度，并输出一份来源清单，明确标出用的是原片、Photos 导出的未修改原片、云端原片，还是不得已使用的预览图。若下半部分来自 ZzzLc0405 / @AM. 的 photo-abstract-editorial，页面与成品记录都会保留来源与许可提示。"
+            }
+          }
+        }
+      ]
     }
   ],
   "bookmarks": [

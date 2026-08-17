@@ -449,7 +449,7 @@ def _skill_root(skill: str) -> Path:
 
 
 def _linked_references(skill_root: Path, skill_text: str) -> list[tuple[str, str]]:
-    """Read files linked directly from SKILL.md, constrained to the skill root."""
+    """Read linked text references, but leave binary documentation assets out of prompts."""
 
     found: list[tuple[str, str]] = []
     seen: set[Path] = set()
@@ -458,7 +458,12 @@ def _linked_references(skill_root: Path, skill_text: str) -> list[tuple[str, str
         if not target or "://" in target:
             continue
         path = (skill_root / target).resolve()
-        if path in seen or not path.is_relative_to(skill_root.resolve()) or not path.is_file():
+        if (
+            path in seen
+            or not path.is_relative_to(skill_root.resolve())
+            or not path.is_file()
+            or path.suffix.lower() not in {".md", ".txt", ".json", ".yaml", ".yml"}
+        ):
             continue
         seen.add(path)
         found.append((str(path.relative_to(skill_root)), path.read_text(encoding="utf-8")))

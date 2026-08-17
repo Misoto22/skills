@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Fourteen skills in six plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Fifteen skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -52,6 +52,10 @@ Fourteen skills in six plugins. The plugin name is the command prefix, and each 
 #### `brand` — visual identity assets
 
 - **[logo-banner](plugins/brand/skills/logo-banner/SKILL.md)** (`/brand:logo-banner`) — creates confirmed raster logos, icons, favicons, and light/dark social banners through ChatGPT Image; style comes before generation.
+
+#### `photography` — source-faithful comparison boards
+
+- **[photo-abstract-editorial-native](plugins/photography/skills/photo-abstract-editorial-native/SKILL.md)** (`/photography:photo-abstract-editorial-native`) — combines an original photograph with separately supplied lower artwork without stretch or upscale, then records an auditable source manifest.
 
 #### `astrology` — positions computed from birth data
 
@@ -74,7 +78,7 @@ claude plugin marketplace add Misoto22/skills
 claude plugin install all@misoto22
 ```
 
-`all` carries no skills. It depends on the six plugins above and the six [bookmarks](#bookmarks) below, so one command installs everything. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
+`all` carries no skills. It depends on the seven plugins above and the six [bookmarks](#bookmarks) below, so one command installs everything. To take a subject on its own, name it instead — `claude plugin install writing@misoto22`.
 
 > [!NOTE]
 > All four routes below are exercised by CI on every push, against the tree the
@@ -185,7 +189,7 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
-Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the fourteen skills above.
+Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the fifteen skills above.
 
 > [!NOTE]
 > The pinned commit is the point. A bookmark tracking a branch would install

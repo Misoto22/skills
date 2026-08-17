@@ -1,0 +1,6 @@
+interface:
+  display_name: "Photo Editorial Comparison Board"
+  short_description: "Compose sharp, proportion-safe photo comparison boards"
+  default_prompt: "Use $photo-abstract-editorial-native to place this original photo above the supplied abstract panel without blur or distortion."
+policy:
+  allow_implicit_invocation: true

@@ -25,6 +25,7 @@ KEBAB_CASE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 # without being added here is unregistered somewhere, and one listed here without
 # appearing on disk has been dropped.
 PUBLISHED = {
+    "photography": ["photo-abstract-editorial-native"],
     "brand": ["logo-banner"],
     "chinese-metaphysics": ["bazi-chart", "bazi-compatibility", "bazi-compatibility-reading", "bazi-reading"],
     "astrology": ["synastry", "synastry-reading"],
