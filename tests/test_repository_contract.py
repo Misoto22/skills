@@ -1826,6 +1826,43 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
 
+    def test_no_front_matter_value_holds_an_unquoted_colon(self) -> None:
+        """A bare colon makes an installer skip the skill, quietly.
+
+        `description: … and place: planet positions` is valid Markdown and passes
+        every check this repository had. To a YAML parser the second colon opens a
+        nested mapping, so `npx skills add` skips the file with a warning nobody
+        reads and reports a successful install one skill short. That failure mode
+        is silent by construction, which is why it is checked here directly rather
+        than inferred from an install job going green.
+
+        Checked without a YAML library on purpose: the suite is dependency-free,
+        and the hazard is specific enough to name.
+        """
+
+        for path in sorted(PLUGINS.glob("*/skills/*/SKILL.md")):
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(skill=path.parent.name):
+                self.assertTrue(text.startswith("---\n"), "front matter must open the file")
+                parts = text.split("---", 2)
+                self.assertGreaterEqual(len(parts), 3, "front matter is not closed")
+
+                for line in parts[1].splitlines():
+                    if not line.strip() or line.lstrip().startswith("#"):
+                        continue
+                    key, separator, value = line.partition(":")
+                    if not separator or key != key.strip():
+                        continue  # a nested key or a continuation, not a scalar
+                    value = value.strip()
+                    if not value or value.startswith(('"', "'", "|", ">")):
+                        continue  # quoted or block scalars carry colons safely
+                    self.assertNotIn(
+                        ": ",
+                        value,
+                        f"{path.parent.name}: {key.strip()!r} holds an unquoted colon; "
+                        "an installer reads this as a nested mapping and skips the skill",
+                    )
+
     def test_divination_plugins_state_the_forecast_boundary(self) -> None:
         """The boundary is the first thing a reader needs and the last thing they find.
 

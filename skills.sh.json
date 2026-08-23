@@ -29,7 +29,7 @@
     },
     {
       "title": "Astrology",
-      "description": "Two-person synastry in two stages \u2014 one uncertainty-aware JSON v2 chart artifact with recorded backend provenance, privacy-minimal by default unless archival mode is explicitly requested, then a separate adaptive evidence-linked Markdown reading.",
+      "description": "Natal charts and two-person synastry, each in two stages \u2014 one validated JSON chart artifact with recorded backend provenance and uncertainty, privacy-minimal by default unless archival mode is explicitly requested, then a separate evidence-linked Markdown reading.",
       "skills": [
         "synastry",
         "synastry-reading",

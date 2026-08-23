@@ -295,8 +295,8 @@
     {
       "id": "astrology",
       "title": "Astrology",
-      "description": "Two-person synastry in two stages — one uncertainty-aware JSON v2 chart artifact with recorded backend provenance, privacy-minimal by default unless archival mode is explicitly requested, then a separate adaptive evidence-linked Markdown reading.",
-      "summary": "Two-person synastry that produces one validated JSON v2 chart artifact with uncertainty and backend provenance, then a separate adaptive evidence-linked reading.",
+      "description": "Natal charts and two-person synastry, each in two stages — one validated JSON chart artifact with recorded backend provenance and uncertainty, privacy-minimal by default unless archival mode is explicitly requested, then a separate evidence-linked Markdown reading.",
+      "summary": "Natal charts and two-person synastry from birth data: validated JSON artifacts with recorded backend provenance and uncertainty, then separate evidence-linked Markdown readings.",
       "category": "learning",
       "keywords": [
         "natal-chart",
@@ -375,7 +375,7 @@
         },
         {
           "name": "natal-chart",
-          "description": "Compute one person's natal chart from an exact birth date, minute, and place: planet positions with sign, house, dignity and retrograde state, the four angles, intra-chart aspects, sect, and the classical lots, written as canonical JSON plus data-only Markdown. Use for 本命盘, 星盘, 出生星图, natal chart, birth chart, my rising sign, my chart's aspects, or where a planet sits. Not for two-person 合盘, interpreting a chart that already exists, transits, progressions, returns, or any dated prediction.",
+          "description": "Compute one person's natal chart from an exact birth date, minute, and place — planet positions with sign, house, dignity and retrograde state, the four angles, intra-chart aspects, sect, and the classical lots, written as canonical JSON plus data-only Markdown. Use for 本命盘, 星盘, 出生星图, natal chart, birth chart, my rising sign, my chart's aspects, or where a planet sits. Not for two-person 合盘, interpreting a chart that already exists, transits, progressions, returns, or any dated prediction.",
           "license": "AGPL-3.0-or-later",
           "version": "0.8.4",
           "path": "plugins/astrology/skills/natal-chart",
@@ -404,7 +404,7 @@
         },
         {
           "name": "natal-reading",
-          "description": "Explain a natal chart artifact someone already has: what the rising sign shapes, where the sect light sits, which aspects are tight enough to lean on, and what the angles and lots add. Writes a reader report plus an auditable evidence file, and a shareable ink-wash page on request. Use for 解读星盘, 看本命盘, 我的上升是什么意思, or asking what a placement or aspect pattern means. Not for computing a chart from raw birth details, 合盘 between two people, transits, progressions, returns, or predicting a dated event.",
+          "description": "Explain a natal chart artifact someone already has — what the rising sign shapes, where the sect light sits, which aspects are tight enough to lean on, and what the angles and lots add. Writes a reader report plus an auditable evidence file, and a shareable ink-wash page on request. Use for 解读星盘, 看本命盘, 我的上升是什么意思, or asking what a placement or aspect pattern means. Not for computing a chart from raw birth details, 合盘 between two people, transits, progressions, returns, or predicting a dated event.",
           "license": "AGPL-3.0-or-later",
           "version": "0.8.4",
           "path": "plugins/astrology/skills/natal-reading",
