@@ -92,9 +92,9 @@ Keep exactly these five reader-report sections, using the structure in `referenc
 4. What the divergence means for reading this
 5. Model data card
 
-Lead with the person's lived pattern rather than a method disclaimer. Develop the central pattern, the main tension, and each system's distinct contribution to the depth `shared/report-presentation.md` requires. Section 3 is not optional; when the two charts genuinely agree everywhere, say what you checked that could have disagreed and did not.
+Lead with the person's lived pattern rather than a method disclaimer. Develop the central pattern, the main tension, and each system's distinct contribution to the depth `shared/report-presentation.md` sets for a cross-system reading; the disclosure section is part of that length, not an overrun of it. Section 3 is not optional; when the two charts genuinely agree everywhere, say what you checked that could have disagreed and did not.
 
-Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include both source checksums, both model versions, the calendar-convention difference, the full cross ledger with every verdict and its supporting ids on both sides, and each system's alternates kept apart.
+Write the separate evidence artifact after the reader report. Mirror the reader report's five headings in a claim map, one section each, so every paragraph can be traced to the ids on both sides that support it — a single combined ledger reads as complete and is not. In addition to the shared evidence requirements, include both source checksums, both model versions, the calendar-convention difference, the full cross ledger with every verdict and its supporting ids on both sides, and each system's alternates kept apart.
 
 ## Optional ink-wash poster
 

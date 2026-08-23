@@ -88,7 +88,12 @@ class SkillContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("Minimum narrative depth", presentation)
-        self.assertIn(f"1,400{chr(0x2013)}1,900 Chinese characters", presentation)
+        dash = chr(0x2013)
+        # One band per kind of reading. A single band was written for four
+        # pillars and silently made every richer reading look overlong.
+        for band in (f"1,400{dash}1,900", f"1,800{dash}2,300", f"1,800{dash}2,400", f"1,900{dash}2,500"):
+            self.assertIn(band, presentation, band)
+        self.assertIn("A band is a target, not a cap", presentation)
         self.assertIn("two or three paragraphs", natal_template)
         self.assertIn("two or three paragraphs", compatibility_template)
 

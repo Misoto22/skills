@@ -77,7 +77,7 @@ Keep exactly these five reader-report sections, using the structure in `referenc
 4. Decade structure and reflection
 5. Model data card
 
-Put the conditional conclusion first, but lead with the person's lived pattern rather than source confidence or a method disclaimer. Develop the pattern, its countervailing tension, and its practical expression to the depth required by `shared/report-presentation.md`. Show a compact twelve-palace table only when it helps section 2. In section 5, state once that brightness and transformations are declared lineage conventions, not measurements.
+Put the conditional conclusion first, but lead with the person's lived pattern rather than source confidence or a method disclaimer. Develop the pattern, its countervailing tension, and its practical expression to the depth `shared/report-presentation.md` sets for a single-system natal reading with many positions — twelve palaces, four transformations, and decade windows do not compress into a four-pillar band. Show a compact twelve-palace table only when it helps section 2. In section 5, state once that brightness and transformations are declared lineage conventions, not measurements.
 
 Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include source status, the lunar conversion and day boundary, the bureau derivation, the full palace ledger, the transformation ledger with unplaced entries, decade calculations, and separate alternate placements.
 
