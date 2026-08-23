@@ -1,0 +1,17 @@
+{
+  "name": "DISPLAY_NAME",
+  "birth": {
+    "date": "YYYY-MM-DD",
+    "time_mode": "exact",
+    "time": "HH:MM",
+    "time_accuracy_minutes": 0,
+    "timezone": "AREA/CITY",
+    "latitude": 0.0,
+    "longitude": 0.0
+  },
+  "options": {
+    "house_system": "whole-sign",
+    "major_orb": 8.0,
+    "minor_orb": 3.0
+  }
+}

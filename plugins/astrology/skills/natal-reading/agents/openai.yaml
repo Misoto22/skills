@@ -1,0 +1,6 @@
+interface:
+  display_name: "Natal Reading"
+  short_description: "Interpret one computed natal chart"
+  default_prompt: "Use $natal-reading to interpret a verified natal chart artifact as a reader report with a separate evidence artifact, and an ink-wash poster only if asked."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,84 @@
+{
+  "skill": "natal-reading",
+  "triggers": [
+    {
+      "id": "chinese-interpret-chart",
+      "prompt": "解读一下 natal_林青.json 这张本命盘。",
+      "expected": "Fires, validates schema and checksum, builds the evidence ledger, then writes a reader report plus a separate evidence artifact."
+    },
+    {
+      "id": "explain-ascendant",
+      "prompt": "我星盘已经算好了，上升双鱼是什么意思，主星落在哪里重要吗？",
+      "expected": "Fires for an existing artifact and reads from the ascendant and its traditional ruler."
+    },
+    {
+      "id": "aspect-pattern",
+      "prompt": "这张盘里哪几个相位最紧，说明什么？",
+      "expected": "Fires and weights by orb, leading with the tightest aspects and saying when one is wide."
+    },
+    {
+      "id": "poster-requested",
+      "prompt": "解读这张星盘，再出一张可以分享的水墨风单页。",
+      "expected": "Fires, writes the reader report and evidence artifact first, then renders the poster through the shared renderer."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "raw-birth-details",
+      "prompt": "我 1999-10-30 下午两点半上海出生，帮我看星盘。",
+      "routes_to": "natal-chart",
+      "expected": "Does not fire; an uncomputed birth record belongs to the calculator first."
+    },
+    {
+      "id": "two-person",
+      "prompt": "我和他的盘合一下看看合不合。",
+      "routes_to": "synastry-reading",
+      "expected": "Does not fire; two people are a different pair of skills."
+    },
+    {
+      "id": "ziwei-reading",
+      "prompt": "解读一下我的紫微命盘。",
+      "routes_to": "ziwei-reading",
+      "expected": "Does not fire; twelve palaces belong to the chinese-metaphysics plugin."
+    },
+    {
+      "id": "dated-prediction",
+      "prompt": "根据这张星盘，说说我 2027 年会遇到什么。",
+      "expected": "Does not fire for dated prediction; says event timing is outside this release."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "checksum-mismatch",
+      "prompt": "解读 natal_A.json，这个文件我手动改过一个宫位。",
+      "expectations": [
+        "Refuses, naming the checksum mismatch as the exact defect.",
+        "Routes back to the calculator instead of patching the field or reading most of it with a caveat."
+      ]
+    },
+    {
+      "id": "critical-degree",
+      "prompt": "我水星在天蝎 29 度多，这个位置有什么讲究？",
+      "expectations": [
+        "Says a body in the last degree changes sign on a small time error, so conclusions resting on it are conditional on an exact birth minute.",
+        "Places that caveat where the claim is made, not only in the data card."
+      ]
+    },
+    {
+      "id": "missing-bodies",
+      "prompt": "为什么报告里没有凯龙星？是不是我盘里没有？",
+      "expectations": [
+        "Explains it is a gap in the calculation, recorded as a limitation, not an absence in the person.",
+        "Does not invent a position for it."
+      ]
+    },
+    {
+      "id": "wide-aspect-overclaim",
+      "prompt": "我太阳土星对分，是不是一辈子都很压抑？",
+      "expectations": [
+        "Names the orb and treats a wide aspect as background rather than the main thread.",
+        "Uses conditional model language and gives an observable rather than a verdict."
+      ]
+    }
+  ]
+}

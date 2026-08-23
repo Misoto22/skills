@@ -1,0 +1,6 @@
+interface:
+  display_name: "Natal Chart"
+  short_description: "Compute one person's natal chart"
+  default_prompt: "Use $natal-chart to compute one auditable natal chart from an exact birth date, minute and place, then hand it to the natal reading skill."
+policy:
+  allow_implicit_invocation: true
