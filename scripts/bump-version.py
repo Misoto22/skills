@@ -85,12 +85,13 @@ def audit(config: dict, current: str) -> list[str]:
 
     declared = {entry["path"] for entry in config["json"]} | set(config["text"])
     excluded = tuple(config["audit"]["exclude"])
+    nested = _nested_checkouts()
     stragglers: list[str] = []
     for path in sorted(ROOT.rglob("*")):
         if not path.is_file() or path.suffix not in AUDIT_SUFFIXES:
             continue
         relative = path.relative_to(ROOT).as_posix()
-        if relative in declared or _excluded(relative, excluded):
+        if relative in declared or _excluded(relative, excluded) or _excluded(relative, nested):
             continue
         try:
             text = path.read_text(encoding="utf-8")
@@ -106,6 +107,24 @@ def _excluded(relative: str, excluded: tuple[str, ...]) -> bool:
     """Exclude a path or a directory, never a string prefix: `.git` is not `.github`."""
 
     return any(relative == entry or relative.startswith(f"{entry}/") for entry in excluded)
+
+
+def _nested_checkouts() -> tuple[str, ...]:
+    """Return every directory below ROOT that is its own checkout.
+
+    A `git worktree`, a submodule, or a stray clone carries a `.git` entry of its
+    own and holds a second copy of every manifest, README and workflow. Both
+    scanners recurse from the repository root, so without this they report files
+    nobody in this checkout wrote. Excluding by configured path only ever covered
+    the one location someone thought of; excluding by `.git` covers all of them.
+    """
+
+    roots: list[str] = []
+    for marker in ROOT.rglob(".git"):
+        relative = marker.parent.relative_to(ROOT).as_posix()
+        if relative != ".":
+            roots.append(relative)
+    return tuple(sorted(roots))
 
 
 def main() -> int:
