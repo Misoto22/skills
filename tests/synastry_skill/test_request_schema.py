@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry"
 sys.path.insert(0, str(SKILL / "scripts"))
 
-from request_schema import (  # type: ignore[import-not-found]
+from astro.request_schema import (  # type: ignore[import-not-found]
     DateOnlyBirth,
     ExactBirth,
     RequestError,

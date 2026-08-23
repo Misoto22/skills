@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Compute and atomically write one canonical synastry v2 JSON artifact."""
 
+# ruff: noqa: E402
+
 from __future__ import annotations
 
 import argparse
@@ -10,11 +12,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+SKILL_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(SKILL_ROOT / "shared"))
 
 from artifact import ArtifactExistsError, build_artifact, write_artifact
-from ephemeris import EphemerisError, ResolvedChart, resolve_subject, set_ephemeris_path
-from request_schema import CalculationOptions, RequestError, Subject, parse_request
+from astro.ephemeris import EphemerisError, ResolvedChart, resolve_subject, set_ephemeris_path
+from astro.request_schema import CalculationOptions, RequestError, Subject, parse_request
 from synastry_schema import SchemaError
 
 Resolver = Callable[[Subject, CalculationOptions], ResolvedChart]

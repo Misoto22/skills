@@ -17,13 +17,17 @@ sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
 from artifact import build_artifact, chart_id, output_name, write_artifact  # type: ignore[import-not-found]
-from ephemeris import (  # type: ignore[import-not-found]
+from astro.ephemeris import (  # type: ignore[import-not-found]
     BackendProvenance,
     Limitation,
     PositionSamples,
     ResolvedChart,
 )
-from request_schema import SynastryRequest, parse_request  # type: ignore[import-not-found]
+from astro.request_schema import (  # type: ignore[import-not-found]
+    SynastryRequest,
+    parse_request,
+    resolve_interval,
+)
 from synastry_schema import (  # type: ignore[import-not-found]
     SchemaError,
     attach_integrity,
@@ -70,8 +74,8 @@ def provenance(*, fallback: bool = False) -> BackendProvenance:
 
 def exact_charts(*, include_limitation: bool = False) -> tuple[ResolvedChart, ResolvedChart]:
     parsed = request()
-    first_interval = __import__("request_schema").resolve_interval(parsed.people[0].birth)
-    second_interval = __import__("request_schema").resolve_interval(parsed.people[1].birth)
+    first_interval = resolve_interval(parsed.people[0].birth)
+    second_interval = resolve_interval(parsed.people[1].birth)
     first_interval = replace(first_interval, julian_start=2447964.779, julian_end=2447964.779)
     second_interval = replace(second_interval, julian_start=2448782.302, julian_end=2448782.302)
     limitation = (
@@ -199,7 +203,7 @@ class ArtifactConstructionTests(unittest.TestCase):
     def test_uncertain_chart_uses_ranges_and_suppresses_exact_only_overlays(self) -> None:
         parsed = parse_request(mixed_precision_request())
         exact_first, _ = exact_charts()
-        interval = __import__("request_schema").resolve_interval(parsed.people[1].birth)
+        interval = resolve_interval(parsed.people[1].birth)
         interval = replace(interval, julian_start=2448782.0, julian_end=2448783.0)
         uncertain = ResolvedChart(
             subject_id="b",

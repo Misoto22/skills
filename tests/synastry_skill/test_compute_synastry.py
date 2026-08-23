@@ -15,7 +15,7 @@ sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
 import compute_synastry  # type: ignore[import-not-found]
-from ephemeris import EphemerisError  # type: ignore[import-not-found]
+from astro.ephemeris import EphemerisError  # type: ignore[import-not-found]
 from synastry_schema import validate_artifact  # type: ignore[import-not-found]
 
 from tests.synastry_skill.test_artifact import exact_charts

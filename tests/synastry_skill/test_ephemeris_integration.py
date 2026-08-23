@@ -8,7 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "plugins" / "astrology" / "skills" / "synastry" / "scripts"
+SHARED = ROOT / "plugins" / "astrology" / "shared"
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(SHARED))
 
 try:
     import swisseph as swe
@@ -17,7 +19,7 @@ except ImportError as error:  # pragma: no cover - the failure is the intended d
         "ephemeris integration tests require the pinned synastry requirements on Python 3.11-3.13"
     ) from error
 
-from ephemeris import EphemerisError, resolve_subject, set_ephemeris_path
+from astro.ephemeris import EphemerisError, resolve_subject, set_ephemeris_path
 
 from .test_ephemeris import exact_subject, moshier_options, swiss_options
 
