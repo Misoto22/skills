@@ -12,3 +12,6 @@ Only release-ready, recursively discoverable skills belong in this directory.
 
 Shared calendar, chart, schema, and score rules are vendored into every skill by
 the repository sync process.
+
+Every skill here computes a static chart only. No 流年, no annual or monthly transformation,
+no dated event, no forecast. A request for one gets the boundary stated, not an answer.
