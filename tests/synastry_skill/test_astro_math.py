@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "plugins" / "astrology" / "skills" / "synastry" / "scripts"))
 
-from astro_math import (
+from astro.astro_math import (
     ASPECT_KINDS,
     SIGNS,
     AspectEvidence,

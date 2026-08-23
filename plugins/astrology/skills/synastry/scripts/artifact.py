@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
 
-from astro_math import (
+from astro.astro_math import (
     circular_range,
     dignities,
     find_aspects,
@@ -27,8 +27,15 @@ from astro_math import (
     lots,
     sign_of,
 )
-from ephemeris import Limitation, PositionSamples, ResolvedChart
-from request_schema import DateOnlyBirth, ExactBirth, Subject, SynastryRequest, WindowBirth, resolve_interval
+from astro.ephemeris import Limitation, PositionSamples, ResolvedChart
+from astro.request_schema import (
+    DateOnlyBirth,
+    ExactBirth,
+    Subject,
+    SynastryRequest,
+    WindowBirth,
+    resolve_interval,
+)
 from synastry_schema import (
     DERIVED_PROFILE,
     EVIDENCE_POLICY,

@@ -11,16 +11,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "plugins" / "astrology" / "skills" / "synastry" / "scripts"
+SHARED = ROOT / "plugins" / "astrology" / "shared"
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(SHARED))
 
-from ephemeris import (  # type: ignore[import-not-found]
+from astro.ephemeris import (  # type: ignore[import-not-found]
     EphemerisError,
     PositionSamples,
     backend_name,
     resolve_subject,
     set_ephemeris_path,
 )
-from request_schema import CalculationOptions, DateOnlyBirth, ExactBirth, Subject, WindowBirth
+from astro.request_schema import CalculationOptions, DateOnlyBirth, ExactBirth, Subject, WindowBirth
 
 
 class FakeSwe:

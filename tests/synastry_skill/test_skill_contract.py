@@ -18,7 +18,7 @@ OPENAI = SKILL / "agents" / "openai.yaml"
 EVALS = ROOT / "evals" / "synastry" / "evals.json"
 sys.path.insert(0, str(SKILL / "scripts"))
 
-from request_schema import parse_request  # type: ignore[import-not-found]
+from astro.request_schema import parse_request  # type: ignore[import-not-found]
 
 
 class CalculatorSkillContractTests(unittest.TestCase):

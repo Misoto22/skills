@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Positional astrology arithmetic: signs, houses, dignities, lots, and aspects.
 
 Nothing here reads an ephemeris. It takes ecliptic longitudes a caller already
