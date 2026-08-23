@@ -65,7 +65,7 @@ From this skill directory, create the request shape shown in `references/request
 python3 scripts/compute_compatibility.py --request REQUEST.json --out OUTPUT_DIRECTORY
 ```
 
-Inline JSON is accepted with `--json`. A stated context may be in `relationship_type` or supplied with `--relationship-type`. Raw inputs require `pyswisseph`; chart + chart does not recalculate astronomy. An optional Swiss data directory may be supplied with `--ephemeris-path`.
+Inline JSON is accepted with `--json`. A stated context may be in `relationship_type` or supplied with `--relationship-type`. Raw inputs require `pyswisseph`, declared in `requirements.txt`; chart + chart does not recalculate astronomy. An optional Swiss data directory may be supplied with `--ephemeris-path`.
 
 The command prints canonical JSON and data-only Markdown absolute paths, in that order. Exit code 2 means no valid artifact pair was created. Do not manually complete a partial comparison.
 

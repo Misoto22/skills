@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Score a skill suite locally through the scoped LiteLLM gateway before pushing.
 #
-# This intentionally uses a short-lived virtual environment so the preflight
+# This intentionally uses a short-lived uv virtual environment so the preflight
 # neither alters the contributor's global Python packages nor stores a key in
 # the repository. Export the key from the approved secret manager first.
 #
@@ -32,14 +32,20 @@ if [ -z "${LITELLM_EVALS_API_KEY:-}" ]; then
 	exit 2
 fi
 
+if ! command -v uv >/dev/null 2>&1; then
+	printf '%s\n' 'uv is required to run the preflight.' >&2
+	printf '%s\n' 'Install it from https://docs.astral.sh/uv/getting-started/installation/ and retry.' >&2
+	exit 2
+fi
+
 VENV_DIR="$(mktemp -d "${TMPDIR:-/tmp}/skills-evals.XXXXXX")"
 cleanup() {
 	rm -rf "$VENV_DIR"
 }
 trap cleanup EXIT
 
-python3 -m venv "$VENV_DIR"
-"$VENV_DIR/bin/python" -m pip install --quiet "$(python3 "$REPO_DIR/scripts/ci-pins.py" spec openai)"
+uv venv --quiet "$VENV_DIR"
+uv pip install --quiet --python "$VENV_DIR/bin/python" "$(python3 "$REPO_DIR/scripts/ci-pins.py" spec openai)"
 
 export LITELLM_EVALS_BASE_URL="$BASE_URL"
 

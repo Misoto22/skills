@@ -31,6 +31,16 @@
       ]
     },
     {
+      "id": "uv",
+      "package": "uv",
+      "version": "0.12.5",
+      "match": "UV_VERSION: \"{version}\"",
+      "documented_in": [
+        ".github/workflows/evals.yml",
+        ".github/workflows/validate.yml"
+      ]
+    },
+    {
       "id": "coverage",
       "package": "coverage",
       "version": "7.15.3",

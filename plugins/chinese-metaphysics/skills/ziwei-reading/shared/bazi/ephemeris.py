@@ -36,7 +36,7 @@ class SwissEphemeris:
         except ImportError as error:
             raise EphemerisUnavailable(
                 "pyswisseph is required for BaZi astronomy; install it with "
-                "`python -m pip install pyswisseph` and retry"
+                "`uv pip install pyswisseph` (or `python -m pip install pyswisseph`) and retry"
             ) from error
         self._flags = self._swe.FLG_SWIEPH
         if ephemeris_path is not None:

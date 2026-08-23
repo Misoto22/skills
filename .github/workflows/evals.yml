@@ -24,6 +24,14 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+# setup-uv takes its version as an input, the same shape as ruff-action, so this
+# is a pin no script can resolve. `ci-pins.py check` holds it to .ci-pins.json.
+env:
+  UV_VERSION: "0.12.5"
+  # See validate.yml: a runner has no virtual environment, and this is where that
+  # is declared rather than baked into a script contributors also run.
+  UV_SYSTEM_PYTHON: 1
+
 jobs:
   # Routing is one call per case; a behavior case is two, a draft and a judge.
   # This ran only synastry-reading's behaviors for a while, which left 51 of the
@@ -39,8 +47,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Install the OpenAI-compatible SDK
-        run: python3 -m pip install --quiet "$(python3 scripts/ci-pins.py spec openai)"
+        run: uv pip install --quiet "$(python3 scripts/ci-pins.py spec openai)"
       - name: Score the evaluation cases
         id: score
         env:
