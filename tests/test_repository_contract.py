@@ -1826,6 +1826,39 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
 
+    def test_divination_plugins_state_the_forecast_boundary(self) -> None:
+        """The boundary is the first thing a reader needs and the last thing they find.
+
+        Every divination skill computes a static chart and refuses anything dated.
+        That refusal is correct, but a reader only discovered it by asking for a
+        forecast and being told no. Both READMEs and both plugin indexes now say
+        it up front, and this holds them to it.
+        """
+
+        for relative in ("README.md", "README.zh-CN.md"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            with self.subTest(file=relative):
+                self.assertRegex(text, r"static chart only|只排静态盘")
+                self.assertIn(chr(0x6D41) + chr(0x5E74), text, "the boundary must name 流年 itself")
+
+        for plugin in ("astrology", "chinese-metaphysics"):
+            index = PLUGINS / plugin / "skills" / "README.md"
+            with self.subTest(plugin=plugin):
+                self.assertIn("static chart only", index.read_text(encoding="utf-8"))
+
+        # And the skills themselves must still refuse, or the README is a promise
+        # nothing keeps.
+        for skill, phrase in (
+            ("bazi-chart", "no Da Yun"),
+            ("ziwei-chart", "no annual or monthly transformation"),
+            ("bazi-ziwei-cross", "forecasting"),
+        ):
+            text = (PLUGINS / "chinese-metaphysics" / "skills" / skill / "SKILL.md").read_text(
+                encoding="utf-8"
+            )
+            with self.subTest(skill=skill):
+                self.assertIn(phrase, text)
+
     def test_neither_scanner_walks_into_a_checkout_outside_dot_claude(self) -> None:
         """A worktree lives wherever someone put it, not only under .claude/.
 

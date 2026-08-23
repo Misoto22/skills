@@ -9,3 +9,6 @@ Only release-ready, recursively discoverable skills belong in this directory.
 astrology license vendored into both skills. Calculation and interpretation use
 the same closed artifact contract without relying on files outside a skill
 directory at runtime.
+
+Every skill here computes a static chart only. No transits, no progressions, no dated event,
+no forecast. A request for one gets the boundary stated, not an answer.

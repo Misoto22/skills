@@ -190,6 +190,8 @@ claude plugin install obsidian@misoto22
 - **[ziwei-chart](plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md)** (`/chinese-metaphysics:ziwei-chart`) — 把一个人的生辰排成十二宫紫微命盘，产出可复用的 JSON 与纯数据 Markdown；没有明确性别就不排，因为大限方向无从判定。
 - **[ziwei-reading](plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md)** (`/chinese-metaphysics:ziwei-reading`) — 解读已排好的紫微命盘，写成以读者为先的报告，审计明细单独成文；水墨风海报只在被要求时才出。
 - **[bazi-ziwei-cross](plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md)** (`/chinese-metaphysics:bazi-ziwei-cross`) — 把同一个人的八字与紫微两张盘对着读，矛盾如实记录，不合成一个分数。
+
+这里的每一个技能都**只排静态盘**。没有流年、流月、四化流动、行运、事件时间点，也没有任何形式的预测——问「今年运势如何」得到的是这条边界的说明，不是答案。这是有意为之：排盘部分对位置是精确的，而预测层只能在它之上被发明出来，无法由它推导出来。
 Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十五个 skill。
 
 > [!NOTE]

@@ -62,7 +62,7 @@ Eighteen skills in seven plugins. The plugin name is the command prefix, and eac
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)** (`/astrology:synastry`) — validates two supplied birth records and writes one uncertainty-aware JSON v2 chart artifact with recorded backend provenance. It is privacy-minimal by default; only an explicitly requested archival mode retains supplied local birth and location provenance. Exact records can include house overlays, then it starts the separate reading automatically.
 - **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)** (`/astrology:synastry-reading`) — privately validates a JSON v2 chart artifact before writing an adaptive, evidence-linked Markdown report with only explicitly requested relationship domains.
 
-#### `chinese-metaphysics` — four pillars computed from the Chinese calendar
+#### `chinese-metaphysics` — four pillars and twelve palaces computed from the Chinese calendar
 
 - **[bazi-chart](plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md)** (`/chinese-metaphysics:bazi-chart`) — computes one reusable BaZi chart as canonical JSON and data-only Markdown.
 - **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)** (`/chinese-metaphysics:bazi-reading`) — interprets a verified single-person chart as a reader-first natal report with a separate audit artifact.
@@ -192,6 +192,8 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 - **[ziwei-chart](plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md)** (`/chinese-metaphysics:ziwei-chart`) — places one twelve-palace Zi Wei chart as canonical JSON and data-only Markdown, and refuses to run without a stated gender.
 - **[ziwei-reading](plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md)** (`/chinese-metaphysics:ziwei-reading`) — interprets a placed Zi Wei chart as a reader-first report with a separate audit artifact, and an ink-wash poster only when asked.
 - **[bazi-ziwei-cross](plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md)** (`/chinese-metaphysics:bazi-ziwei-cross`) — reads one person's BaZi and Zi Wei charts against each other, recording contradictions instead of averaging them into a score.
+
+Every skill here computes a **static chart only**. None of them produces 流年, annual or monthly transformations, transits, dated events, or a forecast of any kind — asking one for "how will this year go" gets a statement of that boundary, not an answer. This is deliberate: the calculators are exact about positions, and a forecast layer would have to be invented on top of them rather than derived from them.
 Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the fifteen skills above.
 
 > [!NOTE]
