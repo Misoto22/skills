@@ -60,7 +60,7 @@ Inline JSON is also accepted:
 python3 scripts/compute_chart.py --json '{...}' --out OUTPUT_DIRECTORY --language en
 ```
 
-The runtime requires `pyswisseph`. If it reports the dependency missing, surface that exact installation error; do not replace astronomical boundaries with approximate dates. An optional Swiss data directory may be supplied with `--ephemeris-path`.
+The runtime requires `pyswisseph`, declared in `requirements.txt`. If it reports the dependency missing, surface that exact installation error; do not replace astronomical boundaries with approximate dates. An optional Swiss data directory may be supplied with `--ephemeris-path`.
 
 The command prints exactly two absolute paths on success: canonical JSON first, data-only Markdown second. Exit code 2 means no valid pair was created. Never create or repair one artifact manually after a calculation failure.
 

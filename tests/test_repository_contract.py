@@ -1646,6 +1646,79 @@ class RepositoryContractTests(unittest.TestCase):
                 f"{path.name} names a requirements path; use scripts/install-skill-requirements.sh",
             )
 
+    def test_python_packages_are_installed_through_uv_not_pip(self) -> None:
+        """pip is one edit away from creeping back, and nothing else would notice."""
+
+        installers = {
+            "scripts/install-skill-requirements.sh",
+            "scripts/run-evals-local.sh",
+            ".github/workflows/validate.yml",
+            ".github/workflows/evals.yml",
+        }
+        for relative in sorted(installers):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            with self.subTest(file=relative):
+                self.assertNotRegex(
+                    text,
+                    r"(?<!uv )pip install|python3? -m pip|python3? -m venv",
+                    f"{relative} installs with pip; this repository installs with uv",
+                )
+                self.assertIn("uv ", text, f"{relative} names no uv command")
+
+        # setup-uv takes its version as an input, so a workflow holds the literal
+        # and ci-pins.py is what keeps that literal honest.
+        for relative in (".github/workflows/validate.yml", ".github/workflows/evals.yml"):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+            with self.subTest(file=relative):
+                self.assertIn("astral-sh/setup-uv@", workflow)
+                self.assertIn("version: ${{ env.UV_VERSION }}", workflow)
+                # A runner has no virtual environment. Declaring that here rather
+                # than naming an interpreter in the script is what keeps the same
+                # script safe on a contributor's machine.
+                self.assertIn("UV_SYSTEM_PYTHON: 1", workflow)
+
+        # The shared installer must stay interpreter-agnostic, or the CI decision
+        # travels to a laptop and silently writes into someone's global Python.
+        installer = (ROOT / "scripts" / "install-skill-requirements.sh").read_text(encoding="utf-8")
+        self.assertNotIn("--system", installer)
+        self.assertNotIn("command -v python3", installer)
+        self.assertIn("uv pip install --requirement", installer)
+
+        pins = json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        uv_pin = next((pin for pin in pins if pin["id"] == "uv"), None)
+        self.assertIsNotNone(uv_pin, "uv has no pin, so its version can drift unnoticed")
+        self.assertEqual(uv_pin["match"], 'UV_VERSION: "{version}"')
+        self.assertEqual(
+            sorted(uv_pin["documented_in"]),
+            [".github/workflows/evals.yml", ".github/workflows/validate.yml"],
+        )
+
+    def test_no_root_python_project_competes_with_the_pin_file(self) -> None:
+        """A lockfile at the root would be a second source of truth for versions.
+
+        It would also never reach an installed skill, which is copied out on its
+        own. Dependencies belong to the skill that needs them.
+        """
+
+        for stray in ("pyproject.toml", "uv.lock", "requirements.txt", "setup.py"):
+            self.assertFalse((ROOT / stray).exists(), f"{stray} duplicates .ci-pins.json")
+
+    def test_every_skill_whose_script_needs_an_ephemeris_declares_it(self) -> None:
+        """A missing declaration passes CI only while another skill installs it."""
+
+        for scripts in sorted(PLUGINS.glob("*/skills/*/scripts")):
+            skill = scripts.parent
+            needs = any("swisseph" in path.read_text(encoding="utf-8") for path in scripts.rglob("*.py"))
+            if not needs:
+                continue
+            requirements = skill / "requirements.txt"
+            with self.subTest(skill=skill.name):
+                self.assertTrue(
+                    requirements.is_file(),
+                    f"{skill.name} imports swisseph but declares no requirements.txt",
+                )
+                self.assertIn("pyswisseph", requirements.read_text(encoding="utf-8"))
+
     def test_install_skill_requirements_finds_every_declared_dependency(self) -> None:
         """The script is what CI runs, so what it finds has to be the whole set."""
 

@@ -363,7 +363,7 @@ def _litellm_client() -> object:
     except ImportError:
         raise SystemExit(
             "error: model scoring needs the OpenAI SDK. Install the pinned version:\n"
-            '  python3 -m pip install "$(python3 scripts/ci-pins.py spec openai)"'
+            '  uv pip install "$(python3 scripts/ci-pins.py spec openai)"'
         ) from None
 
     base_url = os.environ.get("LITELLM_EVALS_BASE_URL")
