@@ -27,7 +27,15 @@ KEBAB_CASE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 PUBLISHED = {
     "photography": ["photo-abstract-editorial-native"],
     "brand": ["logo-banner"],
-    "chinese-metaphysics": ["bazi-chart", "bazi-compatibility", "bazi-compatibility-reading", "bazi-reading"],
+    "chinese-metaphysics": [
+        "bazi-chart",
+        "bazi-compatibility",
+        "bazi-compatibility-reading",
+        "bazi-reading",
+        "bazi-ziwei-cross",
+        "ziwei-chart",
+        "ziwei-reading",
+    ],
     "astrology": ["synastry", "synastry-reading"],
     "dev": ["cleanup", "ship", "sync"],
     "docs": ["readme"],

@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "seal": "命盤",
+    "archetype": "水木相生的守序者",
+    "one_line": "壬水生於卯月，靠條理立身，最忌臨場改弦。",
+    "subject": "示例命主",
+    "system_label": "八字 · 紫微綜合印證"
+  },
+  "identity": [
+    { "label": "公历", "value": "1990-03-15 08:30" },
+    { "label": "农历", "value": "庚午年 二月十九 辰时" },
+    { "label": "出生地", "value": "上海, 中国" },
+    { "label": "日主", "value": "壬水" }
+  ],
+  "core_metrics": [
+    { "label": "月令", "value": "卯月", "note": "木旺司令" },
+    { "label": "日主强弱", "value": "偏弱", "note": "启发式模型参考，非概率", "ratio": 38 },
+    { "label": "格局", "value": "伤官格", "note": "结构判定，非吉凶断语" },
+    { "label": "命宫", "value": "巨门 · 化禄" },
+    { "label": "五行局", "value": "水二局" }
+  ],
+  "axes": [
+    { "system": "八字", "statement": "壬水弱而透伤官，靠表达与条理换取空间。" },
+    { "system": "紫微", "statement": "命宫巨门化禄，舞台在口才与专业话语权。" }
+  ],
+  "consistency": {
+    "verdict": "同向印证",
+    "verdict_class": "verdict-aligned",
+    "note": "两套体系都指向以表达能力立身，差异只在节奏。"
+  },
+  "distribution": {
+    "title": "五行分布",
+    "items": [
+      { "label": "木", "value": "31%", "ratio": 100 },
+      { "label": "火", "value": "12%", "ratio": 39 },
+      { "label": "土", "value": "18%", "ratio": 58 },
+      { "label": "金", "value": "15%", "ratio": 48 },
+      { "label": "水", "value": "24%", "ratio": 77 }
+    ]
+  },
+  "tendencies": {
+    "strengths": [
+      { "title": "条理", "detail": "把复杂问题拆成可执行的步骤，是这张盘最稳的一面。" },
+      { "title": "表达", "detail": "伤官透干配巨门化禄，语言是主要工具而非点缀。" }
+    ],
+    "tensions": [
+      { "title": "起伏", "detail": "日主偏弱，长周期高强度输出后容易断档。" },
+      { "title": "改弦", "detail": "临场调整偏多时，前期的条理优势会被抵消。" }
+    ]
+  },
+  "domains": {
+    "rows": [
+      {
+        "name": "事业",
+        "readings": [
+          { "system": "八字", "text": "伤官生财，适合以专业换取议价权。" },
+          { "system": "紫微", "text": "官禄宫见天梁，偏顾问与审核类角色。" }
+        ],
+        "verdict": "同向",
+        "verdict_class": "verdict-aligned",
+        "fused": "专业深度优先于管理幅度。"
+      },
+      {
+        "name": "人际",
+        "readings": [
+          { "system": "八字", "text": "比劫不显，合作面窄但稳。" },
+          { "system": "紫微", "text": "交友宫见众星，接触面反而宽。" }
+        ],
+        "verdict": "部分冲突",
+        "verdict_class": "verdict-partial",
+        "fused": "接触面宽、深交面窄，两者并不矛盾。"
+      }
+    ]
+  },
+  "conflicts": {
+    "rows": [
+      {
+        "point": "节奏",
+        "positions": [
+          { "system": "八字", "text": "宜守成，忌急进。" },
+          { "system": "紫微", "text": "大限走禄，宜进取。" }
+        ],
+        "impact": "中",
+        "impact_class": "impact-mid",
+        "advice": "进取方向成立，但把节奏拆成可回退的阶段。"
+      }
+    ]
+  },
+  "narrative": {
+    "title": "主轴印证",
+    "paragraphs": [
+      "在这套传统模型里，壬水生于卯月，月令之气泄身而非助身，因此这张盘的主轴不是「压过别人」，而是「把话说清楚以后换到位置」。伤官透出，通常被读作表达欲与拆解欲同时偏强；配上紫微命宫的巨门化禄，两套体系在同一个方向上重叠了——立身之本在语言与专业判断，而不在资源调度。",
+      "值得同时记住的是反面：日主偏弱意味着这种输出并非无损耗。模型里常见的读法是，长周期的高强度表达之后需要真实的回气窗口，否则前期积累的条理优势会在断档处被抵消。这不是宿命，而是一条可以被观察的节奏规律。"
+    ]
+  },
+  "reflection": {
+    "items": [
+      "记录连续高强度输出后，多久出现明显的效率下滑。",
+      "在一次需要临场改方案的场合，事后回看条理优势是否被抵消。"
+    ]
+  },
+  "confidence": {
+    "items": [
+      { "label": "八字", "level": "中高", "ratio": 75 },
+      { "label": "紫微", "level": "中", "ratio": 60 },
+      { "label": "一致性", "level": "中高", "ratio": 72 }
+    ],
+    "note": "两盘主轴一致，节奏判断存在分歧，故一致性未取高档。"
+  },
+  "footer": {
+    "limitation": "五行百分比与强弱分数是具名启发式模型的输出，不是概率、测量值或诊断。本报告仅供文化研究与自我反思参考，不构成医疗、法律、财务、雇佣或关系决策依据。",
+    "evidence_link": "bazi_reading_evidence_示例命主.md",
+    "generated_at": "2026-08-23"
+  }
+}

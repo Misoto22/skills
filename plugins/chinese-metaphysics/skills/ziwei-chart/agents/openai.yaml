@@ -1,0 +1,6 @@
+interface:
+  display_name: "Zi Wei Chart"
+  short_description: "Place one reusable Zi Wei Dou Shu chart"
+  default_prompt: "Use $ziwei-chart to place one auditable twelve-palace Zi Wei chart from exact birth details and a stated gender, then hand it to the Zi Wei reading skill."
+policy:
+  allow_implicit_invocation: true

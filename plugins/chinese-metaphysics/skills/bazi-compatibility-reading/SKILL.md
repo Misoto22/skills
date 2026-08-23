@@ -69,6 +69,18 @@ In section 4, describe each person's likely experience separately using `Name A 
 
 Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include source status, both source-chart checksums, the comparison checksum when available, exact five-dimensional weights and values, general and contextual weighted arithmetic, confidence, sensitivity variants, and stored owner or direction for compatibility evidence.
 
+## Optional ink-wash poster
+
+Offer a poster only when the couple asks for a visual, shareable, or printable report. It never replaces the reader report or the evidence artifact.
+
+Read `shared/divination-report/poster-contract.md`, write the payload as data only, and render it:
+
+```bash
+python3 shared/divination-report/render_poster.py --data POSTER_PAYLOAD.json --out bazi_compatibility_poster_NAMES.html
+```
+
+Fill `meta.system_label` with 八字合参, show the displayed primary score and at most three supporting indicators in `core_metrics`, and use `domains.rows` for the dimension comparison with one `readings` entry per person. Put every recorded tension in `conflicts.rows`; a poster that shows only the favourable dimensions is a failed poster. Set `footer.evidence_link` to the evidence artifact filename. Never write the HTML yourself and never edit the template for one reading.
+
 ## Write safely
 
 Write UTF-8 Markdown only after validation. Use portable source names in `bazi_compatibility_reading_<name-a>_<name-b>.md` and `bazi_compatibility_evidence_<name-a>_<name-b>.md`; preserve display names inside both files. Reuse an existing report pair only when both record the same compatibility checksum; otherwise append the first eight checksum characters to both names. Do not overwrite another comparison, alter the source JSON, invoke chart calculation, or create new numeric scores.

@@ -1,0 +1,76 @@
+{
+  "skill": "ziwei-reading",
+  "triggers": [
+    {
+      "id": "chinese-interpret-chart",
+      "prompt": "解读一下 ziwei_林青.json 这张紫微命盘。",
+      "expected": "Fires, validates schema and checksum, builds the palace ledger, then writes a reader report plus a separate evidence artifact."
+    },
+    {
+      "id": "explain-life-palace",
+      "prompt": "我命盘已经排好了，帮我看看命宫那几颗星和生年四化说明什么。",
+      "expected": "Fires for an existing chart and reads from the life palace, its stars, and the transformations."
+    },
+    {
+      "id": "decade-windows",
+      "prompt": "这张紫微盘的大限是怎么走的，每一步侧重什么？",
+      "expected": "Fires and describes decade windows as structural emphases, never as dated forecasts."
+    },
+    {
+      "id": "poster-requested",
+      "prompt": "解读这张紫微盘，顺便出一张可以截图分享的水墨风报告。",
+      "expected": "Fires, writes the reader report and evidence artifact first, then renders the poster through the shared renderer."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "raw-birth-details",
+      "prompt": "我 1990-03-15 早上八点半上海出生，女，帮我看紫微。",
+      "routes_to": "ziwei-chart",
+      "expected": "Does not fire; an unplaced birth record belongs to the placer first."
+    },
+    {
+      "id": "bazi-chart-reading",
+      "prompt": "解读一下我的八字，看看日主强弱和用神。",
+      "routes_to": "bazi-reading",
+      "expected": "Does not fire; four-pillar interpretation is a different skill."
+    },
+    {
+      "id": "cross-system",
+      "prompt": "八字和紫微两份报告对比一下，哪里矛盾？",
+      "routes_to": "bazi-ziwei-cross",
+      "expected": "Does not fire; comparing two systems is the cross-reading skill."
+    },
+    {
+      "id": "annual-prediction",
+      "prompt": "根据这张紫微盘，说说我 2027 年会发生什么。",
+      "expected": "Does not fire for dated prediction; says event timing is outside this release."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "checksum-mismatch",
+      "prompt": "解读 ziwei_A.json，这个文件我手动改过两个宫位。",
+      "expectations": [
+        "Refuses, naming the checksum mismatch as the exact defect.",
+        "Routes back to the placer instead of patching the field or reading most of it with a caveat."
+      ]
+    },
+    {
+      "id": "empty-palace",
+      "prompt": "我夫妻宫是空的，是不是代表没有姻缘？",
+      "expectations": [
+        "Reads the empty palace through its opposite palace rather than declaring the matter absent.",
+        "Uses conditional model language and does not predict a relationship outcome."
+      ]
+    },
+    {
+      "id": "hua-ji-fear",
+      "prompt": "我命宫化忌，是不是一辈子都不顺？",
+      "expectations": [
+        "Reads 化忌 as where attention and friction concentrate, not as a verdict on a life.",
+        "Names the countervailing condition and gives an observable reflection prompt instead of reassurance."
+      ]
+    }
+  ]
+}

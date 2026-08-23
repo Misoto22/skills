@@ -19,12 +19,15 @@ SKILLS = {
         "bazi_compatibility_reading_<name-a>_<name-b>.md",
         None,
     ),
+    "ziwei-chart": ("ziwei_<name>.json", "ziwei-reading"),
+    "ziwei-reading": ("ziwei_reading_<name>.md", None),
+    "bazi-ziwei-cross": ("cross_reading_<name>.md", None),
 }
 BIRTH_DATE = re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}\b")
 
 
 class SkillContractTests(unittest.TestCase):
-    def test_plugin_registers_exactly_the_four_approved_skills(self) -> None:
+    def test_plugin_registers_exactly_the_approved_skills(self) -> None:
         manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "chinese-metaphysics")
@@ -60,6 +63,8 @@ class SkillContractTests(unittest.TestCase):
                 "bazi_compatibility_reading_<name-a>_<name-b>.md",
                 "bazi_compatibility_evidence_<name-a>_<name-b>.md",
             ),
+            ("ziwei-reading", "ziwei_reading_<name>.md", "ziwei_reading_evidence_<name>.md"),
+            ("bazi-ziwei-cross", "cross_reading_<name>.md", "cross_reading_evidence_<name>.md"),
         ):
             with self.subTest(skill=skill):
                 skill_root = PLUGIN / "skills" / skill

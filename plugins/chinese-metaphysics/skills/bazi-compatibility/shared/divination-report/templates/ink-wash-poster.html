@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ meta.archetype }} · {{ meta.system_label }}</title>
+<style>
+  :root {
+    --paper: #f3efe4;
+    --paper-card: #faf7ee;
+    --paper-deep: #e8e2d2;
+    --ink: #23201d;
+    --ink-soft: #5f5a53;
+    --ink-faint: #9a938a;
+    --vermillion: #b23a2b;
+    --vermillion-soft: #d9836f;
+    --azure: #2f6188;
+    --jade: #4a7551;
+    --gold: #a67c33;
+    --rule: #b9b0a0;
+    --rule-soft: #ddd5c4;
+    --shadow: rgba(35, 32, 29, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #16151a;
+      --paper-card: #1e1d23;
+      --paper-deep: #24232a;
+      --ink: #e8e3d8;
+      --ink-soft: #a8a196;
+      --ink-faint: #6e6862;
+      --vermillion: #e0705c;
+      --vermillion-soft: #a8483a;
+      --azure: #7db0d8;
+      --jade: #8bbd93;
+      --gold: #d3a961;
+      --rule: #46424c;
+      --rule-soft: #33313a;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #16151a;
+    --paper-card: #1e1d23;
+    --paper-deep: #24232a;
+    --ink: #e8e3d8;
+    --ink-soft: #a8a196;
+    --ink-faint: #6e6862;
+    --vermillion: #e0705c;
+    --vermillion-soft: #a8483a;
+    --azure: #7db0d8;
+    --jade: #8bbd93;
+    --gold: #d3a961;
+    --rule: #46424c;
+    --rule-soft: #33313a;
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  body {
+    font-family: "Songti SC", "Source Han Serif SC", "Noto Serif CJK SC", "Noto Serif SC",
+                 "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    line-height: 1.75;
+    padding: clamp(12px, 3vw, 32px);
+    background-image:
+      radial-gradient(ellipse at 12% 18%, rgba(150, 130, 100, 0.07), transparent 55%),
+      radial-gradient(ellipse at 88% 82%, rgba(150, 130, 100, 0.06), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  .sheet {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow: 0 6px 28px var(--shadow);
+    padding: clamp(20px, 4vw, 44px);
+  }
+
+  /* ---------- header ---------- */
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .masthead > .title-group { flex: 1 1 340px; min-width: 0; }
+  .seal {
+    flex: 0 0 auto;
+    width: 58px;
+    height: 58px;
+    border: 2px solid var(--vermillion);
+    border-radius: 3px;
+    color: var(--vermillion);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1.05;
+    letter-spacing: 1px;
+    transform: rotate(-4deg);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    padding: 4px;
+  }
+  h1 {
+    font-size: clamp(26px, 5vw, 38px);
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    margin: 0 0 10px;
+    line-height: 1.25;
+  }
+  .one-line {
+    color: var(--ink-soft);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+  .stamp-block {
+    flex: 0 0 auto;
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.9;
+    letter-spacing: 0.03em;
+  }
+  .stamp-block .subject { color: var(--ink); font-size: 15px; letter-spacing: 0.08em; }
+  .stamp-block .system { color: var(--azure); }
+
+  /* ---------- generic section ---------- */
+  section { margin-top: 34px; }
+  h2 {
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    margin: 0 0 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--vermillion);
+    color: var(--ink);
+  }
+  h2 .en {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ---------- identity ---------- */
+  .identity {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--rule-soft);
+    border: 1px solid var(--rule-soft);
+  }
+  .identity div {
+    background: var(--paper-card);
+    padding: 11px 14px;
+    font-size: 14px;
+    min-width: 0;
+  }
+  .identity dt {
+    color: var(--ink-faint);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    margin: 0 0 3px;
+  }
+  .identity dd { margin: 0; overflow-wrap: anywhere; }
+
+  /* ---------- metric cards ---------- */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .metric {
+    background: var(--paper-card);
+    border: 1px solid var(--rule-soft);
+    border-top: 2px solid var(--azure);
+    padding: 14px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .metric .bar { margin-top: auto; }
+  .metric .label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+  }
+  .metric .value {
+    font-size: clamp(17px, 2.4vw, 21px);
+    letter-spacing: 0.04em;
+    margin: 6px 0 6px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .metric .note { font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+  .bar {
+    height: 3px;
+    background: var(--paper-deep);
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .bar span { display: block; height: 100%; background: var(--azure); }
+
+  /* ---------- axes ---------- */
+  .axis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: baseline;
+    padding: 13px 0;
+    border-bottom: 1px dashed var(--rule-soft);
+  }
+  .axis:last-child { border-bottom: none; }
+  .axis .system {
+    flex: 0 0 auto;
+    min-width: 76px;
+    color: var(--vermillion);
+    letter-spacing: 0.1em;
+    font-size: 14px;
+  }
+  .axis .statement { flex: 1 1 260px; min-width: 0; }
+
+  .verdict {
+    display: inline-block;
+    padding: 3px 12px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+  .verdict-aligned { color: var(--jade); }
+  .verdict-partial { color: var(--gold); }
+  .verdict-conflict { color: var(--vermillion); }
+  .consistency-note { margin: 12px 0 0; color: var(--ink-soft); font-size: 14px; }
+
+  /* ---------- distribution ---------- */
+  .distribution { display: grid; gap: 9px; }
+  .dist-row {
+    display: grid;
+    grid-template-columns: 58px 1fr 62px;
+    gap: 12px;
+    align-items: center;
+    font-size: 14px;
+  }
+  .dist-row .track { height: 14px; background: var(--paper-deep); }
+  .dist-row .track span { display: block; height: 100%; background: var(--jade); }
+  .dist-row .amount { text-align: right; color: var(--ink-soft); font-size: 13px; }
+
+  /* ---------- two column lists ---------- */
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .stack { list-style: none; margin: 0; padding: 0; }
+  .stack li {
+    padding: 10px 0 10px 16px;
+    border-bottom: 1px dashed var(--rule-soft);
+    position: relative;
+    font-size: 14px;
+  }
+  .stack li:last-child { border-bottom: none; }
+  .stack li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 19px;
+    width: 5px;
+    height: 5px;
+    background: var(--vermillion);
+  }
+  .stack .title { letter-spacing: 0.08em; }
+  .stack .detail { display: block; color: var(--ink-soft); font-size: 13px; margin-top: 2px; }
+  .tensions .stack li::before { background: var(--azure); }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 520px; }
+  th, td {
+    border: 1px solid var(--rule-soft);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--paper-deep);
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  td .fused { color: var(--ink); }
+  td .reading { display: block; color: var(--ink-soft); margin-bottom: 3px; }
+  td .reading b { color: var(--vermillion); font-weight: 400; }
+
+  .impact-low { color: var(--jade); }
+  .impact-mid { color: var(--gold); }
+  .impact-high { color: var(--vermillion); }
+
+  /* ---------- narrative ---------- */
+  .narrative p {
+    margin: 0 0 16px;
+    text-indent: 2em;
+    line-height: 1.95;
+  }
+  .narrative p:last-child { margin-bottom: 0; }
+
+  /* ---------- reflection ---------- */
+  .reflection { list-style: none; margin: 0; padding: 0; counter-reset: reflect; }
+  .reflection li {
+    counter-increment: reflect;
+    padding: 9px 0 9px 34px;
+    position: relative;
+    font-size: 14px;
+  }
+  .reflection li::before {
+    content: counter(reflect);
+    position: absolute;
+    left: 0;
+    top: 11px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--vermillion);
+    color: var(--vermillion);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- confidence ---------- */
+  .confidence { display: grid; gap: 10px; }
+  .conf-row {
+    display: grid;
+    grid-template-columns: minmax(72px, auto) 1fr minmax(48px, auto);
+    gap: 12px;
+    align-items: center;
+    font-size: 13.5px;
+  }
+  .conf-row .track { height: 6px; background: var(--paper-deep); }
+  .conf-row .track span { display: block; height: 100%; background: var(--vermillion-soft); }
+  .conf-row .level { text-align: right; color: var(--ink-soft); }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.85;
+  }
+  footer .limitation { color: var(--ink-soft); }
+  footer .meta-line { margin-top: 10px; letter-spacing: 0.05em; }
+  footer a { color: var(--azure); }
+
+  @media print {
+    body { padding: 0; background: #fff; }
+    .sheet { border: none; box-shadow: none; max-width: none; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+
+  <header class="masthead">
+    <div class="seal">{{ meta.seal }}</div>
+    <div class="title-group">
+      <h1>{{ meta.archetype }}</h1>
+      <p class="one-line">{{ meta.one_line }}</p>
+    </div>
+    <div class="stamp-block">
+      <div class="subject">{{ meta.subject }}</div>
+      <div class="system">{{ meta.system_label }}</div>
+      <div>{{ footer.generated_at }}</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>基本信息<span class="en">Record</span></h2>
+    <div class="identity">
+      {{# identity }}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{{/ identity }}
+    </div>
+  </section>
+
+  <section>
+    <h2>核心指标<span class="en">Model reference</span></h2>
+    <div class="metrics">
+      {{# core_metrics }}
+      <div class="metric">
+        <div class="label">{{ label }}</div>
+        <div class="value">{{ value }}</div>
+        {{# note }}<div class="note">{{ note }}</div>{{/ note }}
+        {{# ratio }}<div class="bar"><span style="width:{{ ratio }}%"></span></div>{{/ ratio }}
+      </div>
+      {{/ core_metrics }}
+    </div>
+  </section>
+
+  <section>
+    <h2>主轴<span class="en">Axis</span></h2>
+    {{# axes }}
+    <div class="axis">
+      <div class="system">{{ system }}</div>
+      <div class="statement">{{ statement }}</div>
+    </div>
+    {{/ axes }}
+    {{# consistency }}
+    <p class="consistency-note">
+      <span class="verdict {{ verdict_class }}">{{ verdict }}</span>
+      {{# note }}<span>{{ note }}</span>{{/ note }}
+    </p>
+    {{/ consistency }}
+  </section>
+
+  {{# distribution }}
+  <section>
+    <h2>{{ title }}<span class="en">Distribution</span></h2>
+    <div class="distribution">
+      {{# items }}
+      <div class="dist-row">
+        <div>{{ label }}</div>
+        <div class="track"><span style="width:{{ ratio }}%"></span></div>
+        <div class="amount">{{ value }}</div>
+      </div>
+      {{/ items }}
+    </div>
+  </section>
+  {{/ distribution }}
+
+  {{# tendencies }}
+  <section>
+    <h2>倾向与张力<span class="en">Tendencies and tensions</span></h2>
+    <div class="columns">
+      <div>
+        <ul class="stack">
+          {{# strengths }}
+          <li><span class="title">{{ title }}</span><span class="detail">{{ detail }}</span></li>
+          {{/ strengths }}
+        </ul>
+      </div>
+      <div class="tensions">
+        <ul class="stack">
+          {{# tensions }}
+          <li><span class="title">{{ title }}</span><span class="detail">{{ detail }}</span></li>
+          {{/ tensions }}
+        </ul>
+      </div>
+    </div>
+  </section>
+  {{/ tendencies }}
+
+  {{# domains }}
+  <section>
+    <h2>领域对照<span class="en">Domains</span></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>领域</th><th>各体系读法</th><th>判定</th><th>合参</th></tr></thead>
+        <tbody>
+          {{# rows }}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{# readings }}<span class="reading"><b>{{ system }}</b> {{ text }}</span>{{/ readings }}</td>
+            <td><span class="verdict {{ verdict_class }}">{{ verdict }}</span></td>
+            <td class="fused">{{ fused }}</td>
+          </tr>
+          {{/ rows }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{/ domains }}
+
+  {{# conflicts }}
+  <section>
+    <h2>分歧披露<span class="en">Recorded tensions</span></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>分歧点</th><th>各体系立场</th><th>影响</th><th>处理</th></tr></thead>
+        <tbody>
+          {{# rows }}
+          <tr>
+            <td>{{ point }}</td>
+            <td>{{# positions }}<span class="reading"><b>{{ system }}</b> {{ text }}</span>{{/ positions }}</td>
+            <td class="{{ impact_class }}">{{ impact }}</td>
+            <td>{{ advice }}</td>
+          </tr>
+          {{/ rows }}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{/ conflicts }}
+
+  <section class="narrative">
+    <h2>{{ narrative.title }}<span class="en">Reading</span></h2>
+    {{# narrative.paragraphs }}<p>{{ . }}</p>{{/ narrative.paragraphs }}
+  </section>
+
+  {{# reflection }}
+  <section>
+    <h2>观察提示<span class="en">Reflection prompts</span></h2>
+    <ol class="reflection">
+      {{# items }}<li>{{ . }}</li>{{/ items }}
+    </ol>
+  </section>
+  {{/ reflection }}
+
+  {{# confidence }}
+  <section>
+    <h2>置信度<span class="en">Confidence</span></h2>
+    <div class="confidence">
+      {{# items }}
+      <div class="conf-row">
+        <div>{{ label }}</div>
+        <div class="track"><span style="width:{{ ratio }}%"></span></div>
+        <div class="level">{{ level }}</div>
+      </div>
+      {{/ items }}
+    </div>
+    {{# note }}<p class="consistency-note">{{ note }}</p>{{/ note }}
+  </section>
+  {{/ confidence }}
+
+  <footer>
+    <div class="limitation">{{ footer.limitation }}</div>
+    <div class="meta-line">
+      {{ meta.system_label }} · {{ footer.generated_at }}{{# footer.evidence_link }} · 审计明细：{{ footer.evidence_link }}{{/ footer.evidence_link }}
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>

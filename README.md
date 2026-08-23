@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Fifteen skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Eighteen skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -189,6 +189,9 @@ The headings are the `category` each entry declares, so `/plugin` groups them th
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)** (`warp@misoto22`) — native Warp notifications when a run finishes or stops to ask.
+- **[ziwei-chart](plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md)** (`/chinese-metaphysics:ziwei-chart`) — places one twelve-palace Zi Wei chart as canonical JSON and data-only Markdown, and refuses to run without a stated gender.
+- **[ziwei-reading](plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md)** (`/chinese-metaphysics:ziwei-reading`) — interprets a placed Zi Wei chart as a reader-first report with a separate audit artifact, and an ink-wash poster only when asked.
+- **[bazi-ziwei-cross](plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md)** (`/chinese-metaphysics:bazi-ziwei-cross`) — reads one person's BaZi and Zi Wei charts against each other, recording contradictions instead of averaging them into a score.
 Claude Code and Codex both install these. `npx skills add` and the skills.sh listing do not show them at all: they clone this repository and read the skills on disk, so a plugin that lives in someone else's repository is not theirs to offer. Those two routes stay at the fifteen skills above.
 
 > [!NOTE]
