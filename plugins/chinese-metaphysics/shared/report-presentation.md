@@ -24,7 +24,16 @@ Write a reader report and a separate evidence artifact. They serve different rea
 
 Unless the user explicitly asks for a brief reading, write a full interpretation rather than an executive summary.
 
-- Target 1,400–1,900 Chinese characters for a natal reader report and 1,800–2,400 Chinese characters for a compatibility reader report; use comparable depth in other languages.
+- Target the band for the kind of reading, and use comparable depth in other languages. A band is a target, not a cap: never delete a supported conclusion to reach a number, and never pad to reach one either.
+
+  | Reading | Chinese characters | Why this band |
+  | --- | --- | --- |
+  | Single-system natal, one primary axis | 1,400–1,900 | Four pillars and one score ledger |
+  | Single-system natal, many positions | 1,800–2,300 | Twelve palaces, four transformations, and decade windows carry more structure than one set of pillars |
+  | Compatibility, two people | 1,800–2,400 | Two charts plus their directional evidence |
+  | Cross-system, one person | 1,900–2,500 | Two independent systems plus a disclosure section neither one needs alone |
+
+  Overshooting a band by roughly a tenth is not a defect when every paragraph is carrying evidence. Undershooting it usually is: it means a conclusion arrived without its countervailing condition or its observable.
 - Give every major conclusion its everyday expression, a countervailing condition or tension, and a practical way to observe it. Do not pad with generic reassurance or repeat the same score in prose.
 - Develop the central pattern, main tension, and each person's experience in two or three paragraphs where the source evidence supports that depth. Keep the data card compact and technical evidence separate.
 
