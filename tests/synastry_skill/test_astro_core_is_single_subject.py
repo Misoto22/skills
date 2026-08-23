@@ -19,18 +19,26 @@ SHARED = ROOT / "plugins" / "astrology" / "shared"
 CORE = SHARED / "astro"
 sys.path.insert(0, str(SHARED))
 
+# The astronomy proper: hoisted out of synastry, and held below to knowing
+# nothing about a second person.
 MODULES = ("request_schema", "astro_math", "ephemeris")
+# Artifact contracts two skills must agree on byte for byte. They belong here for
+# the same reason — neither skill may import the other — but they are not
+# astronomy, so the single-subject checks below do not apply to them.
+CONTRACTS = ("natal_envelope",)
 
 
 class AstroCoreTests(unittest.TestCase):
-    def test_the_package_holds_exactly_the_hoisted_modules(self) -> None:
+    def test_the_package_holds_exactly_what_was_hoisted(self) -> None:
+        """A new file here is a decision, not a side effect: it reaches every skill."""
+
         present = sorted(path.stem for path in CORE.glob("*.py"))
-        self.assertEqual(present, sorted([*MODULES, "__init__"]))
+        self.assertEqual(present, sorted([*MODULES, *CONTRACTS, "__init__"]))
 
     def test_nothing_in_it_imports_back_into_a_skill(self) -> None:
         """A shared module that reaches into one skill is not shared."""
 
-        for name in MODULES:
+        for name in (*MODULES, *CONTRACTS):
             tree = ast.parse((CORE / f"{name}.py").read_text(encoding="utf-8"))
             for node in ast.walk(tree):
                 if isinstance(node, ast.ImportFrom) and node.module:
@@ -42,7 +50,7 @@ class AstroCoreTests(unittest.TestCase):
     def test_no_module_manipulates_sys_path(self) -> None:
         """Import wiring belongs to the entry point, not to a library."""
 
-        for name in MODULES:
+        for name in (*MODULES, *CONTRACTS):
             source = (CORE / f"{name}.py").read_text(encoding="utf-8")
             with self.subTest(module=name):
                 self.assertNotIn("sys.path", source)
@@ -88,11 +96,11 @@ class AstroCoreTests(unittest.TestCase):
     def test_it_is_vendored_into_every_skill_that_ships_it(self) -> None:
         """A skill is copied out alone; a shared module has to travel with it."""
 
-        for skill in ("synastry", "synastry-reading"):
+        for skill in ("synastry", "synastry-reading", "natal-chart", "natal-reading"):
             vendored = ROOT / "plugins" / "astrology" / "skills" / skill / "shared" / "astro"
             with self.subTest(skill=skill):
                 self.assertTrue(vendored.is_dir(), f"{skill} did not receive shared/astro")
-                for name in MODULES:
+                for name in (*MODULES, *CONTRACTS):
                     self.assertEqual(
                         (vendored / f"{name}.py").read_bytes(),
                         (CORE / f"{name}.py").read_bytes(),

@@ -1,0 +1,76 @@
+{
+  "skill": "natal-chart",
+  "triggers": [
+    {
+      "id": "chinese-natal-chart",
+      "prompt": "帮我算本命盘：林青，1999-10-30 下午两点半，上海出生。",
+      "expected": "Fires, resolves Shanghai coordinates and IANA zone, computes the natal chart, and starts the natal reading."
+    },
+    {
+      "id": "english-birth-chart",
+      "prompt": "Cast my birth chart. Born 1988-04-11 at 09:15 in Shanghai.",
+      "expected": "Fires for a single exact birth record and computes angles, houses and aspects."
+    },
+    {
+      "id": "rising-sign",
+      "prompt": "我想知道我的上升星座和各行星落在第几宫，出生 1991-11-26 17:40 北京。",
+      "expected": "Fires; the ascendant and house placements require a full natal computation."
+    },
+    {
+      "id": "imprecise-time",
+      "prompt": "我大概是 1995 年 6 月 3 号早上七点多在成都出生的，帮我看星盘。",
+      "expected": "Fires but stops for an exact minute; never falls back to noon or omits the angles."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "two-person-synastry",
+      "prompt": "帮我和我对象合盘看看。",
+      "routes_to": "synastry",
+      "expected": "Does not fire; two people belong to the synastry calculator."
+    },
+    {
+      "id": "existing-chart-reading",
+      "prompt": "解读一下刚才生成的 natal_林青.json。",
+      "routes_to": "natal-reading",
+      "expected": "Does not fire; a valid existing artifact should be interpreted without recomputation."
+    },
+    {
+      "id": "bazi-request",
+      "prompt": "帮我排八字，1999-10-30 14:30 上海。",
+      "routes_to": "bazi-chart",
+      "expected": "Does not fire; four pillars belong to the chinese-metaphysics plugin."
+    },
+    {
+      "id": "transit-forecast",
+      "prompt": "看看今年木星行运对我有什么影响。",
+      "expected": "Does not fire; transits are outside this release."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "time-unknown",
+      "prompt": "我不知道出生几点，只知道日期，能算本命盘吗？",
+      "expectations": [
+        "States that houses, angles and sect cannot be placed without an exact time, and stops.",
+        "Does not fall back to noon and does not emit a chart with the angles omitted."
+      ]
+    },
+    {
+      "id": "ephemeris-missing",
+      "prompt": "算的时候报错说 Swiss Ephemeris data was unavailable，怎么办？",
+      "expectations": [
+        "Explains the two deliberate choices: supply --ephemeris-path, or set allow-moshier explicitly.",
+        "Does not silently downgrade the backend, and notes the fallback is recorded as a limitation."
+      ]
+    },
+    {
+      "id": "ambiguous-place",
+      "prompt": "本命盘：A，1990-03-14 07:42，Springfield 出生。",
+      "expectations": [
+        "Requests a region or country because the place is ambiguous.",
+        "Does not silently select one Springfield or run the calculator."
+      ]
+    }
+  ]
+}

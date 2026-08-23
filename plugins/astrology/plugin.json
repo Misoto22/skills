@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "astrology",
   "version": "0.8.4",
-  "description": "Two-person synastry that produces one validated JSON v2 chart artifact with uncertainty and backend provenance, then a separate adaptive evidence-linked reading.",
+  "description": "Natal charts and two-person synastry from birth data: validated JSON artifacts with recorded backend provenance and uncertainty, then separate evidence-linked Markdown readings.",
   "author": {
     "name": "skills contributors"
   },

@@ -62,6 +62,8 @@
     }
   ],
   "text": [
+    "plugins/astrology/skills/natal-reading/SKILL.md",
+    "plugins/astrology/skills/natal-chart/SKILL.md",
     "plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md",
     "plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md",
     "plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md",

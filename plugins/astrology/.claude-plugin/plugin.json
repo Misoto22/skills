@@ -1,12 +1,14 @@
 {
   "name": "astrology",
   "version": "0.8.4",
-  "description": "Two-person synastry that produces one validated JSON v2 chart artifact with uncertainty and backend provenance, then a separate adaptive evidence-linked reading.",
+  "description": "Natal charts and two-person synastry from birth data: validated JSON artifacts with recorded backend provenance and uncertainty, then separate evidence-linked Markdown readings.",
   "author": {
     "name": "skills contributors"
   },
   "license": "AGPL-3.0-or-later",
   "skills": [
+    "./skills/natal-chart",
+    "./skills/natal-reading",
     "./skills/synastry",
     "./skills/synastry-reading"
   ]
