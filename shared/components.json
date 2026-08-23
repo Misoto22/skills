@@ -1,0 +1,9 @@
+{
+  "$comment": "Repository-level shared components and the plugins that vendor them. scripts/sync-shared.py copies shared/<component>/ into plugins/<plugin>/shared/<component>/, and the existing plugin-to-skill pass then carries it into every skill. Edit only the source directory under shared/.",
+  "components": {
+    "divination-report": [
+      "astrology",
+      "chinese-metaphysics"
+    ]
+  }
+}

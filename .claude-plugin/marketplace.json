@@ -114,7 +114,10 @@
         "./skills/bazi-chart",
         "./skills/bazi-compatibility",
         "./skills/bazi-compatibility-reading",
-        "./skills/bazi-reading"
+        "./skills/bazi-reading",
+        "./skills/bazi-ziwei-cross",
+        "./skills/ziwei-chart",
+        "./skills/ziwei-reading"
       ]
     },
     {

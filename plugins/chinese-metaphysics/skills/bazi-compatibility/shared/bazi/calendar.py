@@ -19,6 +19,21 @@ class CalendarError(ValueError):
 
 
 @dataclass(frozen=True)
+class LunarDate:
+    """One standardized Chinese lunar date, as Zi Wei Dou Shu needs it."""
+
+    year: int
+    month: int
+    day: int
+    leap: bool
+
+    @property
+    def text(self) -> str:
+        prefix = "闰" if self.leap else ""
+        return f"{self.year}年{prefix}{self.month}月{self.day}日"
+
+
+@dataclass(frozen=True)
 class _LunarMonth:
     lunar_year: int
     number: int
@@ -85,6 +100,27 @@ def lunar_to_gregorian(
             f"lunar {year} month {month} day {day} does not exist; the month has {selected.length} days"
         )
     return selected.start + timedelta(days=day - 1)
+
+
+def gregorian_to_lunar(target: date, ephemeris: Ephemeris) -> LunarDate:
+    """Convert one Gregorian date to its standardized Chinese lunar date.
+
+    Zi Wei Dou Shu places every star from the lunar month and day, so this is the
+    inverse the star engine needs; the four pillars use solar terms instead.
+    """
+
+    if not 1900 <= target.year <= 2100:
+        raise CalendarError("lunar conversion is supported for 1900 through 2100")
+    for winter_year in (target.year - 1, target.year):
+        for month in _sui(winter_year, ephemeris):
+            if month.start <= target < month.end:
+                return LunarDate(
+                    year=month.lunar_year,
+                    month=month.number,
+                    day=(target - month.start).days + 1,
+                    leap=month.leap,
+                )
+    raise CalendarError(f"no lunar month brackets calendar date {target.isoformat()}")
 
 
 @lru_cache(maxsize=512)

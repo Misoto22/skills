@@ -36,6 +36,15 @@ Use a small data card late in the reader report. It must make numbers legible wi
 - Show the five-element distribution and day-master reference in a natal reader report, with a one-sentence heuristic limitation.
 - Keep the complete dimension table, exact weights, and all exact values in the separate evidence artifact.
 
+## Optional ink-wash poster
+
+A poster is a third artifact, never a substitute. Write the reader report and the evidence artifact first; offer the poster only when the user asks for a visual, shareable, or printable report, and never from a source that failed validation.
+
+- Follow `shared/divination-report/poster-contract.md` for the payload shape and the renderer command.
+- The model writes data only. Never write the HTML by hand and never edit the template for one reading — the division is what keeps the limitation footer and the disclosure table from being edited away.
+- Every rule above still applies to the poster: whole numbers, model-reference labels, no raw ids or checksums, and a recorded disagreement stays recorded.
+- `footer.evidence_link` is the only bridge from the poster to machine detail.
+
 ## Evidence artifact
 
 Use the same user language for prose labels, but preserve raw ids and machine values exactly.

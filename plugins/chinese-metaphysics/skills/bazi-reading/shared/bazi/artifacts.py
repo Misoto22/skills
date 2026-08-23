@@ -16,6 +16,7 @@ from typing import Any
 SCHEMAS = {
     "chinese-metaphysics.bazi-chart": 1,
     "chinese-metaphysics.bazi-compatibility": 1,
+    "chinese-metaphysics.ziwei-chart": 1,
 }
 
 
@@ -114,6 +115,8 @@ def _artifact_stem(envelope: Mapping[str, Any], kind: str) -> str:
         left = slugify(str(envelope["people"]["left"]["name"]))
         right = slugify(str(envelope["people"]["right"]["name"]))
         return f"bazi_compatibility_{left}_{right}"
+    if kind == "ziwei":
+        return f"ziwei_{slugify(str(envelope['input']['name']))}"
     raise ArtifactError(f"unsupported artifact kind {kind!r}")
 
 
@@ -168,6 +171,8 @@ def _render_markdown(envelope: Mapping[str, Any], kind: str) -> str:
         return _render_chart_markdown(envelope)
     if kind == "compatibility":
         return _render_compatibility_markdown(envelope)
+    if kind == "ziwei":
+        return _render_ziwei_markdown(envelope)
     raise ArtifactError(f"unsupported artifact kind {kind!r}")
 
 
@@ -212,6 +217,66 @@ def _render_chart_markdown(envelope: Mapping[str, Any]) -> str:
             ]
         )
     return "\n".join(lines) + "\n"
+
+
+def _render_ziwei_markdown(envelope: Mapping[str, Any]) -> str:
+    name = envelope["input"]["name"]
+    chart = envelope["chart"]["primary"]
+    lines = [
+        f"# Zi Wei chart data: {name}",
+        "",
+        f"- Checksum: `{envelope['checksum']}`",
+        f"- Gregorian date: {envelope['calendar']['resolved_gregorian_date']}",
+        f"- Lunar date: {chart['lunar']['text']} {chart['lunar']['hour_branch']}时",
+        f"- True solar time: {envelope['time']['true_solar']}",
+        f"- Day boundary: {chart['day_boundary']}",
+        f"- Year pillar: {chart['year_pillar']['text']} ({chart['year_pillar']['polarity']})",
+        f"- Bureau: {chart['bureau']['name']}",
+        f"- Life palace: {chart['life_palace']['branch']}",
+        f"- Body palace: {chart['body_palace']['branch']} ({chart['body_palace']['palace_name']})",
+        "",
+        "| Palace | Stem-branch | Stars |",
+        "|---|---|---|",
+    ]
+    for palace in chart["palaces"]:
+        stars = "、".join(_star_label(star) for star in palace["stars"]) or "—"
+        marks = "".join(
+            mark
+            for mark, flag in (("命", palace["is_life_palace"]), ("身", palace["is_body_palace"]))
+            if flag
+        )
+        label = f"{palace['name']}{f' [{marks}]' if marks else ''}"
+        lines.append(f"| {label} | {palace['stem']}{palace['branch']} | {stars} |")
+
+    lines.extend(["", "## Year transformations", ""])
+    for item in chart["transformations"]["placed"]:
+        lines.append(f"- {item['star']}化{item['label']} — {item['palace']}宫")
+    for item in chart["transformations"]["unplaced"]:
+        lines.append(f"- {item} — target star not placed in this release")
+
+    lines.extend(["", "## Decade ranges", "", "| Order | Palace | Ages |", "|---:|---|---|"])
+    for decade in chart["decades"]:
+        lines.append(
+            f"| {decade['order']} | {decade['palace_branch']} {decade['palace_name']} "
+            f"| {decade['start_age']}-{decade['end_age']} |"
+        )
+    lines.extend(
+        [
+            "",
+            f"- Model: `{envelope['methodology']['placement_model']}`",
+            "- Placement data only; no interpretation.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _star_label(star: Mapping[str, Any]) -> str:
+    parts = [str(star["name"])]
+    if star.get("brightness"):
+        parts.append(f"({star['brightness']})")
+    if star.get("transformation"):
+        parts.append(f"化{star['transformation']}")
+    return "".join(parts)
 
 
 def _render_compatibility_markdown(envelope: Mapping[str, Any]) -> str:

@@ -42,7 +42,10 @@
         "bazi-chart",
         "bazi-reading",
         "bazi-compatibility",
-        "bazi-compatibility-reading"
+        "bazi-compatibility-reading",
+        "ziwei-chart",
+        "ziwei-reading",
+        "bazi-ziwei-cross"
       ]
     },
     {

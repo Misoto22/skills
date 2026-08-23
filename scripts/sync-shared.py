@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-"""Vendor each plugin's shared/ directory into every skill that plugin ships.
+"""Vendor shared code down to every skill that ships it.
 
 Agent installers copy a skill directory and nothing above it. A reference that
 climbs out of the skill resolves only in the Claude Code plugin cache and
 silently dangles everywhere else, so each skill carries its own copy of
-shared/. The plugin-level directory stays the only file anyone edits.
+shared/. Copying runs in two passes:
+
+  shared/<component>/        -> plugins/<plugin>/shared/<component>/
+  plugins/<plugin>/shared/   -> plugins/<plugin>/skills/<skill>/shared/
+
+The first pass exists because a component such as the ink-wash report belongs to
+several subject plugins at once, and a plugin has to stay installable on its
+own. shared/components.json declares which plugins vendor which component.
+Only the repository-level source and each plugin's own shared/ are edited by
+hand; everything below them is rewritten.
 
   python3 scripts/sync-shared.py           # write the copies
   python3 scripts/sync-shared.py --check   # fail if a copy is stale
@@ -14,15 +23,22 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import json
 import shutil
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
+SHARED_ROOT = ROOT / "shared"
+COMPONENTS_MANIFEST = SHARED_ROOT / "components.json"
 VENDORED_DIRNAME = "shared"
 EXCLUDED_PARTS = {"__pycache__", ".DS_Store"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
+
+
+class ManifestError(ValueError):
+    """shared/components.json does not describe a syncable component set."""
 
 
 def sync(*, check_only: bool) -> list[str]:
@@ -50,9 +66,13 @@ def sync(*, check_only: bool) -> list[str]:
 
 
 def _pairs() -> list[tuple[Path, Path]]:
-    """Return every (plugin shared/, skill shared/) directory pair to keep in sync."""
+    """Return every source-to-copy directory pair, repository components first.
 
-    pairs: list[tuple[Path, Path]] = []
+    Order matters: a component lands in the plugin before that plugin is copied
+    down into its skills, so one run reaches every skill.
+    """
+
+    pairs: list[tuple[Path, Path]] = list(_component_pairs())
     for plugin_manifest in sorted(PLUGINS_ROOT.glob("*/.claude-plugin/plugin.json")):
         plugin_root = plugin_manifest.parent.parent
         source = plugin_root / VENDORED_DIRNAME
@@ -60,6 +80,35 @@ def _pairs() -> list[tuple[Path, Path]]:
             continue
         for skill_file in sorted(plugin_root.glob("skills/*/SKILL.md")):
             pairs.append((source, skill_file.parent / VENDORED_DIRNAME))
+    return pairs
+
+
+def _component_pairs() -> list[tuple[Path, Path]]:
+    """Return every (repository component, plugin copy) pair the manifest declares."""
+
+    if not COMPONENTS_MANIFEST.is_file():
+        return []
+    try:
+        manifest = json.loads(COMPONENTS_MANIFEST.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ManifestError(f"{COMPONENTS_MANIFEST.name} is not valid JSON: {error}") from error
+
+    components = manifest.get("components")
+    if not isinstance(components, dict):
+        raise ManifestError(f"{COMPONENTS_MANIFEST.name} needs a 'components' object")
+
+    pairs: list[tuple[Path, Path]] = []
+    for component, plugins in sorted(components.items()):
+        source = SHARED_ROOT / component
+        if not source.is_dir():
+            raise ManifestError(f"component {component!r} has no directory at shared/{component}")
+        if not isinstance(plugins, list) or not plugins:
+            raise ManifestError(f"component {component!r} must list at least one plugin")
+        for plugin in sorted(plugins):
+            plugin_root = PLUGINS_ROOT / str(plugin)
+            if not (plugin_root / ".claude-plugin" / "plugin.json").is_file():
+                raise ManifestError(f"component {component!r} names unknown plugin {plugin!r}")
+            pairs.append((source, plugin_root / VENDORED_DIRNAME / component))
     return pairs
 
 
@@ -86,7 +135,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    stale = sync(check_only=args.check)
+    try:
+        stale = sync(check_only=args.check)
+    except ManifestError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
     if args.check and stale:
         for path in stale:
             print(f"error: stale vendored copy: {path}", file=sys.stderr)

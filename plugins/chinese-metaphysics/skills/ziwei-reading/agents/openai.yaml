@@ -1,0 +1,6 @@
+interface:
+  display_name: "Zi Wei Reading"
+  short_description: "Interpret one verified Zi Wei chart"
+  default_prompt: "Use $ziwei-reading to interpret a verified Zi Wei chart artifact as a reader report with a separate evidence artifact, and an ink-wash poster only if asked."
+policy:
+  allow_implicit_invocation: true

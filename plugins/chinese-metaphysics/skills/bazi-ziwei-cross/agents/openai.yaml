@@ -1,0 +1,6 @@
+interface:
+  display_name: "BaZi and Zi Wei Cross-Reading"
+  short_description: "Read one person's two charts against each other"
+  default_prompt: "Use $bazi-ziwei-cross to read one person's verified BaZi and Zi Wei charts against each other, recording agreements and contradictions without merging them into a score."
+policy:
+  allow_implicit_invocation: true

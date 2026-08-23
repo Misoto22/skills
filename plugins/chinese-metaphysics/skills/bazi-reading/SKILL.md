@@ -72,6 +72,18 @@ Put the conditional conclusion first, but lead with the person's lived pattern r
 
 Write the separate evidence artifact after the reader report. In addition to the shared evidence requirements, include source status, boundary rules, rule and scoring details, the component ledger, and separate alternate calculations. Classify natal evidence as primary, calculated heuristic, alternate, or secondary Shen Sha evidence.
 
+## Optional ink-wash poster
+
+Offer a poster only when the person asks for a visual, shareable, or printable report. It never replaces the reader report or the evidence artifact.
+
+Read `shared/divination-report/poster-contract.md`, write the payload as data only, and render it:
+
+```bash
+python3 shared/divination-report/render_poster.py --data POSTER_PAYLOAD.json --out bazi_poster_NAME.html
+```
+
+Fill `meta.system_label` with 八字, put the day master, month command, and structure in `core_metrics`, and use `distribution` for the five-element percentages with `value` carrying the true figure. When an alternate exists, say so in `confidence.note` rather than quietly posting the primary alone. Set `footer.evidence_link` to the evidence artifact filename. Never write the HTML yourself and never edit the template for one reading.
+
 ## Write safely
 
 Create UTF-8 Markdown only after validation and evidence indexing. Use portable source names in `bazi_reading_<name>.md` and `bazi_reading_evidence_<name>.md`; preserve the display name inside both files. Do not overwrite a different report pair. When a same-name reader report or evidence artifact already exists, reuse the pair only if both record the same source checksum; otherwise append the first eight checksum characters to both names.

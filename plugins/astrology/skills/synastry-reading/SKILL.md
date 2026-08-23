@@ -85,4 +85,24 @@ Treat the destination bytes as recovery truth if the process stops after publica
 
 On validation failure, start a new session, read its complete ledger, correct a new in-model draft, and finalize with the new token. Never reuse a failed token or weaken a citation, heading, module, placeholder, score, prediction, or source-identity check.
 
+## Optional ink-wash poster
+
+Offer a poster only after finalization succeeded, and only when the user asks for a visual, shareable, or printable report. It never replaces the finalized Markdown, and it is never produced from a draft, a failed session, or a cancelled one.
+
+Read `shared/divination-report/poster-contract.md`, write the payload as data only, and render it beside the finalized report:
+
+```bash
+python3 shared/divination-report/render_poster.py --data POSTER_PAYLOAD.json --out synastry_poster_CHART_ID.html
+```
+
+Everything the finalized report is held to still binds the poster:
+
+- Fill `meta.system_label` with the chart's own system name and `meta.subject` from the ledger's display identity. Never place an omitted private field on the poster.
+- `axes` carries the conditional relationship statement, not a verdict. Do not assign a compatibility score, and do not invent one for `core_metrics`.
+- Copy certainty labels exactly. Describe an uncertain aspect only as `confirmed` or `possible` with its recorded range, and put material uncertainty in `confidence.note`.
+- Never place an evidence ID, exact orb, chart ID, or checksum on the poster. `footer.evidence_link` names the finalized Markdown and is the only bridge to that detail.
+- Include only modules that were explicitly authorized. An unauthorized domain does not become authorized by being visual.
+
+Never write the HTML yourself and never edit the template for one reading.
+
 If stopping before finalization, run `python3 scripts/reading_session.py cancel <session-token>`. Cancel exits nonzero if finalization already claimed the token; do not report the session as cancelled in that case. The watchdog is only recovery for interruption, not normal cleanup. Report `attached JSON` or `pasted JSON`, the validated Markdown path, a neutral two- or three-sentence overview, and material uncertainty or missing-body limitations. Do not paste the complete report unless asked.

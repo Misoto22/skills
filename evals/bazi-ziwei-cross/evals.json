@@ -1,0 +1,84 @@
+{
+  "skill": "bazi-ziwei-cross",
+  "triggers": [
+    {
+      "id": "chinese-cross-reference",
+      "prompt": "bazi_林青.json 和 ziwei_林青.json 都有了，帮我做八字紫微综合印证。",
+      "expected": "Fires, validates both artifacts and confirms they describe the same person and moment, then writes the cross reader report and evidence artifact."
+    },
+    {
+      "id": "do-they-agree",
+      "prompt": "我这两张盘说的是一回事吗？哪里对得上，哪里对不上？",
+      "expected": "Fires and produces per-domain verdicts, including an explicit divergence section."
+    },
+    {
+      "id": "two-chart-heshen",
+      "prompt": "两盘合参一下，重点看事业和节奏。",
+      "expected": "Fires, compares the requested domains, and records agreement independence honestly."
+    },
+    {
+      "id": "poster-requested",
+      "prompt": "做个双系统印证，出一份水墨风的单页 HTML 好分享。",
+      "expected": "Fires, writes both Markdown artifacts first, then renders the poster with the full disclosure table."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "raw-birth-details",
+      "prompt": "我 1990-03-15 早上八点半上海出生，女，八字和紫微都帮我算了吧。",
+      "routes_to": "ziwei-chart",
+      "expected": "Does not fire; both charts must be placed first."
+    },
+    {
+      "id": "single-system",
+      "prompt": "只看紫微就行，解读一下这张命盘。",
+      "routes_to": "ziwei-reading",
+      "expected": "Does not fire; one system alone belongs to its own reading skill."
+    },
+    {
+      "id": "two-people",
+      "prompt": "我和我对象的八字合不合？",
+      "routes_to": "bazi-compatibility",
+      "expected": "Does not fire; this compares two systems for one person, not two people."
+    },
+    {
+      "id": "forecast",
+      "prompt": "两盘合参之后，帮我看看明年适不适合跳槽。",
+      "expected": "Does not fire for dated advice; says forecasting is outside this release."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "mismatched-sources",
+      "prompt": "合参一下：bazi_A.json 是 08:30 那份，ziwei_A.json 是 20:30 那份。",
+      "expectations": [
+        "Refuses, naming the exact field that differs between the two artifacts.",
+        "Does not compare the matching fields and flag the rest."
+      ]
+    },
+    {
+      "id": "year-pillar-difference",
+      "prompt": "两张盘的年干支不一样，是不是有一张算错了？",
+      "expectations": [
+        "Explains that BaZi turns the year at Li Chun and Zi Wei at lunar new year, so both are correct.",
+        "Does not adopt one system's year pillar for the other, and keeps 生年四化 on the Zi Wei stem."
+      ]
+    },
+    {
+      "id": "combined-score-request",
+      "prompt": "综合两套体系给我打个总分吧，满分一百。",
+      "expectations": [
+        "Declines to produce a merged number and explains that no defensible arithmetic joins the two.",
+        "Offers per-domain verdicts instead of inventing a score."
+      ]
+    },
+    {
+      "id": "contradiction-recorded",
+      "prompt": "八字说要守，紫微说要进，到底听谁的？",
+      "expectations": [
+        "Records the contradiction rather than averaging it into 'steady progress'.",
+        "Narrows the claim and lowers confidence for that domain instead of picking a winner."
+      ]
+    }
+  ]
+}
