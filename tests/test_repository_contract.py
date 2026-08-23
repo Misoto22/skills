@@ -804,7 +804,9 @@ class RepositoryContractTests(unittest.TestCase):
             invalid.write_text("{}\n", encoding="utf-8")
             malformed = run_with(invalid.name)
             self.assertNotEqual(malformed.returncode, 0)
-            self.assertIn("synastry v2 validation", malformed.stderr)
+            # Named for the skill whose schema rejected it, not for synastry.
+            # A second registered skill gets its own name in this message.
+            self.assertIn("synastry-reading artifact validation", malformed.stderr)
 
             escaping_link.symlink_to(copied / "evals" / "synastry" / "evals.json")
             symlink_escape = run_with(escaping_link.name)
@@ -816,7 +818,7 @@ class RepositoryContractTests(unittest.TestCase):
             stale.write_text(json.dumps(fixture), encoding="utf-8")
             integrity_mismatch = run_with(stale.name)
             self.assertNotEqual(integrity_mismatch.returncode, 0)
-            self.assertIn("synastry v2 validation", integrity_mismatch.stderr)
+            self.assertIn("synastry-reading artifact validation", integrity_mismatch.stderr)
 
     def test_every_description_meets_the_rules_contributing_states(self) -> None:
         result = subprocess.run(
