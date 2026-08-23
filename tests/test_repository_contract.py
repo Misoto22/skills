@@ -109,22 +109,33 @@ def declared_bundle() -> str:
 
 
 def copy_repository_fixture(destination: Path) -> Path:
-    """Copy the checkout without VCS or generated state for script behavior tests."""
+    """Copy the checkout without VCS, generated state, or anyone else's checkout."""
 
     copied = destination / "repository"
-    shutil.copytree(
-        ROOT,
-        copied,
-        ignore=shutil.ignore_patterns(
-            ".git",
-            ".claude",
-            ".superpowers",
-            "__pycache__",
-            "*.pyc",
-            ".coverage",
-        ),
-    )
+    shutil.copytree(ROOT, copied, ignore=_fixture_ignore)
     return copied
+
+
+def _fixture_ignore(directory: str, names: list[str]) -> set[str]:
+    """Drop generated state, and drop a nested checkout whole.
+
+    `ignore_patterns` stripped the `.git` marker but kept the tree under it, so a
+    `git worktree` anywhere in the checkout arrived in the fixture as a second
+    copy of every manifest with nothing left to identify it. A fixture of "this
+    repository" must not contain someone's other one.
+    """
+
+    dropped = {name for name in names if name in _FIXTURE_EXCLUDED or name.endswith(".pyc")}
+    root = Path(directory)
+    for name in names:
+        if name in dropped or Path(directory, name).is_symlink() or not Path(directory, name).is_dir():
+            continue
+        if (root / name / ".git").exists() and root != ROOT.parent:
+            dropped.add(name)
+    return dropped
+
+
+_FIXTURE_EXCLUDED = frozenset({".git", ".claude", ".superpowers", "__pycache__", ".coverage"})
 
 
 @contextlib.contextmanager
@@ -1814,6 +1825,43 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
+
+    def test_neither_scanner_walks_into_a_checkout_outside_dot_claude(self) -> None:
+        """A worktree lives wherever someone put it, not only under .claude/.
+
+        The configured exclusion covered one location. A `git worktree add` to any
+        other path — or a submodule, or a stray clone — put a second copy of every
+        manifest back in the scan, and both scanners reported files nobody in this
+        checkout wrote. What marks a nested checkout is its own `.git`, so that is
+        what the scanners now skip.
+        """
+
+        with repository_copy() as copied:
+            for location in (".worktrees/elsewhere", "vendor/nested", "deep/a/b/checkout"):
+                nested = copied / location
+                nested.mkdir(parents=True, exist_ok=True)
+                (nested / ".git").write_text("gitdir: /somewhere/else\n", encoding="utf-8")
+                pin = json.loads((copied / ".ci-pins.json").read_text(encoding="utf-8"))["pins"][0]
+                (nested / "README.md").write_text(
+                    f"version {declared_version()}\n{pin['package']}@{pin['version']}\n",
+                    encoding="utf-8",
+                )
+
+            for command in (
+                ("scripts/bump-version.py", "--audit"),
+                ("scripts/ci-pins.py", "check"),
+            ):
+                result = subprocess.run(
+                    [sys.executable, *command],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                with self.subTest(command=command[0]):
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    for location in (".worktrees/elsewhere", "vendor/nested", "deep/a/b/checkout"):
+                        self.assertNotIn(location, result.stdout + result.stderr)
 
     def test_neither_scanner_walks_into_a_worktree(self) -> None:
         """A worktree under .claude/ is a second copy of this repository, not drift.
