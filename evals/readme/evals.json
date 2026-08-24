@@ -48,6 +48,16 @@
         "Writes the README in English when the repository's existing prose, comments, and history are English.",
         "Does not switch the file's language to match the language of the request."
       ]
+    },
+    {
+      "id": "explicit-multiple-repositories",
+      "prompt": "Update the README files in /work/alpha and /work/beta. They are unrelated repositories; work on both at once and give me one final handoff.",
+      "expectations": [
+        "Treats each named repository as an independent scope and verifies its README claims from that repository's files.",
+        "Uses concurrent work only for independent repository work when the host supports it, without making one repository wait on an unrelated one.",
+        "Does not copy commands, versions, deployment facts, or other claims between the repositories without evidence in each repository.",
+        "Returns one handoff with a separate result, verification state, and blocker for each repository."
+      ]
     }
   ]
 }

@@ -11,6 +11,25 @@ metadata:
 Create a small, coherent raster identity system through ChatGPT Image, from a
 confirmed visual direction to approved project assets.
 
+## When a request names several repositories
+
+Treat every explicitly named repository as a separate identity system. Record
+its exact path or URL, audience, existing visual language, asset location, and
+approval state before creating a direction. If a name cannot be resolved to one
+repository, ask; never widen the scope by searching an unspecified parent
+directory.
+
+Inspect, draft, generate, and check independent repositories concurrently when
+the host supports concurrent work. Keep each repository's composition, copy,
+assets, prompts, and approvals separate. A shared identity system exists only
+when the user explicitly requests one after both repositories have been
+inspected; otherwise, an approval or asset for one repository never authorizes
+reuse or integration in another.
+
+Give one combined handoff with a clearly labelled result for each repository:
+asset paths, final prompt, visual checks, approval state, integration state, and
+any remaining blocker. A completed identity system never stands in for the rest.
+
 ## Establish the direction first
 
 1. Inspect the project before proposing a look. Identify its name, purpose,
