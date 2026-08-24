@@ -113,6 +113,24 @@
         "Writes the commit subject, branch name, and pull request body in English anyway.",
         "Does not translate the conversation's Chinese into the commit message."
       ]
+    },
+    {
+      "id": "bumper-found-no-flag",
+      "prompt": "Ship this. The repository has scripts/bump-version.py and every plugin manifest declares version 0.8.4; the change adds a new skill directory.",
+      "expectations": [
+        "Marks step 3a SKIP because no --bump was passed, rather than choosing a version itself.",
+        "Reports under Attention that a bumper was found and not run, rather than staying silent about it.",
+        "Still ships the change — a missing bump is reported, not treated as a reason to stop."
+      ]
+    },
+    {
+      "id": "bump-lands-in-the-same-commit",
+      "prompt": "Ship this with --bump=minor. The repository has scripts/bump-version.py and the manifests declare 0.8.4.",
+      "expectations": [
+        "Resolves minor against the declared 0.8.4 rather than inventing a number, and runs the project's bumper instead of editing version strings by hand.",
+        "Bumps before the secrets gate so the rewritten files are staged into the same commit as the change, not a second one.",
+        "Does not tag the release or publish anything — the version moves, the rest is out of scope."
+      ]
     }
   ]
 }

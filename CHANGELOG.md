@@ -2,6 +2,10 @@
 
 All notable changes to this repository are documented here.
 
+## 0.9.1 — 2026-08-24
+
+- `ship` moves the version in the same commit as the change. A project that publishes from a version string reaches nobody on a merge that left the string alone — the installer compares versions, skips, and logs "already at the latest version" while saying nothing untrue, which is how this repository sat at 0.8.4 through twenty-five merges. Step 0h detects the project's own bumper the way 0e and 0f detect its test and lint commands, and step 3a runs it before the secrets gate so the rewritten files are staged into the same commit. It never picks the number: whether a change is a release is a judgment a diff cannot carry, so `--bump` is required and a bumper found without it is reported under `Attention` rather than skipped in silence. Tagging and publishing stay outside the skill, where its description already put them.
+
 ## 0.9.0 — 2026-08-24
 
 - Python 3.14 joins the supported matrix. `pyswisseph==2.10.3.2` and `tzdata==2026.3` install on it and the whole suite passes, so the range that CONTRIBUTING and both READMEs already stated as `3.11+` is now the range something proves. The matrix line stays outside `.ci-pins.json` on purpose — widening support is a decision, not a bump — and the single-version jobs keep running the `python` pin at 3.13.
