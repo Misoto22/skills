@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
-  <img alt="skills — personal agent skills marketplace" src="assets/hero-light.png" width="820">
+  <img alt="skills marketplace for personal agent skills" src="assets/hero-light.png" width="820">
 </picture>
 
 <br />

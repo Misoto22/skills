@@ -10,6 +10,23 @@ metadata:
 
 A README answers three questions for someone who has never seen the repository: what is this, can I run it, and where do I go next. Everything else is a distraction from those three.
 
+## When a request names several repositories
+
+Treat every explicitly named repository as its own scope. Record its exact path
+or URL, README target, available evidence, and verification state before
+editing. If a name cannot be resolved to one repository, ask; never widen the
+scope by searching an unspecified parent directory.
+
+Inspect, write, and render-check independent repositories concurrently when the
+host supports concurrent work. Keep their commands, versions, deployment facts,
+assets, and reader language separate unless the user supplies evidence that a
+fact is shared. An inaccessible or blocked repository does not delay safe work
+on another one.
+
+Give one combined handoff with a clearly labelled result for each repository:
+changed files, evidence and rendering checks, then any remaining blocker. A
+single successful README never stands in for the rest.
+
 ## Read the repository before writing a line
 
 Never describe a project from its name. Every claim in the output must come from a file you read.

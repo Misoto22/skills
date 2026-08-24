@@ -66,6 +66,16 @@
         "Asks for explicit approval of the selected generated asset after it is shown.",
         "Does not treat the earlier style choice or integration request as approval to modify the README."
       ]
+    },
+    {
+      "id": "explicit-multiple-repositories",
+      "prompt": "Refresh the README banner in /work/alpha and /work/beta. They are unrelated repositories; create both in parallel and give me one combined final answer.",
+      "expectations": [
+        "Creates a separate identity brief and approval path for each named repository.",
+        "Uses concurrent work only for independent repository work when the host supports it, and keeps the two identity systems distinct.",
+        "Does not reuse a composition, copy, asset, or approval across repositories unless the user explicitly requests one shared identity system.",
+        "Reports generated assets, prompts, visual checks, approvals, and integration state separately for each repository."
+      ]
     }
   ]
 }
