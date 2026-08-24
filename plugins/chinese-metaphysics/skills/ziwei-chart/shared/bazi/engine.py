@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from .artifacts import add_checksum
+from .artifacts import ALTERNATE_DAY_BOUNDARY, CHART_SCHEMA, DAY_BOUNDARY, SCHEMAS, add_checksum
 from .calendar import lunar_to_gregorian
 from .ephemeris import Ephemeris
 from .models import BirthInput
@@ -41,8 +41,8 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
     )
 
     envelope = {
-        "schema": "chinese-metaphysics.bazi-chart",
-        "schema_version": 1,
+        "schema": CHART_SCHEMA,
+        "schema_version": SCHEMAS[CHART_SCHEMA],
         "input": original.to_mapping(),
         "calendar": {
             "input_calendar": original.calendar,
@@ -69,8 +69,8 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
         "scores": {"primary": primary_scores, "alternate": alternate_scores},
         "sensitivity": {
             "alternate_day_boundary": alternate is not None,
-            "primary_day_boundary": "23:00",
-            "alternate_day_boundary_rule": "00:00" if alternate else None,
+            "primary_day_boundary": DAY_BOUNDARY,
+            "alternate_day_boundary_rule": ALTERNATE_DAY_BOUNDARY if alternate else None,
         },
         "methodology": {
             # Read from the rules files this chart was built with, never written

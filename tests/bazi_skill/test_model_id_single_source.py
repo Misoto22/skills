@@ -109,6 +109,50 @@ class ProducedArtifactTests(unittest.TestCase):
         )
 
 
+class SchemaIdentityTests(unittest.TestCase):
+    """The writer and the validator must not each hold their own copy.
+
+    `SCHEMAS` is what `validate_envelope` checks against. Each engine wrote the
+    same name and version as literals, so bumping a version here would have made
+    this plugin reject the output its own engine still produced.
+    """
+
+    def test_no_engine_writes_a_schema_name_or_version_as_a_literal(self) -> None:
+        from bazi.artifacts import SCHEMAS
+
+        for path in sorted((SHARED / "bazi").glob("*.py")) + sorted((SHARED / "ziwei").glob("*.py")):
+            if path.name == "artifacts.py":
+                continue  # the one place that may name them
+            source = path.read_text(encoding="utf-8")
+            for schema in SCHEMAS:
+                with self.subTest(file=path.name, schema=schema):
+                    self.assertNotIn(f'"{schema}"', source)
+
+    def test_the_day_boundary_is_named_once(self) -> None:
+        """Two systems, one true solar time; two copies could become two calendars."""
+
+        from bazi.artifacts import ALTERNATE_DAY_BOUNDARY, DAY_BOUNDARY
+
+        self.assertEqual((DAY_BOUNDARY, ALTERNATE_DAY_BOUNDARY), ("23:00", "00:00"))
+        for path in sorted((SHARED / "bazi").glob("*.py")) + sorted((SHARED / "ziwei").glob("*.py")):
+            if path.name == "artifacts.py":
+                continue
+            source = path.read_text(encoding="utf-8")
+            with self.subTest(file=path.name):
+                # A boundary used as a value, not merely mentioned in prose.
+                self.assertNotRegex(source, r'=\s*"23:00"|day_boundary="23:00"|:\s*"23:00",')
+
+    def test_every_engine_writes_the_version_the_validator_expects(self) -> None:
+        """The failure this prevents, asserted on real output."""
+
+        from bazi.artifacts import SCHEMAS, validate_envelope
+
+        for envelope in (ProducedArtifactTests.bazi, ProducedArtifactTests.ziwei):
+            with self.subTest(schema=envelope["schema"]):
+                self.assertEqual(envelope["schema_version"], SCHEMAS[envelope["schema"]])
+                validate_envelope(envelope)
+
+
 class SharedCycleTests(unittest.TestCase):
     def test_the_sexagenary_cycle_is_defined_once(self) -> None:
         """Zi Wei counts palaces where BaZi counts pillars; the cycle is the same."""

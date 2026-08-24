@@ -13,11 +13,25 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+# One name and one version per artifact kind, imported by the engine that writes
+# it and the validator that checks it. Written in both places instead, a bumped
+# version here would reject the very output this plugin's engine still produces.
+CHART_SCHEMA = "chinese-metaphysics.bazi-chart"
+COMPATIBILITY_SCHEMA = "chinese-metaphysics.bazi-compatibility"
+ZIWEI_SCHEMA = "chinese-metaphysics.ziwei-chart"
+
 SCHEMAS = {
-    "chinese-metaphysics.bazi-chart": 1,
-    "chinese-metaphysics.bazi-compatibility": 1,
-    "chinese-metaphysics.ziwei-chart": 1,
+    CHART_SCHEMA: 1,
+    COMPATIBILITY_SCHEMA: 1,
+    ZIWEI_SCHEMA: 1,
 }
+
+# Both systems change the day at the same instant, because they read the same
+# true solar time. Two copies of that decision could drift into two calendars
+# inside one plugin, and a cross-reading would compare charts built on different
+# days without either one looking wrong.
+DAY_BOUNDARY = "23:00"
+ALTERNATE_DAY_BOUNDARY = "00:00"
 
 
 class ArtifactError(ValueError):
