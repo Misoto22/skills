@@ -665,7 +665,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("ci-pins.py spec skills", workflow)
         self.assertIn("ci-pins.py spec claude-code", workflow)
         self.assertIn("ci-pins.py check", workflow)
-        self.assertIn('python-version: ["3.11", "3.12", "3.13"]', workflow)
+        self.assertIn('python-version: ["3.11", "3.12", "3.13", "3.14"]', workflow)
         self.assertIn("astral-sh/ruff-action@", workflow)
         self.assertIn("version: ${{ env.RUFF_VERSION }}", workflow)
         self.assertIn("shellcheck scripts/*.sh", workflow)
