@@ -3,8 +3,8 @@ name: ship
 description: Ship the current changes as a merged pull request — branch off, run the project's tests, commit, open the PR, wait for CI, merge, and clean up the worktree. Runs a preflight first that marks each step RUN or SKIP, so a clean tree on the base branch exits without doing anything. Use when asked to ship it, ship this, land it, get this merged, open a PR and merge it, push this up and merge, 发出去, 合掉, 开个 PR 合了, 把这些改动提上去, 推上去合并. Not for tagging a release, publishing a package, deploying, or writing a commit message without pushing it.
 license: MIT
 metadata:
-  version: "0.9.0"
-argument-hint: "[branch-name] [--dry-run] [--no-test] [--draft] [--base=<branch>] [--merge-strategy=<squash|merge|rebase>]"
+  version: "0.9.1"
+argument-hint: "[branch-name] [--dry-run] [--no-test] [--draft] [--base=<branch>] [--bump=<version|major|minor|patch>] [--merge-strategy=<squash|merge|rebase>]"
 ---
 
 Ship the current changes as a merged PR.
@@ -29,7 +29,7 @@ Step 0 inspects the repo and prints an **execution plan** that marks each downst
 | 0. Preflight        | Always.                                                              |
 | 1. Branch off base  | Current branch == base branch AND something is shippable — an uncommitted change, or a commit `origin/<base>` does not have. |
 | 2. Test & lint      | A test or lint command is detected AND `--no-test` was not passed.   |
-| 3. Commit           | `git status --porcelain` is non-empty.                               |
+| 3. Commit           | `git status --porcelain` is non-empty. Its first sub-step moves the version, but only when 0h found a bumper AND `--bump` was passed. |
 | 4. PR               | The branch carries at least one commit the base does not, or an open PR already exists. |
 | 5. CI               | The PR reports at least one check, or the repository declares a workflow that would. |
 | 6. Merge            | Always (unless `--draft` — stop after step 4).                       |
@@ -141,7 +141,28 @@ grep -lE 'pull_request|push:' .github/workflows/*.y*ml 2>/dev/null
 
 Either trigger reports on the pull request — a `push` workflow fires when step 4 pushes the branch. What matters is whether this repository has a workflow that *will* produce a check, because step 5 has to tell "no CI here" apart from "CI has not registered yet".
 
-### 0h. Print the execution plan
+### 0h. Version bump detection — only what the project declares
+
+Some projects publish from a version string, not from the default branch: an installer
+that compares versions skips a merge that left the string alone, and its log says
+"already at the latest version" while saying nothing untrue. Detect the project's own
+bumper — first match wins:
+
+| Marker                                              | Command                                       |
+|-----------------------------------------------------|-----------------------------------------------|
+| `bump-version.py` / `bump_version.py` in `scripts/` | run it with the resolved version              |
+| `bump` or `version` target in `scripts/`, `justfile`, `Makefile` | run that target                  |
+| `package.json` with a `version` field               | `<pm> version <resolved>` — pm resolved as in 0e |
+| `Cargo.toml` `[package]` `version`                  | `cargo set-version <resolved>`, or report and stop when `cargo-edit` is absent |
+| none of the above                                   | step 3a SKIPs — nothing here declares a version to move |
+
+**Finding a bumper is not a reason to run it.** Whether a change is a release is a
+judgment, and the number is not derivable from a diff — a bug fix and a breaking change
+produce the same `git status`. So `--bump` RUNs step 3a; without it step 3a SKIPs **and
+the run reports that under `Attention`**. A silent skip is how a version sits still
+through twenty-five merges while every install stays pinned to the first one.
+
+### 0i. Print the execution plan
 
 Before any write:
 
@@ -150,7 +171,7 @@ Ship plan for <branch> → <base>:
   [done]       0. Preflight
   [<RUN|SKIP>] 1. Branch off <base>     <reason>
   [<RUN|SKIP>] 2. Test & lint           <reason — e.g. "detected: cargo test, cargo clippy" / "--no-test passed">
-  [<RUN|SKIP>] 3. Commit                <reason — e.g. "5 files modified" / "working tree clean">
+  [<RUN|SKIP>] 3. Commit                <reason — e.g. "5 files modified; --bump=minor → 0.9.1" / "5 files modified; bumper found, no --bump" / "working tree clean">
   [<RUN|SKIP>] 4. PR                    <reason — "create new" or "reuse #42">
   [<RUN|SKIP>] 5. CI                    <reason — "2 workflows declared" / "no workflow declares a check">
   [<RUN|SKIP>] 6. Merge                 <reason — "squash-merge" or "--draft: stop after step 4">
@@ -225,7 +246,25 @@ Run what 0f detected, before step 3 stages anything — a formatter's output bel
 
 ## 3. Commit
 
-### 3a. Secrets gate — before staging anything
+### 3a. Version bump
+
+Runs only when 0h found a bumper **and** `--bump` was passed. It comes before the secrets
+gate so the rewritten files are gated and staged into the same commit as the change — a
+bump landing in a second commit, or a second PR, is how a branch ends up with a version
+that describes neither the tree before it nor the tree after.
+
+1. Resolve the version. `major` / `minor` / `patch` are relative to what the manifest
+   declares right now, so read it first; an explicit version is used as passed. Never
+   invent one.
+2. Run the project's bumper. **Never edit version strings by hand** — a repository that
+   ships a bumper declares its version in more places than a grep will show you, and
+   keeping those in step is the whole reason the tool exists.
+3. Check its report against `git status`, and close a changelog's `## Unreleased` section
+   under the new version if the bumper did not already do it.
+
+A bumper that exits non-zero stops the run. Do not hand-edit what it refused to write.
+
+### 3b. Secrets gate — before staging anything
 
 This is the last step before the change becomes public, and a secret pushed to a
 remote is compromised even after a force-push removes it. Run over the change about
@@ -239,10 +278,10 @@ git diff -U0 HEAD                           # the added lines themselves
 grep -nIE '<pattern>' <each untracked file> # untracked content, since git diff cannot show it
 ```
 
-Both halves are needed. `git diff` never mentions an untracked file, and step 3b
+Both halves are needed. `git diff` never mentions an untracked file, and step 3c
 stages untracked files by name — so a brand-new `config.local.json` holding a live
 token reaches the commit having been read by nothing. Ignored files are excluded on
-purpose: they cannot be committed without `git add -f`, which step 3b never uses.
+purpose: they cannot be committed without `git add -f`, which step 3c never uses.
 
 Stop and ask — never stage — when a path or a diff line matches:
 
@@ -252,7 +291,7 @@ Stop and ask — never stage — when a path or a diff line matches:
 A match is not automatically a leak — fixtures and documentation legitimately
 contain shaped examples. Show the file, the line, and ask. Do not decide alone.
 
-### 3b. Staging
+### 3c. Staging
 
 - **Stage explicit paths only — never `git add -A`.**
 - Classify each untracked file:
@@ -263,7 +302,7 @@ contain shaped examples. Show the file, the line, and ask. Do not decide alone.
 - Trailer: `Co-Authored-By: Claude <noreply@anthropic.com>`. **Do not hard-code a model version** — the trailer must stay model-agnostic.
 - Commit directly; no user approval needed.
 
-### 3c. When the commit is rejected
+### 3d. When the commit is rejected
 
 A pre-commit hook that refuses is the project talking. Read what it printed, fix what it names, commit again — two attempts, then stop and ask.
 
@@ -409,6 +448,7 @@ Remaining worktrees, and where `<base>` now points in the primary checkout.
 - `--draft` — open the PR as a draft and stop after step 4.
 - `--base=<branch>` — override base branch resolution. Without this flag, base is detected per step 0c.
 - `--merge-strategy=squash|merge|rebase` — force one, subject to what the repository allows. Without it, step 6 picks from that and from how many commits the branch carries.
+- `--bump=<version|major|minor|patch>` — run the project's own bumper in step 3a, so the version moves in the same commit as the change. Without it step 3a SKIPs even where 0h found a bumper, and the report says so. Never inferred: whether a change is a release is the author's call, not a property of the diff.
 - `[branch-name]` (positional) — branch name when step 1 triggers.
 
 ## Reporting
@@ -421,12 +461,17 @@ Merged commit: <sha on base>
 Branch:        <feature-branch> → <base>
 Steps run:     <comma-separated step numbers>
 Steps skipped: <step number — reason; …>
-Attention:     <base reset to <sha>; CI never registered; worktree kept — …; or none>
+Attention:     <base reset to <sha>; CI never registered; worktree kept — …; version not bumped — <bumper> found, no --bump passed; or none>
 ```
 
 `Attention` carries what the run did that nobody asked for, and what it decided not to do:
 the base ref moved in step 1a, a CI window that expired without a check, a worktree kept
-because this session is standing in it. Empty is a valid value; a silent one is not.
+because this session is standing in it, a version bumper found and not run. Empty is a
+valid value; a silent one is not.
+
+That last one is not a formality. A repository that publishes from its version string
+reaches nobody on a merge that left the string alone, and the shipping run is the last
+moment anyone is looking.
 
 **Early exit (nothing to ship)**:
 
