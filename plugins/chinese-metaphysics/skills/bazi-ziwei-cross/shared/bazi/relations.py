@@ -47,7 +47,7 @@ def derive_chart_facts(pillars: FourPillars, rules: Mapping[str, Any]) -> dict[s
     }
     interactions = _interactions(pillar_map, rules)
     return {
-        "model_version": rules["model_version"],
+        "model_version": rules["model_id"],
         "pillars": expanded,
         "xun_kong": list(rules["xun_kong"][pillars.day.cycle_index // 10]),
         "interactions": interactions,

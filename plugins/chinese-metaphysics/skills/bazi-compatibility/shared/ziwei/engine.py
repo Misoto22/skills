@@ -12,8 +12,7 @@ from bazi.artifacts import add_checksum
 from bazi.calendar import LunarDate, gregorian_to_lunar, lunar_to_gregorian
 from bazi.ephemeris import Ephemeris
 from bazi.models import BirthInput
-from bazi.pillars import BRANCHES as PILLAR_BRANCHES
-from bazi.pillars import Pillar
+from bazi.pillars import BRANCHES, Pillar
 from bazi.timekeeping import apply_true_solar_time, resolve_civil_time
 
 from .palaces import (
@@ -87,7 +86,10 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
             else None,
         },
         "methodology": {
-            "placement_model": "ziwei-chart-rules-v1",
+            # From the rules file, like every other declared model id. This one
+            # was written in the JSON and then never read, so the field was
+            # decorative and the Python literal was the real source.
+            "placement_model": rules["model_id"],
             "school": rules["school"],
             "school_notes": rules["notes"],
             "time_basis": "true solar time, matching this plugin's BaZi charts",
@@ -143,7 +145,7 @@ def _place(
             "day": lunar.day,
             "leap_month": lunar.leap,
             "text": lunar.text,
-            "hour_branch": PILLAR_BRANCHES[hour_branch],
+            "hour_branch": BRANCHES[hour_branch],
             "hour_branch_index": hour_branch,
         },
         "year_pillar": {
@@ -153,10 +155,10 @@ def _place(
             "polarity": "阳" if year_pillar.stem_index % 2 == 0 else "阴",
         },
         "bureau": {"element": bureau.element, "name": bureau.name, "value": bureau.value},
-        "life_palace": {"index": life_index, "branch": PILLAR_BRANCHES[life_index]},
+        "life_palace": {"index": life_index, "branch": BRANCHES[life_index]},
         "body_palace": {
             "index": body_index,
-            "branch": PILLAR_BRANCHES[body_index],
+            "branch": BRANCHES[body_index],
             "palace_name": palaces[body_index].name,
         },
         "palaces": [_serialize_palace(palace, grouped[palace.index]) for palace in palaces],
@@ -166,7 +168,7 @@ def _place(
                 {
                     "star": star.name,
                     "label": star.transformation,
-                    "palace": PILLAR_BRANCHES[star.palace_index],
+                    "palace": BRANCHES[star.palace_index],
                 }
                 for star in stars
                 if star.transformation
