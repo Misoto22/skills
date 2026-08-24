@@ -37,6 +37,7 @@ from astro.natal_envelope import (
     validate_envelope,
 )
 
+DERIVATION_MODEL = "natal-chart-v1"
 ANGLE_ORDER = ("ascendant", "medium_coeli", "descendant", "imum_coeli", "vertex", "east_point")
 LOT_BODIES = ("Sun", "Moon", "Venus", "Jupiter", "Saturn")
 
@@ -103,7 +104,11 @@ def build_artifact(
             for limitation in chart.limitations
         ],
         "methodology": {
-            "derivation_model": "natal-chart-v1",
+            # Declared here rather than in a rules file, and deliberately: this
+            # plugin externalizes nothing, because classical dignities are not a
+            # live disagreement the way a Zi Wei transformation table is. See the
+            # rules-externalization note in AGENTS.md. One place either way.
+            "derivation_model": DERIVATION_MODEL,
             "zodiac": "tropical",
             "dignities": "classical rulerships only; modern assignments are a live disagreement",
             "aspect_orbs": {"major": major_orb, "minor": minor_orb},

@@ -6,8 +6,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-BRANCHES = tuple("子丑寅卯辰巳午未申酉戌亥")
-STEMS = tuple("甲乙丙丁戊己庚辛壬癸")
+# The same twelve branches and ten stems the four pillars are built from. Zi Wei
+# counts palaces where BaZi counts pillars, but a second copy of the cycle is a
+# second thing to keep correct, and nothing would have compared them.
+from bazi.pillars import BRANCHES, STEMS
+
 YIN_BRANCH = 2
 ELEMENTS = tuple("金木水火土")
 

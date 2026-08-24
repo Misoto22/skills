@@ -45,7 +45,7 @@ class RelationRuleTests(unittest.TestCase):
             "亥": ["壬", "甲"],
         }
         self.assertEqual(self.rules["hidden_stems"], expected)
-        self.assertEqual(self.rules["model_version"], "bazi-chart-rules-v1")
+        self.assertEqual(self.rules["model_id"], "bazi-chart-rules-v1")
 
     def test_ten_gods_cover_all_relationship_and_polarity_cases(self) -> None:
         expected = {

@@ -73,8 +73,11 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
             "alternate_day_boundary_rule": "00:00" if alternate else None,
         },
         "methodology": {
-            "calendar_model": "bazi-chart-rules-v1",
-            "scoring_model": "bazi-score-v1",
+            # Read from the rules files this chart was built with, never written
+            # twice. A literal here would keep reporting v1 after the rules moved
+            # to v2, and the artifact would name two different models for itself.
+            "calendar_model": chart_rules["model_id"],
+            "scoring_model": scoring_rules["model_id"],
             "ephemeris": type(ephemeris).__name__,
             "score_semantics": "versioned heuristics, not probabilities",
             "limits": ["static natal chart", "no Da Yun", "no annual forecast", "no event timing"],
