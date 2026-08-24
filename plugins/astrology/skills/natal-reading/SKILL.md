@@ -3,7 +3,7 @@ name: natal-reading
 description: Explain a natal chart artifact someone already has — what the rising sign shapes, where the sect light sits, which aspects are tight enough to lean on, and what the angles and lots add. Writes a reader report plus an auditable evidence file, and a shareable ink-wash page on request. Use for 解读星盘, 看本命盘, 我的上升是什么意思, or asking what a placement or aspect pattern means. Not for computing a chart from raw birth details, 合盘 between two people, transits, progressions, returns, or predicting a dated event.
 license: AGPL-3.0-or-later
 metadata:
-  version: "0.8.4"
+  version: "0.9.0"
 ---
 
 # Natal Reading

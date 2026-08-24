@@ -16,7 +16,7 @@ try:
     import swisseph as swe
 except ImportError as error:  # pragma: no cover - the failure is the intended dependency guard
     raise AssertionError(
-        "ephemeris integration tests require the pinned synastry requirements on Python 3.11-3.13"
+        "ephemeris integration tests require the pinned synastry requirements on Python 3.11-3.14"
     ) from error
 
 from astro.ephemeris import EphemerisError, resolve_subject, set_ephemeris_path

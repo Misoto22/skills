@@ -3,7 +3,7 @@ name: bazi-compatibility-reading
 description: Interpret a completed BaZi compatibility JSON artifact or equivalent verified comparison as a balanced, directional, evidence-linked relationship report. Use after the compatibility calculator or when asked to explain general, romance, marriage, friendship, family, or work scores already computed for two charts. Not for raw birth records, one-person readings, recalculation, predictions, or a binary destiny verdict.
 license: MIT
 metadata:
-  version: "0.8.4"
+  version: "0.9.0"
 ---
 
 # BaZi Compatibility Reading
