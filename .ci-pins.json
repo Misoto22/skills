@@ -37,6 +37,7 @@
       "match": "UV_VERSION: \"{version}\"",
       "documented_in": [
         ".github/workflows/evals.yml",
+        ".github/workflows/release.yml",
         ".github/workflows/validate.yml"
       ]
     },

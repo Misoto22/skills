@@ -19,6 +19,14 @@ on:
         type: string
         required: true
 
+env:
+  UV_VERSION: "0.12.5"
+  # A runner has no virtual environment, and uv refuses to install without one
+  # rather than quietly writing into the interpreter. Saying so here is the
+  # declaration; a script that named an interpreter instead would carry the same
+  # decision to a contributor's machine, where it is the wrong one.
+  UV_SYSTEM_PYTHON: 1
+
 permissions:
   contents: write
   # attest-build-provenance signs through Sigstore and records the attestation
@@ -76,6 +84,15 @@ jobs:
             exit 1
           fi
           echo "TAG=v$declared" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10
+        with:
+          version: ${{ env.UV_VERSION }}
+      # The suite below imports the ephemeris a skill declares for itself. This
+      # job ran it without them from 0.8.2 onward and nothing noticed, because
+      # the four releases after that were never tagged.
+      - name: Install every skill's declared dependencies
+        run: bash scripts/install-skill-requirements.sh
 
       - name: Run the test suite
         run: python3 -m unittest discover -s tests -v

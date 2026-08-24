@@ -2,6 +2,10 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+- `release.yml` ran the test suite without installing what the skills declare for themselves, so the ephemeris import failed and the job died before packaging anything. It had been broken since 0.8.2 and nothing noticed, because the four releases after that were never tagged — the workflow that would have failed was never asked to run. Two hand-written lists let it through: a set of four installer paths that release.yml was not in, and an assertion naming the two workflows allowed to declare `UV_VERSION`. Both now derive from the tree, and a new test requires every workflow that runs the suite to install the skills' dependencies first — it fails on the workflow as it stood.
+
 ## 0.9.1 — 2026-08-24
 
 - `ship` moves the version in the same commit as the change. A project that publishes from a version string reaches nobody on a merge that left the string alone — the installer compares versions, skips, and logs "already at the latest version" while saying nothing untrue, which is how this repository sat at 0.8.4 through twenty-five merges. Step 0h detects the project's own bumper the way 0e and 0f detect its test and lint commands, and step 3a runs it before the secrets gate so the rewritten files are staged into the same commit. It never picks the number: whether a change is a release is a judgment a diff cannot carry, so `--bump` is required and a bumper found without it is reported under `Attention` rather than skipped in silence. Tagging and publishing stay outside the skill, where its description already put them.
