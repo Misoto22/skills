@@ -1659,14 +1659,40 @@ class RepositoryContractTests(unittest.TestCase):
                 f"{path.name} names a requirements path; use scripts/install-skill-requirements.sh",
             )
 
+    def test_every_workflow_that_runs_the_suite_installs_the_skills_dependencies(self) -> None:
+        """release.yml ran the suite without the ephemeris from 0.8.2 on, and nothing noticed.
+
+        The listing below is derived rather than enumerated on purpose: the failure it
+        replaces was a workflow missing from a hand-written set of four, and a fifth
+        workflow that runs the tests would join it the same silent way.
+        """
+
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.y*ml")):
+            text = path.read_text(encoding="utf-8")
+            if "unittest discover" not in text and "coverage run" not in text:
+                continue
+            with self.subTest(workflow=path.name):
+                self.assertIn(
+                    "scripts/install-skill-requirements.sh",
+                    text,
+                    f"{path.name} runs the suite without installing what the skills declare",
+                )
+                self.assertIn("astral-sh/setup-uv@", text, f"{path.name} installs without uv")
+                self.assertIn("UV_SYSTEM_PYTHON: 1", text, f"{path.name} has no venv to install into")
+
     def test_python_packages_are_installed_through_uv_not_pip(self) -> None:
         """pip is one edit away from creeping back, and nothing else would notice."""
 
+        workflows = ROOT / ".github" / "workflows"
+        declaring = sorted(
+            str(path.relative_to(ROOT))
+            for path in workflows.glob("*.y*ml")
+            if "UV_VERSION:" in path.read_text(encoding="utf-8")
+        )
         installers = {
             "scripts/install-skill-requirements.sh",
             "scripts/run-evals-local.sh",
-            ".github/workflows/validate.yml",
-            ".github/workflows/evals.yml",
+            *declaring,
         }
         for relative in sorted(installers):
             text = (ROOT / relative).read_text(encoding="utf-8")
@@ -1680,7 +1706,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         # setup-uv takes its version as an input, so a workflow holds the literal
         # and ci-pins.py is what keeps that literal honest.
-        for relative in (".github/workflows/validate.yml", ".github/workflows/evals.yml"):
+        for relative in declaring:
             workflow = (ROOT / relative).read_text(encoding="utf-8")
             with self.subTest(file=relative):
                 self.assertIn("astral-sh/setup-uv@", workflow)
@@ -1701,10 +1727,10 @@ class RepositoryContractTests(unittest.TestCase):
         uv_pin = next((pin for pin in pins if pin["id"] == "uv"), None)
         self.assertIsNotNone(uv_pin, "uv has no pin, so its version can drift unnoticed")
         self.assertEqual(uv_pin["match"], 'UV_VERSION: "{version}"')
-        self.assertEqual(
-            sorted(uv_pin["documented_in"]),
-            [".github/workflows/evals.yml", ".github/workflows/validate.yml"],
-        )
+        # Derived, not restated. This assertion named two workflows while a third
+        # was being written; a pin that documents a hand-kept list is the same
+        # failure as a workflow missing from a hand-kept set of installers.
+        self.assertEqual(sorted(uv_pin["documented_in"]), declaring)
 
     def test_no_root_python_project_competes_with_the_pin_file(self) -> None:
         """A lockfile at the root would be a second source of truth for versions.
