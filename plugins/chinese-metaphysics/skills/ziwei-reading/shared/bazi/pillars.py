@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
+from .artifacts import ALTERNATE_DAY_BOUNDARY, DAY_BOUNDARY
 from .calendar import solar_term_instant
 from .ephemeris import Ephemeris
 from .models import BirthInput, NormalizedMoment
@@ -83,7 +84,7 @@ class FourPillars:
 def calculate_pillars(birth: BirthInput, moment: NormalizedMoment, ephemeris: Ephemeris) -> FourPillars:
     """Calculate the primary chart using the configured 23:00 day boundary."""
 
-    return _calculate(birth, moment, ephemeris, day_boundary="23:00")
+    return _calculate(birth, moment, ephemeris, day_boundary=DAY_BOUNDARY)
 
 
 def alternate_midnight_pillars(
@@ -93,7 +94,7 @@ def alternate_midnight_pillars(
 
     if moment.true_solar.hour != 23:
         return None
-    return _calculate(birth, moment, ephemeris, day_boundary="00:00")
+    return _calculate(birth, moment, ephemeris, day_boundary=ALTERNATE_DAY_BOUNDARY)
 
 
 def _calculate(
@@ -123,7 +124,7 @@ def _calculate(
     month_pillar = Pillar(month_stem, month_branch)
 
     pillar_date = moment.true_solar.date()
-    if day_boundary == "23:00" and moment.true_solar.hour >= 23:
+    if day_boundary == DAY_BOUNDARY and moment.true_solar.hour >= 23:
         pillar_date += timedelta(days=1)
     day_pillar = Pillar.from_cycle((pillar_date - DAY_ANCHOR).days)
 

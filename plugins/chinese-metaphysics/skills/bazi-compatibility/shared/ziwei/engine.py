@@ -8,7 +8,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from bazi.artifacts import add_checksum
+from bazi.artifacts import (
+    ALTERNATE_DAY_BOUNDARY,
+    DAY_BOUNDARY,
+    SCHEMAS,
+    ZIWEI_SCHEMA,
+    add_checksum,
+)
 from bazi.calendar import LunarDate, gregorian_to_lunar, lunar_to_gregorian
 from bazi.ephemeris import Ephemeris
 from bazi.models import BirthInput
@@ -45,16 +51,16 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
     normalized = apply_true_solar_time(resolved, civil, ephemeris.equation_of_time(jd))
     rules = _load_rules("ziwei-v1.json") | {"nayin": _load_rules("chart-v1.json")["nayin"]}
 
-    primary = _place(normalized.true_solar, resolved, rules, ephemeris, day_boundary="23:00")
+    primary = _place(normalized.true_solar, resolved, rules, ephemeris, day_boundary=DAY_BOUNDARY)
     alternate = (
-        _place(normalized.true_solar, resolved, rules, ephemeris, day_boundary="00:00")
+        _place(normalized.true_solar, resolved, rules, ephemeris, day_boundary=ALTERNATE_DAY_BOUNDARY)
         if normalized.true_solar.hour == 23
         else None
     )
 
     envelope = {
-        "schema": "chinese-metaphysics.ziwei-chart",
-        "schema_version": 1,
+        "schema": ZIWEI_SCHEMA,
+        "schema_version": SCHEMAS[ZIWEI_SCHEMA],
         "input": birth.to_mapping(),
         "calendar": {
             "input_calendar": birth.calendar,
@@ -76,8 +82,8 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
         "chart": {"primary": primary, "alternate": alternate},
         "sensitivity": {
             "alternate_day_boundary": alternate is not None,
-            "primary_day_boundary": "23:00",
-            "alternate_day_boundary_rule": "00:00" if alternate else None,
+            "primary_day_boundary": DAY_BOUNDARY,
+            "alternate_day_boundary_rule": ALTERNATE_DAY_BOUNDARY if alternate else None,
             "note": (
                 "A 23:00-23:59 birth shifts the lunar day, which moves 紫微 and every "
                 "star anchored to it. Read the two charts separately; never average them."
@@ -118,7 +124,7 @@ def _place(
 
     hour_branch = ((true_solar.hour + 1) // 2) % 12
     placement_date = true_solar.date()
-    if day_boundary == "23:00" and true_solar.hour >= 23:
+    if day_boundary == DAY_BOUNDARY and true_solar.hour >= 23:
         placement_date = date.fromordinal(placement_date.toordinal() + 1)
     lunar = gregorian_to_lunar(placement_date, ephemeris)
 

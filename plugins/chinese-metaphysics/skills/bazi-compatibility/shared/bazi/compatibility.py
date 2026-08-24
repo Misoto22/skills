@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from .artifacts import add_checksum, validate_envelope
+from .artifacts import CHART_SCHEMA, COMPATIBILITY_SCHEMA, SCHEMAS, add_checksum, validate_envelope
 
 SHARED_ROOT = Path(__file__).resolve().parents[1]
 POSITIONS = ("year", "month", "day", "hour")
@@ -30,7 +30,7 @@ def compare_charts(
     except ValueError as error:
         raise CompatibilityError(str(error)) from error
     for chart in (left_chart, right_chart):
-        if chart["schema"] != "chinese-metaphysics.bazi-chart":
+        if chart["schema"] != CHART_SCHEMA:
             raise CompatibilityError("compatibility requires two BaZi chart artifacts")
         _validate_chart_shape(chart)
 
@@ -66,8 +66,8 @@ def compare_charts(
     spread = max(variant_scores) - min(variant_scores)
     confidence = _confidence(left_chart, right_chart, spread)
     result = {
-        "schema": "chinese-metaphysics.bazi-compatibility",
-        "schema_version": 1,
+        "schema": COMPATIBILITY_SCHEMA,
+        "schema_version": SCHEMAS[COMPATIBILITY_SCHEMA],
         "model_version": rules["model_id"],
         "score_semantics": "versioned heuristic scores; not probabilities or relationship outcomes",
         "relationship_type": relationship_type,
