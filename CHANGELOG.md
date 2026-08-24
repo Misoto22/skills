@@ -2,8 +2,9 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.9.2 — 2026-08-24
 
+- `readme` and `logo-banner` handle a request that names several repositories as several scopes rather than one. Each carries its own evidence, assets, approvals and reader language, an unresolvable name is asked about instead of guessed at by searching a parent directory, and one repository being blocked no longer holds up safe work on another. Both close with a combined handoff labelled per repository, so a single finished README or identity system cannot read as all of them. The README hero assets were refreshed and roughly halved in size, and their accessibility labels rewritten.
 - `release.yml` ran the test suite without installing what the skills declare for themselves, so the ephemeris import failed and the job died before packaging anything. It had been broken since 0.8.2 and nothing noticed, because the four releases after that were never tagged — the workflow that would have failed was never asked to run. Two hand-written lists let it through: a set of four installer paths that release.yml was not in, and an assertion naming the two workflows allowed to declare `UV_VERSION`. Both now derive from the tree, and a new test requires every workflow that runs the suite to install the skills' dependencies first — it fails on the workflow as it stood.
 
 ## 0.9.1 — 2026-08-24
