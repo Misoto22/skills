@@ -13,9 +13,9 @@
     },
     {
       "title": "Docs",
-      "description": "Prose aimed at whoever opens the repository next, written from what the repository's own files say rather than from its name.",
+      "description": "The face a repository shows a stranger \u2014 README, banner, licence, security and contribution policy, and the forge's own description and topics, written from what the repository's files say rather than from its name.",
       "skills": [
-        "readme"
+        "repo-polish"
       ]
     },
     {

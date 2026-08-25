@@ -1,6 +1,0 @@
-interface:
-  display_name: "Readme"
-  short_description: "Write, restructure, or audit a repository README"
-  default_prompt: "Use $readme to write or tighten this repository's README from what the files actually say; leave a bracketed placeholder wherever a fact is unavailable rather than inventing one."
-policy:
-  allow_implicit_invocation: true

@@ -362,10 +362,10 @@ class RepositoryContractTests(unittest.TestCase):
             document = json.loads(manifest.read_text(encoding="utf-8"))
             for field, value, expected in (
                 ("description", "Something else entirely.", "description disagrees"),
-                ("skills", ["./skills/readme"], "outside the Agent Plugins schema"),
+                ("skills", ["./skills/repo-polish"], "outside the Agent Plugins schema"),
                 ("$schema", "https://example.com/plugin.schema.json", "$schema must name"),
                 ("keywords", ["only-one"], "at least 3 search terms"),
-                ("keywords", ["Readme", "docs", "writing"], "must be lowercase kebab-case"),
+                ("keywords", ["Readme", "repository", "writing"], "must be lowercase kebab-case"),
                 ("keywords", ["docs", "readme", "writing"], "restates the plugin name"),
                 ("keywords", ["readme", "readme", "writing"], "keywords repeat a term"),
                 ("extensions", {"codex": {}}, "must be reverse-domain"),
@@ -436,7 +436,7 @@ class RepositoryContractTests(unittest.TestCase):
 
             # Two of the four routes ship bare skills and no plugin root at all.
             bare = root / "bare"
-            shutil.copytree(DOCS_PLUGIN / "skills" / "readme", bare / "readme")
+            shutil.copytree(DOCS_PLUGIN / "skills" / "repo-polish", bare / "repo-polish")
 
             for target, expected in (
                 (dropped, "dropped the Agent Plugins manifest"),
@@ -542,7 +542,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             copied = copy_repository_fixture(Path(temporary))
-            scripts = copied / "plugins" / "docs" / "skills" / "readme" / "scripts"
+            scripts = copied / "plugins" / "docs" / "skills" / "repo-polish" / "scripts"
             scripts.mkdir(parents=True, exist_ok=True)
             (scripts / f"{stem}.py").write_text("def probe():\n    return None\n", encoding="utf-8")
 
@@ -956,7 +956,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         # A skill with no entry is reported, not silently judged semantically.
         failures = module._mechanical_failures(
-            "readme", {"id": "x", "fixture": "fixtures/whatever.json"}, "# draft\n"
+            "repo-polish", {"id": "x", "fixture": "fixtures/whatever.json"}, "# draft\n"
         )
         self.assertEqual(len(failures), 1, failures)
         self.assertIn("MECHANICAL_VALIDATORS", failures[0])
@@ -2518,7 +2518,7 @@ class RepositoryContractTests(unittest.TestCase):
         """The committed file is what readers fetch; editing a skill without it is a stale publish."""
 
         with repository_copy() as copied:
-            target = copied / "plugins" / "docs" / "skills" / "readme" / "SKILL.md"
+            target = copied / "plugins" / "docs" / "skills" / "repo-polish" / "SKILL.md"
             target.write_text(
                 target.read_text(encoding="utf-8").replace("license: MIT", "license: Apache-2.0"),
                 encoding="utf-8",

@@ -1,12 +1,12 @@
 {
   "name": "docs",
   "version": "0.9.2",
-  "description": "Project documentation skills.",
+  "description": "Skills for the face a repository shows a stranger.",
   "author": {
     "name": "skills contributors"
   },
   "license": "MIT",
   "skills": [
-    "./skills/readme"
+    "./skills/repo-polish"
   ]
 }
