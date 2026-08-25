@@ -38,7 +38,7 @@ PUBLISHED = {
     ],
     "astrology": ["natal-chart", "natal-reading", "synastry", "synastry-reading"],
     "dev": ["cleanup", "ship", "sync"],
-    "docs": ["readme"],
+    "docs": ["repo-polish"],
     "writing": ["email", "personal-blog", "tempering"],
 }
 # Exceptions only. MIT is what new-skill.py stamps on a new plugin and what

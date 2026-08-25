@@ -1,4 +1,4 @@
-# Skeleton
+# README skeleton
 
 Copy this, fill the placeholders, delete the sections the project has not earned. Bracketed placeholders stay in the output when the fact is unavailable — the author completes them.
 
@@ -146,18 +146,18 @@ just build        [description]     just check       [description]
 </div>
 ````
 
-## Badge sources
+## Hero and badges
 
-One badge per primary technology, version pinned in the label, official brand colour, `logoColor` set for contrast. The pattern:
+Both are covered in [banner.md](banner.md): committing the asset, the `<picture>`
+block that serves both themes, what an SVG may contain, and the one badge per
+primary technology that earns its place.
 
-```
-https://img.shields.io/badge/<Name>_<Version>-<hex>?logo=<slug>&logoColor=<fff|000>
-```
+The short version, for the block above — no asset means dropping the `<img>` and
+the `<br />` after it, never leaving a placeholder in `src`; and no badges for
+build status, download counts, licence, "PRs welcome", or code style.
 
-Use `logoColor=000` on light brand colours (React `61DAFB`, Tailwind `06B6D4`), `fff` on dark ones. Underscores render as spaces. Look the slug up at [simpleicons.org](https://simpleicons.org).
+## The centred sentence
 
-No badges for build status, download counts, licence, "PRs welcome", or code style. They are noise on a personal or single-maintainer repository, and the CI section already says what runs.
-
-## When there is no hero image
-
-Drop the `<img>` and the `<br />` after it. Never leave the placeholder in `src` — it does not read as a note to the author, it renders as a broken-image icon at the top of the page. The centred block still works, and is better than a placeholder graphic. A CLI tool may reasonably open with a fenced sample of its own output instead — one screen, real output, no prompt characters.
+The line under the bold label is the same sentence as the forge's About field and
+the package manifest's `description`. Settle it once and paste it three times; do
+not write a second version of it here.

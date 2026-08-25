@@ -39,9 +39,9 @@
 - **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)**（`/writing:personal-blog`）—— 研究、列提纲、起草或编辑五类个人博客文章，保留作者提供的证据和文风；成稿直接以原始 Markdown 返回。
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)**（`/writing:tempering`）—— 把生硬或带火气的职场消息改写成三种轻重不同的说法，原话里的诉求、日期和后果一个都不丢。
 
-#### `docs` —— 写给下一个打开这个仓库的人
+#### `docs` —— 一个仓库摆给陌生人看的那一面
 
-- **[readme](plugins/docs/skills/readme/SKILL.md)**（`/docs:readme`）—— 依据仓库自己的文件写、重构或审查 README，凡是文件里查不到的，留一个方括号占位符，不猜。
+- **[repo-polish](plugins/docs/skills/repo-polish/SKILL.md)**（`/docs:repo-polish`）—— 依据仓库自己的文件写 README、首屏横幅、`LICENSE`、`SECURITY.md`、`CONTRIBUTING.md`、平台上的仓库简介和 topics。默认七项全做，加参数就只做其中几项；许可证从不替你选，写到平台上的值先原样打印出来再发。
 
 #### `dev` —— 一次改动的完整闭环
 
@@ -217,7 +217,7 @@ Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
-  D --> R["/docs:readme"]
+  D --> R["/docs:repo-polish"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
   A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repo Polish"
+  short_description: "Write a repository's README, licence, policies, and forge metadata"
+  default_prompt: "Use $repo-polish to build this repository's public face — README, banner, LICENSE, SECURITY.md, CONTRIBUTING.md, the forge's About text, and its topics — from what the files actually say; run every pass unless I name some, print the plan before writing, and leave a bracketed placeholder wherever a fact is unavailable rather than inventing one."
+policy:
+  allow_implicit_invocation: true

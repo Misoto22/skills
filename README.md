@@ -39,9 +39,9 @@ Twenty skills in seven plugins. The plugin name is the command prefix, and each 
 - **[personal-blog](plugins/writing/skills/personal-blog/SKILL.md)** (`/writing:personal-blog`) — researches, outlines, drafts, or edits five kinds of personal blog post while preserving supplied evidence and voice; finished articles arrive as raw Markdown.
 - **[tempering](plugins/writing/skills/tempering/SKILL.md)** (`/writing:tempering`) — rewrites a blunt or frustrated workplace message into three registers, keeping the request, the date, and the consequence the raw tone was carrying.
 
-#### `docs` — prose aimed at whoever opens the repository next
+#### `docs` — the face a repository shows a stranger
 
-- **[readme](plugins/docs/skills/readme/SKILL.md)** (`/docs:readme`) — writes, restructures, or audits a repository README from what its own files say, leaving a bracketed placeholder wherever a fact is unavailable.
+- **[repo-polish](plugins/docs/skills/repo-polish/SKILL.md)** (`/docs:repo-polish`) — writes a repository's README, banner, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, forge description, and topics from what its own files say. Every pass runs unless flags narrow it; it never picks a licence for you, and it prints what it would send to the forge before sending it.
 
 #### `dev` — the loop around a change
 
@@ -222,7 +222,7 @@ Rules shared by three skills live in `plugins/<plugin>/shared/`, the only copy a
 flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
-  D --> R["/docs:readme"]
+  D --> R["/docs:repo-polish"]
   V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
   A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T

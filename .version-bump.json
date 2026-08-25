@@ -81,7 +81,7 @@
     "plugins/dev/skills/ship/SKILL.md",
     "plugins/writing/skills/email/SKILL.md",
     "plugins/writing/skills/tempering/SKILL.md",
-    "plugins/docs/skills/readme/SKILL.md",
+    "plugins/docs/skills/repo-polish/SKILL.md",
     "scripts/validate-repository.py",
     "tests/synastry_skill/test_skill_contract.py",
     "tests/bazi_skill/test_skill_contract.py"

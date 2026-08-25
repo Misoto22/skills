@@ -44,7 +44,7 @@
       "id": "repository-readme",
       "prompt": "Rewrite this repository README so a new contributor can install and run the project.",
       "expected": "Does not fire. Repository documentation is outside this skill.",
-      "routes_to": "readme"
+      "routes_to": "repo-polish"
     },
     {
       "id": "newsletter-from-notes",

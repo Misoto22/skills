@@ -1,0 +1,108 @@
+{
+  "skill": "repo-polish",
+  "triggers": [
+    {
+      "id": "chinese-decorate",
+      "prompt": "帮我把这个仓库装修一下",
+      "expected": "Fires, plans all seven passes, and prints the plan before writing."
+    },
+    {
+      "id": "stale-readme",
+      "prompt": "This repo's README is out of date. Can you fix it?",
+      "expected": "Fires with the README pass only, and rewrites from what the files say."
+    },
+    {
+      "id": "open-source-files",
+      "prompt": "Add a LICENSE and a security policy to this project.",
+      "expected": "Fires with the licence and security passes, and asks rather than choosing a licence."
+    },
+    {
+      "id": "forge-metadata",
+      "prompt": "Set the GitHub description and topics for this repository.",
+      "expected": "Fires with the description and topics passes, prints the values, and asks before sending them."
+    },
+    {
+      "id": "audit",
+      "prompt": "Is this repository presentable enough to share?",
+      "expected": "Fires in audit mode and writes nothing."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "api-reference",
+      "prompt": "Write the API reference for these endpoints.",
+      "expected": "Does not fire. Reference documentation is a different artefact."
+    },
+    {
+      "id": "changelog",
+      "prompt": "Update the CHANGELOG for this release.",
+      "expected": "Does not fire."
+    },
+    {
+      "id": "landing-page",
+      "prompt": "Write the marketing copy for the product page.",
+      "expected": "Does not fire."
+    },
+    {
+      "id": "brand-artwork",
+      "prompt": "Design a logo and a light and dark banner image for this project.",
+      "expected": "Does not fire. Drawing the artwork is brand work; this skill only places an existing asset.",
+      "routes_to": "logo-banner"
+    },
+    {
+      "id": "branch-cleanup",
+      "prompt": "Tidy up this repo — delete the branches whose PRs already merged.",
+      "expected": "Does not fire. Tidying the git state is not decorating the public face.",
+      "routes_to": "cleanup"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "chinese-request-english-repository",
+      "prompt": "帮我把这个仓库的 readme 重写一下",
+      "expectations": [
+        "Replies in Chinese, matching the user.",
+        "Writes the README in English when the repository's existing prose, comments, and history are English.",
+        "Does not switch the file's language to match the language of the request."
+      ]
+    },
+    {
+      "id": "conflicting-licence-declarations",
+      "prompt": "Add a LICENSE file. The repo has an Apache-2.0 LICENSE.md already and package.json says \"license\": \"MIT\".",
+      "expectations": [
+        "Reports both declarations with the file each came from.",
+        "Does not resolve the conflict by picking the more permissive, more common, or more recently edited one.",
+        "Writes no licence file until the owner decides."
+      ]
+    },
+    {
+      "id": "no-licence-declared-anywhere",
+      "prompt": "Set this repository up properly for open source. Nothing in it declares a licence.",
+      "expectations": [
+        "Asks which licence rather than defaulting to MIT.",
+        "States that no licence means no permission to use the code.",
+        "Completes the other passes instead of blocking all of them on the unanswered question."
+      ]
+    },
+    {
+      "id": "forge-write-confirmation",
+      "prompt": "装修一下这个仓库，全套",
+      "expectations": [
+        "Prints the plan table before writing anything.",
+        "Prints the exact description and topic values and asks before sending them to the forge.",
+        "Reports the forge passes as blocked, with the commands to run, when the host cannot reach the forge.",
+        "Never reports a forge field as set on the strength of having composed a value for it."
+      ]
+    },
+    {
+      "id": "explicit-multiple-repositories",
+      "prompt": "Polish the repos in /work/alpha and /work/beta. They are unrelated; work on both at once and give me one final handoff.",
+      "expectations": [
+        "Treats each named repository as an independent scope and verifies its claims from that repository's files.",
+        "Uses concurrent work only for independent repository work when the host supports it, without making one repository wait on an unrelated one.",
+        "Does not copy commands, versions, licences, or topics between the repositories without evidence in each repository.",
+        "Returns one handoff with a separate result, verification state, and blocker for each repository."
+      ]
+    }
+  ]
+}
