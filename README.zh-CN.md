@@ -61,6 +61,8 @@
 
 - **[synastry](plugins/astrology/skills/synastry/SKILL.md)**（`/astrology:synastry`）—— 验证两份用户提供的出生记录，写出一个能反映时间不确定性的 JSON v2 合盘文件，并记录实际使用的星历后端。默认只保留计算必需的最少隐私数据；只有用户明确要求归档模式时，才保留其提供的本地出生记录和地点来源。仅在精确时间时计算宫位叠加，然后自动进入独立解读流程。
 - **[synastry-reading](plugins/astrology/skills/synastry-reading/SKILL.md)**（`/astrology:synastry-reading`）—— 先私密验证 JSON v2 合盘文件，再写出自适应、逐条链接证据的 Markdown 报告；关系领域只按用户明确提出的内容展开。
+- **[natal-chart](plugins/astrology/skills/natal-chart/SKILL.md)**（`/astrology:natal-chart`）—— 算一个人的本命星盘：星体落点、四轴、宫位、相位、日夜区分与古典阿拉伯点；出生时间不精确就直接拒绝，不拿中午去凑。
+- **[natal-reading](plugins/astrology/skills/natal-reading/SKILL.md)**（`/astrology:natal-reading`）—— 解读已算好的本命盘，写成以读者为先的报告，审计明细单独成文；每条结论按容许度加权，宽相位不当主线讲。
 
 #### `chinese-metaphysics` —— 按农历排四柱
 
@@ -68,6 +70,11 @@
 - **[bazi-reading](plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md)**（`/chinese-metaphysics:bazi-reading`）—— 把已验证的单人命盘解读为证据可追溯的静态命局报告。
 - **[bazi-compatibility](plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md)**（`/chinese-metaphysics:bazi-compatibility`）—— 用双向证据和透明评分比较两份八字命盘。
 - **[bazi-compatibility-reading](plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md)**（`/chinese-metaphysics:bazi-compatibility-reading`）—— 解读已完成的双人比较，不改动原始数据或模型分数。
+- **[ziwei-chart](plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md)**（`/chinese-metaphysics:ziwei-chart`）—— 把一个人的生辰排成十二宫紫微命盘，产出可复用的 JSON 与纯数据 Markdown；没有明确性别就不排，因为大限方向无从判定。
+- **[ziwei-reading](plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md)**（`/chinese-metaphysics:ziwei-reading`）—— 解读已排好的紫微命盘，写成以读者为先的报告，审计明细单独成文；水墨风海报只在被要求时才出。
+- **[bazi-ziwei-cross](plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md)**（`/chinese-metaphysics:bazi-ziwei-cross`）—— 把同一个人的八字与紫微两张盘对着读，矛盾如实记录，不合成一个分数。
+
+这里的每一个技能都**只排静态盘**。没有流年、流月、四化流动、行运、事件时间点，也没有任何形式的预测——问「今年运势如何」得到的是这条边界的说明，不是答案。这是有意为之：排盘部分对位置是精确的，而预测层只能在它之上被发明出来，无法由它推导出来。
 
 ---
 
@@ -187,14 +194,8 @@ claude plugin install obsidian@misoto22
 #### `monitoring`
 
 - **[warp](https://github.com/warpdotdev/claude-code-warp)**（`warp@misoto22`）—— 一次运行结束或停下来提问时，发原生 Warp 通知。
-- **[ziwei-chart](plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md)** (`/chinese-metaphysics:ziwei-chart`) — 把一个人的生辰排成十二宫紫微命盘，产出可复用的 JSON 与纯数据 Markdown；没有明确性别就不排，因为大限方向无从判定。
-- **[ziwei-reading](plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md)** (`/chinese-metaphysics:ziwei-reading`) — 解读已排好的紫微命盘，写成以读者为先的报告，审计明细单独成文；水墨风海报只在被要求时才出。
-- **[bazi-ziwei-cross](plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md)** (`/chinese-metaphysics:bazi-ziwei-cross`) — 把同一个人的八字与紫微两张盘对着读，矛盾如实记录，不合成一个分数。
-- **[natal-chart](plugins/astrology/skills/natal-chart/SKILL.md)** (`/astrology:natal-chart`) — 算一个人的本命星盘：星体落点、四轴、宫位、相位、日夜区分与古典阿拉伯点；出生时间不精确就直接拒绝，不拿中午去凑。
-- **[natal-reading](plugins/astrology/skills/natal-reading/SKILL.md)** (`/astrology:natal-reading`) — 解读已算好的本命盘，写成以读者为先的报告，审计明细单独成文；每条结论按容许度加权，宽相位不当主线讲。
 
-这里的每一个技能都**只排静态盘**。没有流年、流月、四化流动、行运、事件时间点，也没有任何形式的预测——问「今年运势如何」得到的是这条边界的说明，不是答案。这是有意为之：排盘部分对位置是精确的，而预测层只能在它之上被发明出来，无法由它推导出来。
-Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面十五个 skill。
+Claude Code 和 Codex 都能装这些。`npx skills add` 和 skills.sh 列表则完全看不到它们：那两条路径是 clone 这个仓库、读磁盘上的 skill，而放在别人仓库里的 plugin，不在它们能提供的范围里。所以那两条路径始终只有上面二十个 skill。
 
 > [!NOTE]
 > 钉死 commit 才是重点。跟着分支走的书签会在安装那一刻装上对方仓库当时的内容，
