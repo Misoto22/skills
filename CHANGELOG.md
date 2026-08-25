@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.10.0 — 2026-08-25
 
 - **Breaking:** `readme` is now `repo-polish`, and `/docs:readme` is now `/docs:repo-polish`. The skill covers the whole face a repository shows a stranger — README, hero banner, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, the forge's one-line About text, and its GitHub or GitLab topics — with every pass running by default and flags narrowing it to a subset, the way `cleanup` already scopes its four. They are one skill rather than seven because they answer one question between them, and the failure they share is disagreeing: a README claiming MIT beside a `LICENSE` that says Apache-2.0, an About field two rewrites behind the README's first line. So the sentence describing the project is settled once and written to all three places that carry it, and the licence is reconciled rather than authored — the skill never chooses one, and stops on a conflict instead of resolving it by picking the more permissive file. The two passes that write to the forge leave no diff behind, so they print their exact values for confirmation first and report themselves blocked, with the commands, rather than claiming a field was set. The README rules move out of `SKILL.md` into `references/readme.md` unchanged, joined by `banner.md`, `community-files.md`, and `forge-metadata.md`.
 

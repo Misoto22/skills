@@ -3,7 +3,7 @@ name: photo-abstract-editorial-native
 description: Assemble a source-faithful photograph with a supplied editorial abstraction panel as a sharp comparison board, preserving orientation, aspect ratio, source provenance, and lower-panel scale. Use for original-versus-abstract photography diptychs, photo comparison cards, or repairing blurred and stretched editorial boards; not for generating lower artwork or replacing a separately licensed art-direction skill.
 license: MIT
 metadata:
-  version: "0.9.2"
+  version: "0.10.0"
 ---
 
 # Photo Abstract Editorial Native
