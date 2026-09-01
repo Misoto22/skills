@@ -253,7 +253,9 @@
             "nonTriggers": [
               "Tag a release and publish the package.",
               "Write me a commit message for this diff. Do not push anything.",
-              "Just pull the latest main."
+              "Just pull the latest main.",
+              "邮件写好了，帮我发出去",
+              "这样发出去会不会太冲，帮我改客气点"
             ]
           },
           "i18n": {

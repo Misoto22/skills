@@ -38,6 +38,18 @@
       "prompt": "Just pull the latest main.",
       "expected": "Does not fire; bringing the base level is a different step.",
       "routes_to": "sync"
+    },
+    {
+      "id": "send-a-message-not-a-branch",
+      "prompt": "邮件写好了，帮我发出去",
+      "expected": "Does not fire. 发出去 is ship's phrase too, and this one sends a message.",
+      "routes_to": "email"
+    },
+    {
+      "id": "too-blunt-to-send",
+      "prompt": "这样发出去会不会太冲，帮我改客气点",
+      "expected": "Does not fire. The question is how the message reads, not where the code goes.",
+      "routes_to": "tempering"
     }
   ],
   "behaviors": [

@@ -770,6 +770,55 @@ class RepositoryContractTests(unittest.TestCase):
             suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             self.assertIn("needs at least", run().stderr)
 
+    def test_a_shared_chinese_phrase_needs_a_boundary_one_of_the_suites_declares(self) -> None:
+        """`check-descriptions.py` tokenises on whitespace, and Chinese has none.
+
+        A trigger phrase written in Chinese arrives there as a single word, so
+        two descriptions sharing one never approach a ceiling counted in words.
+        The rule lives here instead, where the descriptions and the `routes_to`
+        that would settle the boundary are both already read.
+        """
+
+        with repository_copy() as copied:
+
+            def run() -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "scripts/run-evals.py", "--check"],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+            self.assertEqual(run().returncode, 0, run().stderr)
+
+            skill_file = copied / "plugins" / "dev" / "skills" / "sync" / "SKILL.md"
+            original = skill_file.read_text(encoding="utf-8")
+            description = next(line for line in original.splitlines() if line.startswith("description:"))
+            # email's own phrase, taken verbatim, with nothing on either side
+            # saying which of the two should win the prompt.
+            stolen = description.replace(" Not for", " 写封邮件给. Not for", 1)
+            skill_file.write_text(original.replace(description, stolen, 1), encoding="utf-8")
+
+            result = run()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("写封邮件给", result.stderr)
+            self.assertIn("email", result.stderr)
+
+            # The phrase may stay once a suite says where the prompt belongs.
+            suite = copied / "evals" / "sync" / "evals.json"
+            document = json.loads(suite.read_text(encoding="utf-8"))
+            document["non_triggers"].append(
+                {
+                    "id": "sync-routes-mail-to-email",
+                    "prompt": "写封邮件给房东问押金",
+                    "expected": "email takes it; sync never drafts a message.",
+                    "routes_to": "email",
+                }
+            )
+            suite.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            self.assertEqual(run().returncode, 0, run().stderr)
+
     def test_behavior_fixtures_stay_in_their_suite_and_validate_as_v2_json(self) -> None:
         """A missing, escaping, or malformed artifact must fail before model billing."""
 
