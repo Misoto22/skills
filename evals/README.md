@@ -15,6 +15,15 @@ published skill has a suite, each has at least three triggers and two
 non-triggers, ids are unique, and every stated hand-off names a skill that
 actually exists.
 
+It also fails when two descriptions claim the same Chinese trigger phrase and
+neither suite says which skill should win a prompt carrying it. That check lives
+here rather than in `check-descriptions.py` because settling it needs both
+halves: the descriptions competing for the phrase, and the `routes_to` that
+decides between them. `check-descriptions.py` counts a shared run in words, and
+Chinese is written without spaces — a whole phrase reaches it as one token, so
+its ceiling of seven is never approached in the language most of these
+descriptions use to name their triggers.
+
 Scoring is manual. Run `--report`, put the prompts to a fresh agent with the
 skills installed, and record what happened. `evals/email/iteration-1/` is what
 that looks like when it has been done.

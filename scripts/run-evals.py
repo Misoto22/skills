@@ -4,7 +4,10 @@
 Two halves, deliberately separated by what they cost. `--check` is structural and
 free: every published skill has cases at all, each one names what should happen
 instead when it must not fire, and every stated hand-off points at a skill that
-exists. It runs on every push.
+exists. It also holds the one boundary a suite alone cannot state — two
+descriptions claiming the same Chinese trigger phrase, which the word-counted
+ceiling in `check-descriptions.py` cannot see because Chinese has no spaces. It
+runs on every push.
 
 `--run` is the half that actually falsifies a description. It asks a model which
 skill a prompt should route to, given every published description and nothing
@@ -41,6 +44,7 @@ import subprocess
 import sys
 import tempfile
 from functools import cache
+from itertools import combinations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +53,17 @@ EVALS_ROOT = ROOT / "evals"
 
 MINIMUM_TRIGGERS = 3
 MINIMUM_NON_TRIGGERS = 2
+
+# `check-descriptions.py` bounds what two descriptions may share, counted in
+# words. Chinese is written without spaces, so a whole trigger phrase reaches
+# that ceiling as a single token and two descriptions claiming the same one
+# never come near seven — the rule is blind in the language most of these
+# descriptions use to name their triggers. Han characters are compared by
+# character instead, and the bound sits where the information does: three
+# characters is a trigger phrase, two is a fragment that skills in one family
+# are expected to share, so 发出去 has to be settled and 命盘 does not.
+MAX_SHARED_HAN = 2
+HAN = re.compile(r"[\u4e00-\u9fff]+")
 
 # Which skills can check a draft mechanically, and with what. A behavior case
 # carrying a `fixture` asserts its output is checkable against that artifact
@@ -115,10 +130,12 @@ def load(skill: str, errors: list[str]) -> dict | None:
 def check(skills: list[str]) -> list[str]:
     errors: list[str] = []
     known = set(skills)
+    suites: dict[str, dict] = {}
     for skill in skills:
         suite = load(skill, errors)
         if suite is None:
             continue
+        suites[skill] = suite
         where = (EVALS_ROOT / skill / "evals.json").relative_to(ROOT)
         if suite.get("skill") != skill:
             errors.append(f"{where}: 'skill' must be {skill!r}")
@@ -144,7 +161,71 @@ def check(skills: list[str]) -> list[str]:
                 f"{path.relative_to(ROOT)}: no published skill named {path.parent.name!r}."
                 " Retired cases belong with the retired skill."
             )
+    errors.extend(_check_shared_han(suites))
     return errors
+
+
+def _check_shared_han(suites: dict[str, dict]) -> list[str]:
+    """Fail on a Chinese trigger phrase two descriptions claim and no suite settles.
+
+    Sharing a phrase is not the fault; sharing one while both suites stay silent
+    about which skill should win the prompt is. The boundary already has a place
+    to be written down — a `non_trigger` whose `routes_to` names the other skill
+    — and this is what makes an unwritten one visible.
+    """
+
+    errors: list[str] = []
+    described = descriptions()
+    for first, second in combinations(sorted(suites), 2):
+        shared = _longest_shared_han(described.get(first, ""), described.get(second, ""))
+        if len(shared) <= MAX_SHARED_HAN:
+            continue
+        if _routes_to(suites[first], second) or _routes_to(suites[second], first):
+            continue
+        errors.append(
+            f"{first} and {second} both claim {shared!r}, and neither suite says which of"
+            " them should win a prompt carrying it. A Chinese phrase is one token to the"
+            " word-counted ceiling in check-descriptions.py, so this is the check that"
+            " sees it: give one of them a non_trigger whose routes_to names the other, or"
+            " stop claiming the phrase in the description."
+        )
+    return errors
+
+
+def _routes_to(suite: dict, other: str) -> bool:
+    """Whether this suite hands a prompt to `other` anywhere in its non_triggers."""
+
+    cases = suite.get("non_triggers")
+    if not isinstance(cases, list):
+        return False
+    return any(isinstance(case, dict) and case.get("routes_to") == other for case in cases)
+
+
+def _longest_shared_han(first: str, second: str) -> str:
+    """Return the longest run of Han characters the two descriptions share.
+
+    The runs are joined by a newline rather than concatenated, so a match cannot
+    form across two phrases that were never written next to each other. The
+    separator never matches itself, or it would score as a shared character and
+    read every two-character fragment as three.
+    """
+
+    left = "\n".join(HAN.findall(first))
+    right = "\n".join(HAN.findall(second))
+    best_length = 0
+    best_end = 0
+    # Longest-common-substring table, one row at a time over the characters.
+    previous = [0] * (len(right) + 1)
+    for i in range(1, len(left) + 1):
+        current = [0] * (len(right) + 1)
+        for j in range(1, len(right) + 1):
+            if left[i - 1] == right[j - 1] != "\n":
+                current[j] = previous[j - 1] + 1
+                if current[j] > best_length:
+                    best_length = current[j]
+                    best_end = i
+        previous = current
+    return left[best_end - best_length : best_end]
 
 
 def _check_case(
