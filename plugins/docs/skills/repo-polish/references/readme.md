@@ -13,7 +13,10 @@ A heading may take the word the project's own readers scan for, as long as it ke
 
 <div align="center">
 
-<img alt="<project>" src="<hero image URL>" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img alt="<project>" src="assets/hero-light.svg" width="820">
+</picture>
 
 <br />
 
@@ -87,9 +90,6 @@ Markdown cannot express a headerless table — `| | |` renders as a visible empt
 
 Every other table on the page has real headers and stays markdown.
 
-> | **Framework** | Next.js 16 · Turbopack |
-> | **Testing** | Vitest 4 · Playwright (E2E) · fast-check (property-based) |
-
 **Project Structure.** A fenced tree, comments aligned in a column, one line per directory that a newcomer would need to open. Do not list every file. Annotate what lives there, not what the name already says.
 
 > ```
@@ -107,8 +107,8 @@ Every other table on the page has real headers and stays markdown.
 
 **Domain sections.** One per subsystem a reader would otherwise misunderstand — usually a boundary with another service. State what this repository owns and what it does not.
 
-> Kioku is the sole Spotify client and credential owner. This site reads the stable
-> `/api/v1/music/*` contracts, and needs no Spotify secret.
+> The billing service is the sole Stripe client and credential owner. This site reads
+> the stable `/api/v1/invoices/*` contracts, and needs no Stripe secret.
 
 That last move is the one most READMEs miss. A reader who knows where the boundary is stops looking for credentials that were never here.
 

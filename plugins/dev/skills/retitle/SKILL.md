@@ -3,7 +3,7 @@ name: retitle
 description: Normalize agent conversation titles onto a dated `MMDD｜TYPE｜subject` scheme — English by default, Chinese with `--lang=zh` — across Codex, Claude Code, and any client that exposes its session list. The date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
-  version: "0.12.0"
+  version: "0.13.0"
 argument-hint: "[--client=codex|claude-code] [--lang=en|zh] [--tz=<zone>] [--apply]"
 ---
 
@@ -53,7 +53,7 @@ Fixing the letter count recovers most of it. At 13px in a system UI font these n
 
 `subject` is what the conversation was actually about, in two to four lowercase words and at most 24 characters. English runs about two and a half times wider than Chinese for the same meaning — `批次文字显示` is six glyphs where `batch text rendering` is twenty — so in a narrow sidebar it is this field that gets truncated, not the type, and the cap is what keeps the type visible at all. Three rules govern it:
 
-- **Do not repeat the project name.** The sidebar already groups by project, so `0903｜PATCH｜dealer-portal login fails` wastes the third of the title that is visible.
+- **Do not repeat the project name.** The sidebar already groups by project, so `0903｜PATCH｜acme-portal login fails` wastes the third of the title that is visible.
 - **Name the object, not the activity.** `batch text rendering` beats `fixed some display issues`.
 - **When the subject cannot be told from the conversation, do not invent one.** Keep the original title, verbatim, and report it as skipped. A confidently wrong title is worse than a messy honest one, because it is the version the user will trust.
 
@@ -226,37 +226,23 @@ Claude Code's session API addresses **any** session by id, so this half is a bat
 
 The client auto-titles a new session before the model has done anything, so `list_sessions` mixes generated titles with any the scheme has already set. Skip the ones that already conform, in either language, rather than re-deriving them — a session renamed twice is a session whose subject drifts for no reason, and a default English run must not sweep up sessions already named in Chinese.
 
-Renaming one session by hand is not the point, though. A client that keeps opening new sessions re-generates its own titles faster than anyone renames them, so the scheme has to be enforced where sessions are born. That is what `assets/session-naming-hook.py` is for, and installing it is part of applying this skill — not an optional extra.
+Renaming one session by hand is not the point, though. A client that keeps opening new sessions re-generates its own titles faster than anyone renames them, so the scheme has to be enforced where sessions are born. That is what `assets/session-naming-hook.py` is for.
 
-### Install the hook
+### The hook ships with the plugin
 
-It is a `UserPromptSubmit` hook. Copy it next to the user's other Claude Code scripts and register it:
+Installed as the `dev` plugin, the hook is already registered: the plugin's `hooks/hooks.json` runs it on every `UserPromptSubmit`, and disabling the plugin unregisters it. Nothing is copied and no settings file is edited. `claude plugin details dev@<marketplace>` lists it among the plugin's components.
 
-```bash
-mkdir -p "$HOME/.claude/scripts"
-cp assets/session-naming-hook.py "$HOME/.claude/scripts/session-naming-hook.py"
-chmod +x "$HOME/.claude/scripts/session-naming-hook.py"
-```
-
-`$HOME/.claude` is the default configuration directory. Where the user has moved it, substitute the real one — the hook reads the same override itself when deciding where to keep its markers, so the two stay together.
-
-Then add it to `settings.json` in that directory, under `hooks.UserPromptSubmit`, as a `command` entry running that path. Read the existing file and merge — a settings file rewritten from scratch loses whatever else the user had configured, which is the one failure here that costs more than a bad title.
-
-The hook names in English unless told otherwise. To keep a machine naming in Chinese, set `SESSION_TITLE_LANG` on the hook's own command rather than in a shell profile — it is the same shape as `SESSION_TITLE_RECHECK_EVERY`, and a setting that lives in the settings entry is one the next reader of that file can see:
+The hook names in English unless the plugin's `session_title_lang` option says otherwise:
 
 ```bash
-SESSION_TITLE_LANG=zh python3 "$HOME/.claude/scripts/session-naming-hook.py"
+claude plugin install dev@<marketplace> --config session_title_lang=zh
 ```
 
-A locale tag works as well (`zh-CN`, `zh_Hans`), and an unrecognised value falls back to English rather than failing — a rule in the wrong language still names the session, and a hook that refuses to emit one does not.
+`/plugin configure` sets the same option interactively. A locale tag works as well (`zh-CN`, `zh_Hans`), and an unrecognised value falls back to English rather than failing — a rule in the wrong language still names the session, and a hook that refuses to emit one does not.
 
-Verify it before trusting it, because a hook that throws is a hook that breaks every prompt:
+A machine that installed the hook by hand before the plugin carried it now runs two copies. Remove the `UserPromptSubmit` entry from `settings.json` and the script from `~/.claude/scripts/`; the plugin's copy takes over on the next prompt.
 
-```bash
-printf '{"session_id":"verify-install"}' | python3 "$HOME/.claude/scripts/session-naming-hook.py"
-```
-
-That must print one JSON object containing the scheme — `MMDD｜TYPE｜subject`, or `MMDD｜类型｜主题` when the entry sets `SESSION_TITLE_LANG=zh`. Remove the marker it just created (`.session-naming-markers/verify-install` under the config directory) so a real session is not counted as already reminded.
+Where the skill was copied on its own — `npx skills add`, skills.sh, or any client that installs a skill directory rather than a plugin — there is no plugin to register it. [references/hook-install.md](references/hook-install.md) installs it by hand.
 
 ### What the hook does, and why it is shaped that way
 
@@ -264,8 +250,9 @@ That must print one JSON object containing the scheme — `MMDD｜TYPE｜subject
 - **The re-check tells the model to retitle only on a real change of subject.** Without that bar a title changes every few messages, which is worse than one that is slightly stale, and the user watches it thrash.
 - **It names `session_id: "self"` in the call it asks for.** Left to infer the argument, a model calls `set_session_title` with a title alone, is told `session_id` is required, then supplies the session id it can see — the one in its transcript or scratchpad path. That is the CLI's id, not the client's, so the second call answers "not found" and the session keeps the title the client generated. Two failed calls and a silently unrenamed session is what one missing sentence cost.
 - **It resolves `MMDD` itself** rather than asking the model, so a session running past midnight keeps the date it opened on.
-- **It carries one language's vocabulary, not both.** Injecting the nine types twice would double the longest part of the rule to let the model pick a language it has no basis for picking — the machine's owner has already decided, so `SESSION_TITLE_LANG` decides once and the rule that reaches the model names one set.
+- **It carries one language's vocabulary, not both.** Injecting the nine types twice would double the longest part of the rule to let the model pick a language it has no basis for picking — the machine's owner has already decided, so the `session_title_lang` option decides once (`SESSION_TITLE_LANG` on a hand-installed command) and the rule that reaches the model names one set.
 - **Every failure path exits 0 with no output.** Unreadable event, unwritable marker, missing directory: the hook stays silent. A broken hook blocks the user's prompt, and no titling scheme is worth that.
+- **It stays silent under Codex.** Codex loads the same plugin hooks and runs the script on every prompt, but has no tool that renames the running thread, and a rule nothing can act on is context spent for nothing.
 - **It is Python with no imports beyond the standard library.** The obvious shell version needs `jq` to read the event, and a hook lands on whatever machine the skill was installed on.
 
 The client auto-titles a new session before the model has done anything, so the first title a user sees is the client's, replaced moments later by the scheme's. That is expected, not a failure.

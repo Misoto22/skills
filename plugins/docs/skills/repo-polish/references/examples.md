@@ -101,7 +101,10 @@ Six, not sixteen. `supertask` was dropped — the repository already matches on 
 >
 > <div align="center">
 >
-> <img alt="SuperTask" src="[hero image URL]" />
+> <picture>
+>   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+>   <img alt="SuperTask" src="assets/hero-light.svg" width="820">
+> </picture>
 >
 > <br />
 >
@@ -172,12 +175,12 @@ No hero image, no live site. The centred block still earns its place.
 >
 > ### Tech Stack
 >
-> | | |
-> |:--|:--|
-> | **Language** | Rust 1.84 (edition 2024) |
-> | **CLI** | clap 4 · indicatif |
-> | **Testing** | cargo test · insta (snapshot) |
-> | **Release** | GitHub Actions — binaries per tag, x86_64 and aarch64 |
+> <table>
+> <tr><td><b>Language</b></td><td>Rust 1.84 (edition 2024)</td></tr>
+> <tr><td><b>CLI</b></td><td>clap 4 · indicatif</td></tr>
+> <tr><td><b>Testing</b></td><td><code>cargo test</code> · insta (snapshot)</td></tr>
+> <tr><td><b>Release</b></td><td>GitHub Actions — binaries per tag, x86_64 and aarch64</td></tr>
+> </table>
 >
 > ---
 >

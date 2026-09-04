@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "plugins" / "chinese-metaphysics"
-VERSION = "0.12.0"
+VERSION = "0.13.0"
 SKILLS = {
     "bazi-chart": ("bazi_<name>.json", "bazi-reading"),
     "bazi-reading": ("bazi_reading_<name>.md", None),

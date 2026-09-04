@@ -7,6 +7,10 @@ Only release-ready, recursively discoverable skills belong in this directory.
 - [cleanup](cleanup/SKILL.md) — removes what shipping left behind — merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge first.
 - [retitle](retitle/SKILL.md) — renames agent conversations onto a dated `MMDD｜TYPE｜subject` scheme, English by default and Chinese with `--lang=zh`, proposing every rename as a two-column table before writing one.
 
-`shared/git.md` carries the rules all three need: base resolution, the force-push
-rule, why `git branch --merged` lies after a rebase merge, and that `git mv`
+`shared/git.md` carries the rules ship, sync and cleanup need: base resolution, the
+force-push rule, why `git branch --merged` lies after a rebase merge, and that `git mv`
 leaves ignored files behind. `scripts/sync-shared.py` vendors it into each skill.
+
+`hooks/hooks.json` registers two hooks the moment the plugin is enabled: the
+session-naming hook retitle ships, on every prompt, and `hooks/guard-git.py`, which
+refuses a bare force-push, `--no-verify`, and `gh pr merge --admin` before they run.

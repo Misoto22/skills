@@ -7,10 +7,11 @@ Only release-ready, recursively discoverable skills belong in this directory.
 - [natal-chart](natal-chart/SKILL.md) — computes one person's natal chart — placements, angles, houses, aspects, sect and the classical lots — and refuses an inexact birth time rather than filling it in.
 - [natal-reading](natal-reading/SKILL.md) — interprets a computed natal chart as a reader-first report with a separate audit artifact, weighting every claim by its orb.
 
-`shared/` contains the v2 synastry schema and integrity implementation plus the
-astrology license vendored into both skills. Calculation and interpretation use
-the same closed artifact contract without relying on files outside a skill
-directory at runtime.
+`shared/` carries the single-subject astronomy core in `astro/`, the natal envelope,
+the v2 synastry schema and integrity implementation, the ink-wash poster component,
+and the astrology licence, vendored into every skill in the plugin. Calculation and
+interpretation use the same closed artifact contract without relying on files
+outside a skill directory at runtime.
 
 Every skill here computes a static chart only. No transits, no progressions, no dated event,
 no forecast. A request for one gets the boundary stated, not an answer.

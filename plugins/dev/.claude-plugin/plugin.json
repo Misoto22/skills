@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Development workflow skills.",
   "author": {
     "name": "skills contributors"
@@ -11,5 +11,13 @@
     "./skills/retitle",
     "./skills/ship",
     "./skills/sync"
-  ]
+  ],
+  "userConfig": {
+    "session_title_lang": {
+      "type": "string",
+      "title": "Session title language",
+      "description": "Vocabulary the session-naming hook injects: en for MMDD|TYPE|subject, zh for MMDD|类型|主题. A locale tag such as zh-CN also resolves; anything else falls back to en.",
+      "default": "en"
+    }
+  }
 }

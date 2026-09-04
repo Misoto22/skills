@@ -111,13 +111,24 @@ def _recheck_every() -> int:
 
 
 def _scheme() -> dict[str, str]:
-    """The vocabulary to name sessions in, English unless SESSION_TITLE_LANG says otherwise.
+    """The vocabulary to name sessions in, English unless the machine says otherwise.
+
+    Two places can say so. `SESSION_TITLE_LANG` is the hand-installed form, set on the
+    hook's own command in settings.json. `CLAUDE_PLUGIN_OPTION_SESSION_TITLE_LANG` is how
+    Claude Code hands a plugin hook the `session_title_lang` option from `/plugin
+    configure`. The explicit variable wins, so a machine that set it before the plugin
+    carried the option keeps naming the way it did.
 
     Matched on prefix so `zh-CN` and `zh_Hans` land where the user meant. An
     unrecognised value falls back to the default rather than failing: the hook's job is
     to inject a rule, and a rule in the wrong language still beats no rule at all.
     """
-    raw = os.environ.get("SESSION_TITLE_LANG", "").strip().lower()
+    raw = (
+        os.environ.get("SESSION_TITLE_LANG")
+        or os.environ.get("CLAUDE_PLUGIN_OPTION_SESSION_TITLE_LANG")
+        or ""
+    )
+    raw = raw.strip().lower()
     for lang in SCHEMES:
         if raw.startswith(lang):
             return SCHEMES[lang]
@@ -149,7 +160,34 @@ def _session_mmdd(event: dict) -> str:
     return time.strftime("%m%d")
 
 
+def _host_can_retitle(event: dict) -> bool:
+    """Whether the client running this hook exposes the tool the rule asks for.
+
+    The rule names `set_session_title`, which Claude Code's client has and Codex does
+    not. Codex loads the same plugin `hooks/hooks.json` and runs this script on every
+    prompt, so without this check each Codex turn would carry an instruction nothing
+    there can act on. Claude Code marks its subprocesses with `CLAUDECODE`; Codex marks
+    a plugin hook with its own `PLUGIN_ROOT` extension and sends `turn_id` where Claude
+    Code sends `prompt_id`. Anything unrecognised counts as Claude Code, which is the
+    hand-installed case this hook first shipped for.
+    """
+    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_SESSION_ID"):
+        return True
+    if os.environ.get("PLUGIN_ROOT"):
+        return False
+    return not ("turn_id" in event and "prompt_id" not in event)
+
+
 def _marker_dir() -> Path:
+    """Where prompt counts live: the plugin's data directory when there is one.
+
+    `CLAUDE_PLUGIN_DATA` is the directory Claude Code keeps for a plugin across updates,
+    so a hook installed through the plugin counts there. A hand-installed hook has no
+    such directory and keeps the config-directory location it always had.
+    """
+    data = os.environ.get("CLAUDE_PLUGIN_DATA")
+    if data:
+        return Path(data) / "session-naming-markers"
     return Path(os.environ.get("CLAUDE_CONFIG_DIR") or (Path.home() / ".claude")) / ".session-naming-markers"
 
 
@@ -190,6 +228,8 @@ def main() -> int:
 
     session_id = event.get("session_id") or event.get("transcript_path") or ""
     if not isinstance(session_id, str) or not session_id:
+        return 0
+    if not _host_can_retitle(event):
         return 0
 
     directory = _marker_dir()
