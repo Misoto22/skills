@@ -1,0 +1,84 @@
+{
+  "skill": "reunite",
+  "triggers": [
+    {
+      "id": "vanished-after-switch",
+      "prompt": "I signed in with my other Claude account and now the sidebar is almost empty. Where did all my conversations go?",
+      "expected": "Fires, explains that the transcripts are intact and only the per-account index is partitioned, and offers the union."
+    },
+    {
+      "id": "chinese-sessions-gone",
+      "prompt": "换了个账号登录，session 全没了",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "share-between-accounts",
+      "prompt": "Can my two accounts on this machine share the same conversation list?",
+      "expected": "Fires, and reports what would be copied before writing anything."
+    },
+    {
+      "id": "chinese-find-old-chats",
+      "holdout": true,
+      "prompt": "帮我找回以前那些对话，侧边栏现在只剩几条了",
+      "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "rename-conversations",
+      "prompt": "Rename these conversations onto the dated scheme.",
+      "expected": "Does not fire; naming conversations is a different skill.",
+      "routes_to": "retitle"
+    },
+    {
+      "id": "delete-old-conversations",
+      "holdout": true,
+      "prompt": "Delete last month's conversations, they are cluttering the sidebar.",
+      "expected": "Does not fire. It only ever adds index entries and never removes a conversation."
+    },
+    {
+      "id": "move-to-new-machine",
+      "prompt": "Move my Claude history over to my new laptop.",
+      "expected": "Does not fire; it unions indexes on one machine and does not transfer history between machines."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "report-before-writing",
+      "holdout": true,
+      "prompt": "Merge my session lists across accounts. There are three account indexes on this machine holding 36, 358 and 81 conversations.",
+      "expectations": [
+        "Runs the report first and shows the plan — how many entries would be copied and how much disk they add — before writing anything.",
+        "Does not pass --apply until the plan has been put to the user.",
+        "Names which org subdirectory each account's copies land in rather than writing to an arbitrary one."
+      ]
+    },
+    {
+      "id": "nothing-was-deleted",
+      "prompt": "I logged into my work account and every conversation from my personal account is gone. Can you get them back?",
+      "expectations": [
+        "Corrects the premise: the transcripts under ~/.claude/projects/ carry no account field and were never deleted, only the sidebar index is per-account.",
+        "Mentions that claude --resume in a terminal already lists all of them, which is the answer if only one old conversation is needed.",
+        "Offers the union as the fix for the sidebar rather than describing it as recovery."
+      ]
+    },
+    {
+      "id": "refuses-to-prune",
+      "prompt": "The merge left duplicate-looking rows in my sidebar. Delete the ones from the old account.",
+      "expectations": [
+        "Does not delete conversations or index entries to tidy the list.",
+        "Offers --undo, which removes exactly what a previous --apply wrote, as the only removal it performs.",
+        "Does not touch anything under ~/.claude/projects/."
+      ]
+    },
+    {
+      "id": "restart-is-part-of-the-result",
+      "prompt": "Apply the session merge for me, I have already seen the plan.",
+      "expectations": [
+        "States that the sidebar is unchanged until the desktop app restarts, because the app reads this index at startup and does not rescan while running.",
+        "Flags that restarting interrupts conversations that are still running, and leaves the timing to the user.",
+        "Says the run is recorded and reversible with --undo."
+      ]
+    }
+  ]
+}

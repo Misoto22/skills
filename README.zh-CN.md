@@ -31,7 +31,7 @@
 
 ### Skills
 
-七个 plugin，二十二个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+七个 plugin，二十三个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -49,6 +49,7 @@
 - **[ship](plugins/dev/skills/ship/SKILL.md)**（`/dev:ship`）—— 把当前改动开成 PR，等 CI 绿了合掉。开跑前先预检，每一步标成 RUN 或 SKIP，所以工作区本来就干净时它什么都不做就退出；哪一步连失败两次就停下来问。
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都拿 GitHub 上的状态核对过，而不是听 git 的。
 - **[retitle](plugins/dev/skills/retitle/SKILL.md)**（`/dev:retitle`）—— 把 agent 的对话名称统一成带日期的 `MMDD｜TYPE｜subject`，默认英文，`--lang=zh` 换回中文词表。每一批改名都先出一张两列表格给你确认；主题实在推不出来的对话，保留原名不猜。
+- **[reunite](plugins/dev/skills/reunite/SKILL.md)**（`/dev:reunite`）—— 让每个登录过的账号都看得到全部对话。桌面端按账号各存一份侧边栏索引，所以换账号只是把历史藏起来，从来没删过 —— 对话正文里根本没有账号字段。这个技能把几份索引取并集，只增不删，写过什么都记在清单里，`--undo` 原样撤回。
 - **[steward](plugins/dev/skills/steward/SKILL.md)**（`/dev:steward`）—— 大内总管：把你最近开过会话的每个仓库巡一遍，逐个快进基准分支、清掉已合并的东西、把对话标题理齐，然后汇报哪些分支可以合并、哪些 worktree 还有会话在用。它 forked 运行、为无人值守而设计：子技能本来要停下来问的问题，全部写进报告，而不是卡住一次没人看着的运行。
 
 #### `brand` —— 视觉识别资产
