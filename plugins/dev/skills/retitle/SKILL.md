@@ -75,8 +75,9 @@ State the resolved zone in the report. A run that does not name its timezone can
 
 | Client | Store | Writable |
 |---|---|---|
-| Codex | `~/.codex/sqlite/codex*.db`, table `local_thread_catalog`, column `display_title` | Yes — section 6 |
-| Claude Code | the session title API the harness exposes (`set_session_title` where present) | One session at a time — the current one |
+| Codex | `~/.codex/session_index.jsonl`, written only through the app server's `thread/name/set` | Yes — section 6 |
+| Codex | `~/.codex/sqlite/codex*.db`, `local_thread_catalog.display_title` | **No** — derived from the above; reading only, section 4 |
+| Claude Code | the harness's session API (`list_sessions`, `get_session`, `set_session_title`) | Yes, any session by id — section 7 |
 | Anything else | whatever list the client exposes | Propose only — section 5 |
 
 With no `--client`, detect: the Codex database existing makes Codex a target; a session-title tool being available makes the current Claude Code session a target. Report which clients were found and which were skipped.
@@ -125,7 +126,6 @@ Below the table:
 proposed   <N> renames across <M> conversations
 kept       <N> — subject not recoverable (<count>), already conforming (<count>)
 excluded   <N> cloud-hosted, <N> missing from the catalogue
-deferred   <N> inside the 30-day window — a rename there does not persist
 timezone   <zone>, dates from creation time
 ```
 
@@ -133,79 +133,59 @@ timezone   <zone>, dates from creation time
 
 Only after the table is confirmed.
 
-**Back up first.** `VACUUM INTO` writes a consistent copy even while the app holds the database open, which a `cp` of a WAL-mode database does not:
+**Do not write `local_thread_catalog.display_title`.** That table is a derived read-model: Codex rebuilds `display_title` from the conversation's first user message, and a title written straight into it is reverted the next time the scanner reconciles that thread. Measured on one machine, 156 such writes held for exactly as long as the scanner ignored them — every thread it later observed went back to its old name, with `observation_sequence` bumped as the fingerprint.
 
-```bash
-sqlite3 "$db" "VACUUM INTO '$HOME/.codex/sqlite/backup-retitle-$(date +%Y%m%d-%H%M%S).db';"
+The authoritative name lives in `~/.codex/session_index.jsonl`, an append-only log of `{id, thread_name, updated_at}`, and the only supported way to write it is the app server's JSON-RPC method `thread/name/set`. That is the same call the client's own rename command makes, which is why it lasts: the catalogue is then rebuilt *from* the name rather than over it.
+
+### Speak to the app server
+
+`codex app-server` speaks line-delimited JSON-RPC on stdin and stdout. Handshake first, then one request per rename:
+
+```json
+{"id":0,"method":"initialize","params":{"clientInfo":{"name":"retitle","version":"1.0"}}}
+{"id":1,"method":"thread/name/set","params":{"threadId":"<thread_id>","name":"<MMDD｜类型｜主题>"}}
 ```
 
-Name the backup path in the report. A backup nobody can find is not a backup.
+A successful rename answers `{"id":1,"result":{}}`. Read the replies rather than counting the requests sent — the server answers out of order, and it rejects under load (see below).
 
-**Then write, one row at a time, parameterized by thread_id:**
+Confirm with `thread/read`, which returns the thread's `name` as the server now understands it. That is the readback this skill trusts; the database is downstream of it and lags.
 
-```bash
-sqlite3 "$db" "UPDATE local_thread_catalog SET display_title = ? WHERE host_id = 'local' AND thread_id = ?;" "$new_title" "$thread_id"
-```
+Do not resume a thread first. `thread/resume` loads the whole conversation to no purpose here, and `thread/name/set` works without it.
 
-Four columns must not appear in that statement, and each for its own reason:
+### The server rejects under load
 
-- **`source_updated_at`** — it decides whether the rename survives at all; see the window rule below. Writing it can only move a thread *into* the re-derived set, never out of it.
-- **`observation_sequence`** — the scanner's own counter. Writing it corrupts its notion of what it has already seen.
-- **`project_id`, `cwd`** — the grouping the titles are written to complement. The tweak that started this skill was explicit that project names stay untouched; so does the project a conversation sits in.
-- **`pending_observed_title`** — a flag the app owns and clears on its own. It looks like an override and it is not one: set to 1 on a renamed thread that the scanner then observed, it did not save the title, and the scanner reset the flag to 0 on its way past. Two other flagged threads did keep their titles in that same run — but their `observation_sequence` never moved, so the scanner had not looked at them and they were never a test of anything. Leave the column alone: it buys nothing measurable and leaves state behind that the app, not this skill, is entitled to.
+Sending every rename at once returns `-32001 Server overloaded; retry later` for the tail of the batch — on one run, 126 of 156 succeeded and 30 were refused. The refusal is clean: nothing partial is written, and the request can simply be repeated.
 
-### The 30-day window — read this before writing anything
-
-Codex re-derives `display_title` from the conversation's first user message for **every
-thread whose `source_updated_at` falls inside a rolling window of roughly 30 days**. A
-rename written to such a thread is reverted the next time the app reconciles, which can
-happen minutes later. The row's `observation_sequence` jumping to a fresh value is the
-fingerprint of that revert.
-
-Measured on one machine on 2026-09-04: of 156 renames, the 64 threads last updated more
-than 30.95 days earlier all held; the 92 last updated less than 30.28 days earlier were
-all reverted. No thread fell between those bounds, so the boundary is a clean 30 days,
-not a heuristic.
-
-There is no override. The local store has no user-authored-title column: this skill
-checked `local_thread_catalog_metadata` (a revision counter), `thread_timeline_ledger`
-(session start/end records only) and the separate turn-summaries database
-(`compact_summary`, empty) and none of them holds a title the scanner defers to.
-
-So **partition before writing**:
+So send in batches of about 20 with a short pause between them, and drive the retry off the store rather than off the error list:
 
 ```bash
-sqlite3 -json "$db" "
-  SELECT thread_id, display_title,
-         (strftime('%s','now') - source_updated_at) / 86400.0 AS age_days
-  FROM local_thread_catalog
-  WHERE host_id = 'local' AND missing_candidate = 0
-  ORDER BY age_days;"
+python3 -c "import json,os;
+[print(json.loads(l)['id'], json.loads(l)['thread_name']) for l in open(os.path.expanduser('~/.codex/session_index.jsonl'))]"
 ```
 
-Write only the threads with `age_days > 31`. Report every thread inside the window as
-`will not persist` and do not write it — a rename that reverts an hour later is worse
-than none, because the user has no way to tell which titles are real. Say plainly that
-those threads become renameable once they age out.
+Take the last record per `id`, compare against the plan, and resend only what does not match. A retry loop written that way is idempotent — it converges whether the failure was a rejection, a dropped reply, or a crash halfway through.
 
-If the user wants a recent conversation renamed anyway, the only durable lever is the
-first user message the title is derived from, which lives in the rollout file. This
-skill does not edit it: rewriting what someone said to change a label is out of scope,
-and section 7's proposal table is the honest deliverable instead.
+### Back up first
 
-If the client is running, the write lands but the sidebar may show the old title until it re-reads. Say so in the report rather than writing a second time; a second write does not make the first take effect sooner.
-
-**Verify by reading back, not by trusting the exit code:**
+The store is one file, so the backup is one copy:
 
 ```bash
-sqlite3 "$db" "SELECT COUNT(*) FROM local_thread_catalog WHERE host_id='local' AND display_title LIKE '____｜%｜%';"
+cp ~/.codex/session_index.jsonl ~/.codex/session_index.jsonl.bak-$(date +%Y%m%d-%H%M%S)
 ```
 
-A count below the number proposed means rows did not take. Report the difference and name the threads, rather than reporting the number that was attempted.
+The log is append-only and keyed by last write, so restoring means putting that file back — no surgery on individual records.
 
 ## 7. Apply — Claude Code
 
-Claude Code exposes the title of the **current** session only, so there is no batch here. Compose the name by the same rules and set it once through the tool the harness provides.
+Claude Code's session API addresses **any** session by id, so this half is a batch like Codex's:
+
+| Call | Use |
+|---|---|
+| `list_sessions` | every session, `include_archived: true` — the archived ones are exactly the finished work whose titles nobody will fix later |
+| `get_session` | one session's `createdAt`, which is the field section 2 requires. The listing carries only `lastActivityAt`, and naming a session for the day it was last touched puts it under the wrong date |
+| `set_session_title` | the rename, by `sessionId` or the literal `"self"` |
+
+The client auto-titles a new session before the model has done anything, so `list_sessions` mixes generated titles with any the scheme has already set. Skip the ones that already match `MMDD｜类型｜主题` rather than re-deriving them — a session renamed twice is a session whose 主题 drifts for no reason.
 
 Renaming one session by hand is not the point, though. A client that keeps opening new sessions re-generates its own titles faster than anyone renames them, so the scheme has to be enforced where sessions are born. That is what `assets/session-naming-hook.py` is for, and installing it is part of applying this skill — not an optional extra.
 
@@ -253,7 +233,6 @@ Retitled <client>.
   renamed    <N> of <M> proposed
   kept       <N> — <reasons>
   excluded   <N> — <cloud-hosted | missing>
-  deferred   <N> — inside the 30-day window, renameable once they age out
   backup     <path, or none for a client without one>
   attention  <threads that did not take, or none>
 ```
