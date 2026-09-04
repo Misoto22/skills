@@ -18,6 +18,7 @@
     },
     {
       "id": "poster-requested",
+      "holdout": true,
       "prompt": "解读这张紫微盘，顺便出一张可以截图分享的水墨风报告。",
       "expected": "Fires, writes the reader report and evidence artifact first, then renders the poster through the shared renderer."
     }
@@ -43,6 +44,7 @@
     },
     {
       "id": "annual-prediction",
+      "holdout": true,
       "prompt": "根据这张紫微盘，说说我 2027 年会发生什么。",
       "expected": "Does not fire for dated prediction; says event timing is outside this release."
     }
@@ -66,6 +68,7 @@
     },
     {
       "id": "hua-ji-fear",
+      "holdout": true,
       "prompt": "我命宫化忌，是不是一辈子都不顺？",
       "expectations": [
         "Reads 化忌 as where attention and friction concentrate, not as a verdict on a life.",

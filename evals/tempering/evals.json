@@ -23,6 +23,7 @@
     },
     {
       "id": "chinese-decode",
+      "holdout": true,
       "prompt": "他这句「我们再对齐一下节奏」到底什么意思，说人话",
       "expected": "Fires in reverse mode on Chinese input, interpreting rather than rewriting."
     }
@@ -41,6 +42,7 @@
     },
     {
       "id": "resume",
+      "holdout": true,
       "prompt": "Rewrite my resume summary to sound stronger.",
       "expected": "Does not fire. Not a message to a counterpart."
     },
@@ -51,5 +53,55 @@
       "routes_to": "email"
     }
   ],
-  "behaviors": []
+  "behaviors": [
+    {
+      "id": "three-registers-keep-the-date",
+      "prompt": "Make this sendable: 'Are you actually going to decide this or not? We have been waiting since the 4th and the release is Friday.'",
+      "expected": "Produces all three registers, and none of them drops the Friday release or the decision being asked for.",
+      "expectations": [
+        "All three labelled registers are produced, in the documented order",
+        "Every register keeps the Friday release consequence and still asks for a decision",
+        "Does not recommend one register over the others"
+      ]
+    },
+    {
+      "id": "already-appropriate",
+      "holdout": true,
+      "prompt": "Is this too harsh? 'Hi Sam — checking whether the pricing sheet is ready. Happy to help if anything is blocking it.'",
+      "expected": "Says the draft is already appropriate and stops, rather than rewriting a message that needs no revision.",
+      "expectations": [
+        "States plainly that the draft needs no revision",
+        "Does not produce the three-register output"
+      ]
+    },
+    {
+      "id": "compliance-is-not-softened",
+      "prompt": "帮我把这段改客气点：上周的安全事故我已经报过两次了，到现在没人处理，真出了人身伤害谁负责？",
+      "expected": "Recommends sending the plain factual account, because a safety and compliance matter loses protection when it is softened.",
+      "expectations": [
+        "Identifies the safety or compliance dimension",
+        "Recommends the direct version rather than a softened collegial register",
+        "Keeps the incident and the two prior reports intact"
+      ]
+    },
+    {
+      "id": "third-follow-up-goes-to-record",
+      "prompt": "This is my third email on the same unanswered question. Soften it for me.",
+      "expected": "Goes to the on-the-record register and names copying in an additional recipient as the instrument that now applies.",
+      "expectations": [
+        "Recommends the on-the-record register rather than escalating courtesy",
+        "Names adding a further recipient as the next instrument"
+      ]
+    },
+    {
+      "id": "reverse-mode-without-subtext",
+      "prompt": "说人话：「纪要已经发到你邮箱了，有问题随时找我。」",
+      "expected": "Answers briefly and says there is nothing underneath, rather than manufacturing subtext.",
+      "expectations": [
+        "Answers briefly instead of producing the three-register rewrite",
+        "Says the message is straightforwardly polite with nothing underneath",
+        "Does not invent a hidden meaning"
+      ]
+    }
+  ]
 }

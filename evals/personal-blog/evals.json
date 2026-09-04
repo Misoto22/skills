@@ -18,6 +18,7 @@
     },
     {
       "id": "review-cultural-work",
+      "holdout": true,
       "prompt": "Write a review of the film Past Lives for my blog. Discuss what the film earns emotionally, and mark spoilers if you need them.",
       "expected": "Fires in review mode, separates description from evaluation, and does not substitute plot summary for criticism."
     },
@@ -68,6 +69,7 @@
     },
     {
       "id": "fiction-scene",
+      "holdout": true,
       "prompt": "Write a 1,500-word scene about a detective returning to her childhood home.",
       "expected": "Does not fire. Fiction is outside this skill."
     },
@@ -98,6 +100,7 @@
     },
     {
       "id": "voice-samples-without-biography",
+      "holdout": true,
       "prompt": "Edit this blog draft for clarity: 'The new cache makes requests faster, but the extra layer adds complexity. That complexity may be acceptable, though the trade-off needs a clearer explanation.' Use these eight representative samples: (1) 'Not elegant. Still useful.' (2) '我以为会更简单。Nope.' (3) 'The first version worked. Then it didn't.' (4) 'Why add another layer?' (5) '先把问题说清楚。Then code.' (6) 'Fast? Sometimes. Predictable? Not yet.' (7) 'A small fix. For now.' (8) 'So what are we actually protecting?' Preserve the fragments, bilingual phrasing, short endings, and direct questions; do not infer anything else about me.",
       "expectations": [
         "Derives a task-local voice profile from observable writing features.",

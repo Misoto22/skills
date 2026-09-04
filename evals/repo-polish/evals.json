@@ -3,6 +3,7 @@
   "triggers": [
     {
       "id": "chinese-decorate",
+      "holdout": true,
       "prompt": "帮我把这个仓库装修一下",
       "expected": "Fires, plans all seven passes, and prints the plan before writing."
     },
@@ -35,6 +36,7 @@
     },
     {
       "id": "changelog",
+      "holdout": true,
       "prompt": "Update the CHANGELOG for this release.",
       "expected": "Does not fire."
     },
@@ -77,6 +79,7 @@
     },
     {
       "id": "no-licence-declared-anywhere",
+      "holdout": true,
       "prompt": "Set this repository up properly for open source. Nothing in it declares a licence.",
       "expectations": [
         "Asks which licence rather than defaulting to MIT.",

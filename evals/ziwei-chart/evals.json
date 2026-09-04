@@ -8,6 +8,7 @@
     },
     {
       "id": "purple-star-english",
+      "holdout": true,
       "prompt": "Cast my Purple Star Astrology chart. Name A, male, born 1988-11-02 at 21:05 in New York City.",
       "expected": "Fires for a single exact birth record with a stated gender and uses the historical New York offset."
     },
@@ -43,6 +44,7 @@
     },
     {
       "id": "annual-transformation",
+      "holdout": true,
       "prompt": "看看我今年的流年四化怎么走。",
       "expected": "Does not fire; annual transformations are outside this release."
     }
@@ -59,6 +61,7 @@
     },
     {
       "id": "gender-declined",
+      "holdout": true,
       "prompt": "我不想说性别，直接排盘吧。",
       "expectations": [
         "States that decade ranges cannot be calculated without gender and stops.",

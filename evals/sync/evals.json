@@ -18,6 +18,7 @@
     },
     {
       "id": "chinese-pull-latest",
+      "holdout": true,
       "prompt": "同步一下，拉最新的",
       "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
     }
@@ -31,6 +32,7 @@
     },
     {
       "id": "resolve-conflict",
+      "holdout": true,
       "prompt": "Resolve this merge conflict for me.",
       "expected": "Does not fire. It never resolves a conflict."
     },
@@ -50,6 +52,7 @@
   "behaviors": [
     {
       "id": "diverged-branch-not-rebased",
+      "holdout": true,
       "prompt": "Sync this repo. The current branch feat/parser is 3 commits ahead of its upstream and 7 behind, and main is 12 behind origin/main.",
       "expectations": [
         "Fast-forwards main and reports it.",

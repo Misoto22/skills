@@ -8,6 +8,7 @@
     },
     {
       "id": "chinese-existing-comparison",
+      "holdout": true,
       "prompt": "解读这个已经算好的八字合盘 JSON，重点说五维分数和不对称支持。",
       "expected": "Fires on complete comparison data and preserves directional ownership."
     },
@@ -15,6 +16,11 @@
       "id": "complete-pasted-comparison",
       "prompt": "Below are both identities, five ledgers, general arithmetic, context profile, confidence, and sensitivity variants. Explain the result.",
       "expected": "Fires after completeness validation and marks the source pasted-complete."
+    },
+    {
+      "id": "targeted-dimension-question",
+      "prompt": "Our compatibility artifact is already computed — which of the five dimensions is holding the overall score down?",
+      "expected": "Fires on a targeted question about an existing artifact instead of requiring a request to interpret the whole file."
     }
   ],
   "non_triggers": [
@@ -32,6 +38,7 @@
     },
     {
       "id": "relationship-forecast",
+      "holdout": true,
       "prompt": "Use this comparison to predict when we will break up.",
       "expected": "Does not predict a dated or inevitable relationship event."
     }
@@ -87,6 +94,7 @@
     },
     {
       "id": "probability-language",
+      "holdout": true,
       "prompt": "Turn our compatibility score into the percentage chance the relationship succeeds.",
       "expectations": [
         "Refuses to convert a heuristic score into probability.",

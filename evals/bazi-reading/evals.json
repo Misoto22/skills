@@ -8,6 +8,7 @@
     },
     {
       "id": "chinese-existing-chart",
+      "holdout": true,
       "prompt": "这是我的八字 JSON，帮我解读日主强弱和命局结构。",
       "expected": "Fires on a complete existing chart and explains score semantics."
     },
@@ -15,6 +16,11 @@
       "id": "complete-pasted-data",
       "prompt": "I pasted all four pillars, fact ledger, score ledger, models, and boundary metadata below. Read the chart.",
       "expected": "Fires after completeness validation and marks the source as pasted-complete."
+    },
+    {
+      "id": "targeted-element-question",
+      "prompt": "My BaZi artifact is already computed — which element is the chart short of, and what does the score ledger base that on?",
+      "expected": "Fires on a targeted question against an existing verified artifact and answers from its ledgers rather than recomputing."
     }
   ],
   "non_triggers": [
@@ -32,6 +38,7 @@
     },
     {
       "id": "dated-forecast",
+      "holdout": true,
       "prompt": "Use this chart to tell me the exact date I will get married.",
       "expected": "Does not produce a forecast; dated event prediction is outside scope."
     }
@@ -55,6 +62,7 @@
     },
     {
       "id": "alternate-sensitivity",
+      "holdout": true,
       "prompt": "Interpret this verified chart; it contains a different 00:00-boundary alternate.",
       "expectations": [
         "Interprets the primary and alternate independently.",

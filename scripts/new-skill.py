@@ -185,6 +185,9 @@ def main() -> int:
         print("     plugin directory searches on, and the only field nothing here reads.")
     print(f"  3. Write evals/{args.skill}/evals.json — at least three prompts it must fire")
     print("     on and two it must stay out of. run-evals.py --check fails until it exists.")
+    print('     Mark one case per section "holdout": true — the gate an edit may not target.')
+    print("     Pick the surface the others cover least, never a routes_to boundary.")
+    print("     See evals/ITERATION.md.")
     print("  4. python3 scripts/validate-repository.py")
     return 0
 

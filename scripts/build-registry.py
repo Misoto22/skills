@@ -131,6 +131,13 @@ def _examples(skill: str) -> dict:
 
     The `expected` prose is deliberately dropped. It is written for whoever reads
     a failing evaluation, not for a reader deciding whether to install something.
+
+    Held-out cases are dropped too, and for a different reason. They are the
+    gate in `evals/ITERATION.md`, and it only holds while no edit is aimed at
+    one. Publishing them here would put them in front of the next contributor as
+    the canonical examples of what fires a skill — which is an invitation to tune
+    against them, arriving through the one file nobody thinks of as an eval.
+    `run-evals.py` owns the `holdout` key; this is the only other reader of it.
     """
 
     path = EVALS_ROOT / skill / "evals.json"
@@ -140,10 +147,11 @@ def _examples(skill: str) -> dict:
             " carries evaluation cases; run-evals.py --check enforces it."
         )
     suite = _read_json(path)
-    return {
-        "triggers": [case["prompt"] for case in suite.get("triggers", [])],
-        "nonTriggers": [case["prompt"] for case in suite.get("non_triggers", [])],
-    }
+
+    def tuning(section: str) -> list[str]:
+        return [case["prompt"] for case in suite.get(section, []) if case.get("holdout") is not True]
+
+    return {"triggers": tuning("triggers"), "nonTriggers": tuning("non_triggers")}
 
 
 def _bookmarks(marketplace: dict, published: set[str]) -> list[dict]:

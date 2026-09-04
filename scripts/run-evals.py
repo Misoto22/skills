@@ -19,6 +19,13 @@ Cloudflare Bot Fight Mode, so contributors run the scored half locally before a
 push; a repository variable explicitly opts the remote job back in when a
 private runner is available.
 
+Every case belongs to one of two splits. The tuning cases drive an edit; the
+cases marked `holdout` decide whether it is kept, and no edit may be aimed at
+one. That separation is the only thing that makes a passing score mean anything:
+a skill re-measured on the cases that produced its wording scores that wording
+back, which is how a fix and an overfit come to look identical. `--split`
+selects one; `evals/ITERATION.md` is the loop it serves.
+
   python3 scripts/run-evals.py --check           Fail on a missing or malformed suite
   python3 scripts/run-evals.py --report          Print every case
   python3 scripts/run-evals.py --report email    Print one skill's cases, ready to paste
@@ -27,6 +34,10 @@ private runner is available.
   python3 scripts/run-evals.py --run-behaviors   Execute every behavior case
   python3 scripts/run-evals.py --run-behaviors synastry-reading
                                                 Execute one skill's behavior cases
+  python3 scripts/run-evals.py --run email --split tuning
+                                                Score only what an edit may target
+  python3 scripts/run-evals.py --run email --split holdout
+                                                The gate: keep the edit only if this rose
 
 A `non_trigger` is the half that matters. A skill that fires on everything looks
 excellent in its own trigger cases, and the cost lands on whichever skill it
@@ -51,8 +62,25 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 EVALS_ROOT = ROOT / "evals"
 
+# Counted over the tuning split alone. The floor protects the cases an edit is
+# allowed to be aimed at, so a case moved into the holdout split has to be
+# replaced rather than merely relabelled — otherwise adding a gate would quietly
+# shrink the surface the gate is supposed to generalise from.
 MINIMUM_TRIGGERS = 3
 MINIMUM_NON_TRIGGERS = 2
+
+# One case per populated section that no edit may target. One is not a sample;
+# it is a tripwire, which is what a suite this size can honestly carry. It earns
+# its keep because the regressions it catches are the silent kind: a description
+# narrowed in English that stops firing on its own Chinese trigger, a refusal
+# loosened to fix a neighbouring case.
+MINIMUM_HOLDOUT = 1
+SPLITS = ("tuning", "holdout", "all")
+
+# An iteration directory records what was tried. `rejected.md` is the half that
+# is never written down and therefore re-proposed a release later.
+ITERATION_DIR = re.compile(r"^iteration-\d+$")
+ITERATION_LOG = "rejected.md"
 
 # `check-descriptions.py` bounds what two descriptions may share, counted in
 # words. Chinese is written without spaces, so a whole trigger phrase reaches
@@ -104,6 +132,28 @@ def mechanical_validators(skill: str) -> dict[str, Path]:
     return entry
 
 
+def is_holdout(case: object) -> bool:
+    """Whether this case belongs to the gate rather than to tuning."""
+
+    return isinstance(case, dict) and case.get("holdout") is True
+
+
+def select(cases: object, split: str) -> list:
+    """Return the cases one split scores.
+
+    `all` stays the default everywhere. CI and the weekly run score the whole
+    suite, and a gate that silently halved what they cover would be a
+    regression dressed as a feature.
+    """
+
+    if not isinstance(cases, list):
+        return []
+    if split == "all":
+        return list(cases)
+    wanted = split == "holdout"
+    return [case for case in cases if is_holdout(case) is wanted]
+
+
 def published_skills() -> list[str]:
     return sorted(path.parent.name for path in PLUGINS_ROOT.glob("*/skills/*/SKILL.md"))
 
@@ -150,8 +200,20 @@ def check(skills: list[str]) -> list[str]:
             if not isinstance(cases, list):
                 errors.append(f"{where}: {section} must be a list")
                 continue
-            if len(cases) < minimum:
-                errors.append(f"{where}: {section} has {len(cases)} cases, needs at least {minimum}")
+            tuning = select(cases, "tuning")
+            held = select(cases, "holdout")
+            if len(tuning) < minimum:
+                errors.append(
+                    f"{where}: {section} has {len(tuning)} tuning cases, needs at least"
+                    f" {minimum}. A case marked holdout is not counted here — marking one"
+                    " moves it out of reach of an edit, it does not satisfy the floor."
+                )
+            if cases and len(held) < MINIMUM_HOLDOUT:
+                errors.append(
+                    f"{where}: {section} holds out {len(held)} of {len(cases)} cases, needs"
+                    f" at least {MINIMUM_HOLDOUT}. Without one, every edit is scored on the"
+                    " cases that drove it and nothing here can tell a fix from an overfit."
+                )
             for index, case in enumerate(cases):
                 errors.extend(_check_case(where, section, index, case, seen, known, skill))
 
@@ -162,6 +224,32 @@ def check(skills: list[str]) -> list[str]:
                 " Retired cases belong with the retired skill."
             )
     errors.extend(_check_shared_han(suites))
+    errors.extend(_check_iteration_logs(skills))
+    return errors
+
+
+def _check_iteration_logs(skills: list[str]) -> list[str]:
+    """Fail on an iteration directory that records no rejected edits, not even none.
+
+    An edit that was tried and made a case worse is the one part of an iteration
+    nobody writes down, so it gets re-proposed — and the second time there is no
+    record saying it was already measured and dropped. The file is cheap and the
+    check exists because an empty habit rots invisibly: iteration-2 lands, the
+    log is skipped, and by iteration-4 the reason a rule is worded oddly is gone.
+    """
+
+    errors: list[str] = []
+    for skill in skills:
+        for path in sorted((EVALS_ROOT / skill).glob("iteration-*")):
+            if not path.is_dir() or not ITERATION_DIR.match(path.name):
+                continue
+            log = path / ITERATION_LOG
+            if not log.is_file():
+                errors.append(
+                    f"{log.relative_to(ROOT)}: missing. Every iteration records the edits it"
+                    " tried and dropped, so the next one does not re-propose them; write"
+                    " 'none' explicitly when nothing was rejected. See evals/ITERATION.md."
+                )
     return errors
 
 
@@ -281,8 +369,24 @@ def _check_case(
         if not isinstance(expected, str) or not expected.strip():
             errors.append(f"{label} needs an 'expected' saying what should happen")
 
+    holdout = case.get("holdout")
+    if holdout is not None and holdout is not True:
+        errors.append(
+            f"{label}: holdout is {holdout!r}; write it as true or leave it out. A case"
+            " marked false reads as deliberately available to tuning, which is what its"
+            " absence already says, and two ways to say one thing is how half a suite"
+            " ends up in the wrong split."
+        )
+
     routes_to = case.get("routes_to")
     if routes_to is not None:
+        if holdout is True:
+            errors.append(
+                f"{label}: a routes_to boundary cannot be the held-out case. A boundary"
+                " between two descriptions is the stated target of a description edit, so"
+                " holding one out aims the gate at exactly what tuning aims at. Hold out"
+                " the surface the tuning cases cover least instead — see evals/ITERATION.md."
+            )
         if section != "non_triggers":
             errors.append(f"{label}: routes_to belongs on a non_trigger")
         elif routes_to == skill:
@@ -478,8 +582,8 @@ def _litellm_client() -> object:
     return openai.OpenAI(api_key=api_key, base_url=base_url.rstrip("/"))
 
 
-def run(skills: list[str]) -> list[str]:
-    """Score every case, and return one line per case that routed wrongly."""
+def run(skills: list[str], split: str = "all") -> list[str]:
+    """Score the selected split, and return one line per case that routed wrongly."""
 
     catalogue, routing_labels = router_catalogue(descriptions())
     client = _litellm_client()
@@ -492,7 +596,7 @@ def run(skills: list[str]) -> list[str]:
         if suite is None:
             continue
         for section in ("triggers", "non_triggers"):
-            for case in suite.get(section) or []:
+            for case in select(suite.get(section), split):
                 answer, reason = route(client, catalogue, case["prompt"])
                 answer = routing_labels.get(answer, answer)
                 scored += 1
@@ -503,7 +607,7 @@ def run(skills: list[str]) -> list[str]:
                 failures.append(f"{skill}/{case['id']}: {verdict}; routed to {answer!r} — {reason}")
                 print(f"  FAIL  {skill}/{case['id']} → {answer}")
 
-    print(f"\n{scored} cases scored, {len(failures)} failed")
+    print(f"\n{scored} {split} cases scored, {len(failures)} failed")
     return failures
 
 
@@ -885,8 +989,8 @@ def run_behavior_case(client: object, skill: str, case: dict) -> list[str]:
     return _mechanical_failures(skill, case, markdown) + _semantic_failures(client, case, markdown)
 
 
-def run_behaviors(skills: list[str]) -> list[str]:
-    """Execute every selected behavior case without changing routing scoring."""
+def run_behaviors(skills: list[str], split: str = "all") -> list[str]:
+    """Execute the selected behavior cases without changing routing scoring."""
 
     client = _litellm_client()
     failures: list[str] = []
@@ -895,7 +999,7 @@ def run_behaviors(skills: list[str]) -> list[str]:
         suite = load(skill, [])
         if suite is None:
             continue
-        for case in suite.get("behaviors") or []:
+        for case in select(suite.get("behaviors"), split):
             # Contained per case. The loop spans every published skill now, and
             # an exception raised part-way through — a validator that will not
             # run, a fixture that will not load — used to abort the run and
@@ -911,23 +1015,24 @@ def run_behaviors(skills: list[str]) -> list[str]:
             print(f"  FAIL  {skill}/{case['id']}")
             failures.extend(f"{skill}/{case['id']}: {violation}" for violation in violations)
 
-    print(f"\n{scored} behavior cases scored, {len(failures)} violations")
+    print(f"\n{scored} {split} behavior cases scored, {len(failures)} violations")
     return failures
 
 
-def report(skills: list[str]) -> None:
+def report(skills: list[str], split: str = "all") -> None:
     for skill in skills:
         suite = load(skill, [])
         if suite is None:
             continue
         print(f"\n{'=' * 72}\n{skill}\n{'=' * 72}")
         for section in ("triggers", "non_triggers", "behaviors"):
-            cases = suite.get(section) or []
+            cases = select(suite.get(section), split)
             if not cases:
                 continue
-            print(f"\n-- {section} ({len(cases)}) --")
+            print(f"\n-- {section} ({len(cases)}, {split}) --")
             for case in cases:
-                print(f"\n[{case.get('id')}]")
+                held = "  HOLDOUT — no edit may be aimed at this" if is_holdout(case) else ""
+                print(f"\n[{case.get('id')}]{held}")
                 print(f"  prompt:   {case.get('prompt')}")
                 if section == "behaviors":
                     if case.get("fixture"):
@@ -968,6 +1073,12 @@ def main() -> int:
         metavar="SKILL",
         help="execute behavior cases against a model; needs LiteLLM evaluation credentials",
     )
+    parser.add_argument(
+        "--split",
+        choices=SPLITS,
+        default="all",
+        help="which cases to use: tuning drives an edit, holdout decides whether to keep it",
+    )
     args = parser.parse_args()
     if not args.check and not args.report and not args.run and not args.run_behaviors:
         parser.error("pass --check, --report, --run, or --run-behaviors")
@@ -983,7 +1094,7 @@ def main() -> int:
             return 1
 
     if args.report:
-        report(skills if args.report == "*" else [args.report])
+        report(skills if args.report == "*" else [args.report], args.split)
         if not args.check and not args.run and not args.run_behaviors:
             return 0
 
@@ -998,9 +1109,11 @@ def main() -> int:
 
     failures: list[str] = []
     if args.run:
-        failures.extend(run(skills if args.run == "*" else [args.run]))
+        failures.extend(run(skills if args.run == "*" else [args.run], args.split))
     if args.run_behaviors:
-        failures.extend(run_behaviors(skills if args.run_behaviors == "*" else [args.run_behaviors]))
+        failures.extend(
+            run_behaviors(skills if args.run_behaviors == "*" else [args.run_behaviors], args.split)
+        )
     if args.run or args.run_behaviors:
         for failure in failures:
             print(f"error: {failure}", file=sys.stderr)
@@ -1012,8 +1125,11 @@ def main() -> int:
             print(f"error: {error}", file=sys.stderr)
         return 1
     counts = {skill: load(skill, []) or {} for skill in skills}
-    total = sum(len(suite.get(section) or []) for suite in counts.values() for section in SECTIONS)
-    print(f"{total} cases across {len(skills)} skills")
+    total = sum(len(select(suite.get(section), "all")) for suite in counts.values() for section in SECTIONS)
+    held = sum(
+        len(select(suite.get(section), "holdout")) for suite in counts.values() for section in SECTIONS
+    )
+    print(f"{total} cases across {len(skills)} skills, {held} held out for the gate")
     return 0
 
 

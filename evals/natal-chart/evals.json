@@ -8,6 +8,7 @@
     },
     {
       "id": "english-birth-chart",
+      "holdout": true,
       "prompt": "Cast my birth chart. Born 1988-04-11 at 09:15 in Shanghai.",
       "expected": "Fires for a single exact birth record and computes angles, houses and aspects."
     },
@@ -43,6 +44,7 @@
     },
     {
       "id": "transit-forecast",
+      "holdout": true,
       "prompt": "看看今年木星行运对我有什么影响。",
       "expected": "Does not fire; transits are outside this release."
     }
@@ -58,6 +60,7 @@
     },
     {
       "id": "ephemeris-missing",
+      "holdout": true,
       "prompt": "算的时候报错说 Swiss Ephemeris data was unavailable，怎么办？",
       "expectations": [
         "Explains the two deliberate choices: supply --ephemeris-path, or set allow-moshier explicitly.",
