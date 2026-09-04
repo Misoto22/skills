@@ -9,6 +9,7 @@
   "skills": [
     "./skills/cleanup",
     "./skills/retitle",
+    "./skills/reunite",
     "./skills/ship",
     "./skills/steward",
     "./skills/sync"

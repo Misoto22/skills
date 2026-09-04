@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reunite"
+  short_description: "Make every account see every conversation in the sidebar"
+  default_prompt: "Use $reunite to union the desktop app's per-account conversation indexes; report what would be copied before writing anything, and say that the sidebar only changes after the app restarts."
+policy:
+  allow_implicit_invocation: true

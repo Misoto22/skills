@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twenty-two skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twenty-three skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -49,6 +49,7 @@ Twenty-two skills in seven plugins. The plugin name is the command prefix, and e
 - **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
 - **[retitle](plugins/dev/skills/retitle/SKILL.md)** (`/dev:retitle`) — renames agent conversations onto a dated `MMDD｜TYPE｜subject` scheme, English by default and Chinese with `--lang=zh`. Every rename is proposed as a two-column table first; a conversation whose subject cannot be recovered keeps the name it had.
+- **[reunite](plugins/dev/skills/reunite/SKILL.md)** (`/dev:reunite`) — makes every signed-in account see every conversation. The desktop app keeps one sidebar index per account, so signing in as a second account hides history it never deleted — the transcripts carry no account field at all. This unions the indexes, only ever adding entries, records what it wrote, and `--undo` takes exactly those back.
 - **[steward](plugins/dev/skills/steward/SKILL.md)** (`/dev:steward`) — sweeps every repository your sessions have touched: fast-forwards each base, removes what merged, keeps titles in scheme, and reports what is ready to merge and which worktrees a live session still occupies. It runs forked and unattended, so a question a pass would have asked lands in the report instead of blocking a run nobody is watching.
 
 #### `brand` — visual identity assets

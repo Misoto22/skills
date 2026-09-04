@@ -7,6 +7,7 @@ Only release-ready, recursively discoverable skills belong in this directory.
 - [cleanup](cleanup/SKILL.md) — removes what shipping left behind — merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge first.
 - [retitle](retitle/SKILL.md) — renames agent conversations onto a dated `MMDD｜TYPE｜subject` scheme, English by default and Chinese with `--lang=zh`, proposing every rename as a two-column table before writing one.
 - [steward](steward/SKILL.md) — sweeps every repository a session has touched, runs sync, cleanup and retitle in each, and reports what is ready to merge and which worktrees a live session still occupies. Forked and unattended: the questions land in the report.
+- [reunite](reunite/SKILL.md) — unions the desktop app's per-account conversation indexes so every signed-in account sees the whole sidebar history. It only ever adds entries, records each one, and `--undo` removes exactly those.
 
 `shared/git.md` carries the rules ship, sync and cleanup need: base resolution, the
 force-push rule, why `git branch --merged` lies after a rebase merge, and that `git mv`
