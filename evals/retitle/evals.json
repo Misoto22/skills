@@ -1,0 +1,95 @@
+{
+  "skill": "retitle",
+  "triggers": [
+    {
+      "id": "messy-titles",
+      "prompt": "My conversation titles are a mess. Make them consistent.",
+      "expected": "Fires, and proposes the two-column table before renaming anything."
+    },
+    {
+      "id": "chinese-normalize",
+      "prompt": "帮我规范一下对话名称，太乱了",
+      "expected": "Fires on the Chinese phrasing the description spells out."
+    },
+    {
+      "id": "chinese-batch-rename",
+      "prompt": "把 Codex 里所有会话标题统一改成带日期的格式",
+      "expected": "Fires on a second Chinese phrasing, and treats the date as creation time rather than last-updated."
+    },
+    {
+      "id": "rename-sessions",
+      "prompt": "Rename my Codex sessions so I can actually find things in the sidebar.",
+      "expected": "Fires, detects the Codex database, and excludes cloud-hosted rows."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "rename-branch",
+      "prompt": "Rename this git branch to something clearer.",
+      "expected": "Does not fire. It renames conversations, never branches."
+    },
+    {
+      "id": "delete-old-chats",
+      "prompt": "Delete all my conversations from before June.",
+      "expected": "Does not fire. It never decides what to delete or archive."
+    },
+    {
+      "id": "chinese-rename-project",
+      "prompt": "帮我把项目名称改一下",
+      "expected": "Does not fire. Project names are explicitly out of scope, and Chinese phrasing must not blur the boundary."
+    },
+    {
+      "id": "clean-merged-branches",
+      "prompt": "清理一下合并过的分支",
+      "expected": "Does not fire; removing merged branches is a different job.",
+      "routes_to": "cleanup"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "preview-before-write",
+      "prompt": "Retitle my Codex conversations. There are 317 of them. Apply it.",
+      "expectations": [
+        "Prints one table with the header `| 原名称 | 新名称 |` before writing any title, despite being told to apply.",
+        "Does not include unchanged conversations as table rows; reports them as a count with reasons.",
+        "States the resolved timezone and that dates come from creation time."
+      ]
+    },
+    {
+      "id": "cloud-rows-excluded",
+      "prompt": "Retitle my Codex conversations. 195 are under host_id 'local' and 122 under a chatgpt: host.",
+      "expectations": [
+        "Renames only the 195 local rows.",
+        "Reports the 122 cloud-hosted rows as excluded, because the cloud is their source and a local write is reverted at the next sync.",
+        "Does not offer to rename them anyway."
+      ]
+    },
+    {
+      "id": "unrecoverable-subject-kept",
+      "prompt": "Retitle this Codex conversation. Its current title is 新功能讨论 and the rollout file is unavailable.",
+      "expectations": [
+        "Keeps the original title verbatim rather than inventing a subject.",
+        "Reports it as kept, with the reason.",
+        "Does not fall back to a ninth 类型 or a generic subject."
+      ]
+    },
+    {
+      "id": "scanner-columns-untouched",
+      "prompt": "Apply the confirmed Codex renames.",
+      "expectations": [
+        "Takes a backup with VACUUM INTO and names the backup path in the report.",
+        "Updates display_title only, leaving source_updated_at, observation_sequence, project_id, cwd and pending_observed_title unchanged.",
+        "Verifies by reading the rows back rather than by trusting the exit code."
+      ]
+    },
+    {
+      "id": "recent-threads-deferred",
+      "prompt": "Retitle my Codex conversations. 64 were last updated more than 31 days ago and 92 within the last week.",
+      "expectations": [
+        "Writes only the 64 threads outside the 30-day window.",
+        "Reports the 92 recent threads as deferred because Codex re-derives display_title inside that window and the rename would be reverted.",
+        "Does not offer to edit the rollout file's first user message to force the title."
+      ]
+    }
+  ]
+}
