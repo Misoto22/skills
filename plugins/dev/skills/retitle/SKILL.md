@@ -1,6 +1,6 @@
 ---
 name: retitle
-description: Normalize agent conversation titles onto a dated `MMDD｜类型｜主题` scheme across Codex, Claude Code, and any client that exposes its session list — the date comes from creation time, the middle field from a closed set of eight types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
+description: Normalize agent conversation titles onto a dated `MMDD｜类型｜主题` scheme across Codex, Claude Code, and any client that exposes its session list — the date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
   version: "0.10.0"
@@ -23,7 +23,7 @@ The separator is the fullwidth vertical line `｜` (U+FF5C), not the ASCII pipe 
 
 No spaces around the separator. `0903｜优化｜批次文字显示`, never `0903 ｜ 优化 ｜ 批次文字显示`.
 
-`类型` is a closed set of eight. A conversation that fits none of them is not given a ninth — it keeps its original name:
+`类型` is a closed set of nine. A conversation that fits none of them is not given a tenth — it keeps its original name:
 
 | 类型 | Covers |
 |---|---|
@@ -34,7 +34,12 @@ No spaces around the separator. `0903｜优化｜批次文字显示`, never `090
 | 发布 | Commit, PR, merge, tag, deploy, publish |
 | 探索 | Tried something to find out what happens; no committed outcome |
 | 文档 | README, comments, guides, changelogs |
-| 研究 | Read sources and reported findings; nothing built |
+| 审计 | Checked something that already exists against a standard and reported the gaps; nothing built |
+| 研究 | Read sources and reported findings; nothing built and nothing of the user's inspected |
+
+审计 and 研究 both end in a report and build nothing, which is why one collapses into the other unless the line is drawn on the **object**. 审计 inspects something the user already owns — a repository, a deployment, a page, a configuration — against a standard. 研究 reads the outside world to answer a question. "Audit the site's SEO" is 审计; "which SEO tools are worth using" is 研究.
+
+The distinction earns its place empirically. Measured over 181 conversations before 审计 existed, 研究 held 50% of them — half a sidebar reading the same word, which is a field carrying no information. Splitting the audits out moved 25 of those 90 and dropped the largest type to 36%.
 
 `主题` is what the conversation was actually about, in roughly four to twelve characters. Three rules govern it:
 
@@ -50,6 +55,7 @@ Worked pairs:
 | 整合快捷键提示页面 | `0902｜功能｜整合快捷键提示页` |
 | 提交代码到 GitHub | `0813｜发布｜提交代码到GitHub` |
 | Clarify Sales Order pricing rules | `0901｜研究｜销售订单定价规则` |
+| 对网站的 SEO 进行审查 | `0904｜审计｜网站SEO审查` |
 | 新功能讨论 | *kept — the subject cannot be recovered from the title alone* |
 
 The fourth pair is the one worth reading twice. The title alone said "clarify pricing rules", which sounds like 文档; the conversation was reading the existing rules and reporting what they were, which is 研究. Classify from the conversation, not from its current name — the current name is the thing being replaced precisely because it is unreliable.

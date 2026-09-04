@@ -75,8 +75,10 @@ class SessionNamingHookTests(unittest.TestCase):
         # survives, and an ASCII pipe here would pass against a broken hook.
         self.assertIn("MMDD\uff5c类型\uff5c主题", context)
         self.assertIn("U+FF5C", context)
-        for kind in ("功能", "设计", "修复", "优化", "发布", "探索", "文档", "研究"):
+        for kind in ("功能", "设计", "修复", "优化", "发布", "探索", "文档", "审计", "研究"):
             self.assertIn(kind, context)
+        # 审计 collapses into 研究 unless the reminder carries what separates them.
+        self.assertIn("The line is the object", context)
 
     def test_an_empty_marker_from_the_shell_version_upgrades_in_place(self) -> None:
         self.run_hook("upgrade")

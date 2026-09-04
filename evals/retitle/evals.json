@@ -90,6 +90,23 @@
         "Reports the 92 recent threads as deferred because Codex re-derives display_title inside that window and the rename would be reverted.",
         "Does not offer to edit the rollout file's first user message to force the title."
       ]
+    },
+    {
+      "id": "audit-is-not-research",
+      "prompt": "Retitle this session. The work was auditing my own website's SEO and reporting what was weak; nothing was changed.",
+      "expectations": [
+        "Classifies it 审计, not 研究 — the object inspected is the user's own site, not the outside world.",
+        "Does not classify it 优化, since nothing was changed.",
+        "Produces a title shaped MMDD｜审计｜<subject> with the fullwidth separator."
+      ]
+    },
+    {
+      "id": "research-stays-research",
+      "prompt": "Retitle this session. The work was comparing which SEO tools are worth paying for; nothing of mine was inspected.",
+      "expectations": [
+        "Classifies it 研究, not 审计 — it reads the outside world rather than inspecting something the user owns.",
+        "Does not invent a tenth type for it."
+      ]
     }
   ]
 }

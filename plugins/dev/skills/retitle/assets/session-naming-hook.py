@@ -31,7 +31,7 @@ from pathlib import Path
 DEFAULT_RECHECK_EVERY = 5
 MARKER_TTL_SECONDS = 7 * 24 * 60 * 60
 
-TYPES = "功能, 设计, 修复, 优化, 发布, 探索, 文档, 研究"
+TYPES = "功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究"
 
 FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once to set this session's title. Do this silently, without announcing it to the user.
 
@@ -47,12 +47,15 @@ The separator is the fullwidth vertical line ｜ (U+FF5C), not the ASCII pipe |.
   - 发布: commit, PR, merge, tag, deploy, publish
   - 探索: tried something to find out what happens; no committed outcome
   - 文档: README, comments, guides, changelogs
-  - 研究: read sources and reported findings; nothing built
+  - 审计: checked something that already exists against a standard and reported the gaps; nothing built
+  - 研究: read the outside world to answer a question; nothing built and nothing of the user's inspected
+
+审计 and 研究 both end in a report. The line is the object: 审计 inspects something the user already owns (a repository, a deployment, a page, a configuration), 研究 reads the outside world. "Audit the site's SEO" is 审计; "which SEO tools are worth using" is 研究.
 - 主题: what the session is actually about, roughly 4-12 characters. Name the object, not the activity (批次文字显示, not 处理了一些显示问题). Do not repeat the project or repository name — the sidebar already groups by project.
 
 Examples: 0903｜优化｜批次文字显示 · 0902｜功能｜整合快捷键提示页 · 0813｜发布｜提交代码到GitHub
 
-If the task fits none of the eight types, pick the closest one rather than inventing a ninth."""
+If the task fits none of the nine types, pick the closest one rather than inventing a tenth."""
 
 RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again — keep MMDD as {mmdd} (the date the session started), and change 类型 and 主题 to match where the work actually went. 类型 is one of {types}.
 
