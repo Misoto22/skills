@@ -81,7 +81,7 @@ For the current branch when it is not the base:
 | Ahead only | `ahead N — unpushed work` |
 | Behind only | `behind N — rebase onto <base> when ready` |
 | Diverged | `diverged: N ahead, M behind — rebase or merge, your call` |
-| Upstream gone | `upstream gone — the pull request was probably merged and the branch deleted; /dev:cleanup removes it` |
+| Upstream gone | `upstream gone — the pull request was probably merged and the branch deleted; the cleanup skill removes it` |
 
 Never rebase automatically. A rebase rewrites commits, and one run without being asked is indistinguishable from losing work.
 
@@ -99,7 +99,7 @@ git for-each-ref --format='%(refname:short) %(upstream:short) %(upstream:track)'
 |---|---|---|
 | `[behind N]` | strictly behind | fast-forward |
 | `[ahead N]`, `[ahead N, behind M]` | carries local commits | skip — step 4's rules apply |
-| `[gone]` | upstream pruned | skip, report; `/dev:cleanup` decides its fate |
+| `[gone]` | upstream pruned | skip, report; the cleanup skill decides its fate |
 | empty, with an upstream | up to date | nothing to do |
 | empty, with no upstream | never pushed | skip, report |
 

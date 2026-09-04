@@ -71,7 +71,7 @@ gh pr list --head <branch> --state merged --json number,mergedAt
 
 Per `git worktree list`, skipping the primary checkout:
 
-1. **The worktree you are running in is never removed.** Report it as kept, with that as the reason. Changing directory does not make it safe: a session's tooling, its scratch state, and its open file handles all live there, and the deletion cannot be undone from inside it. Whoever recycles that worktree does it from outside, after the session ends.
+1. **The home worktree is never removed** — `shared/git.md` § The home worktree. Report it as kept, with that as the reason.
 2. `git -C <path> status --porcelain` — anything at all, including untracked files, means keep. Say what is dirty.
 3. Its branch must be deletable by the rule in step 1.
 4. Remove from the primary checkout, never from inside the worktree:
@@ -88,7 +88,7 @@ A worktree outside this repository's own directory — another tool's session di
 
 Runs by default. Skip only on `--no-remote`, or when a scope flag other than `--remote` was passed.
 
-The forge is asked twice, because merged and open are not opposites — a branch can carry a merged pull request and a newer open one, and deleting it would close that open one. Per `shared/git.md`, GitHub closes any pull request whose head branch is deleted.
+The forge is asked twice, because merged and open are not opposites — `shared/git.md` § Deleting a remote branch closes its open pull request.
 
 ```bash
 gh pr list --head <branch> --state merged --json number
@@ -112,7 +112,7 @@ Local and remote are decided independently. A branch can be deletable on the rem
 
 ## 4. Residue
 
-Directories holding nothing but ignored files, left behind because `git mv` moves only what git tracks. `git status` stays clean, which is why these survive for months.
+Directories holding nothing but ignored files, left behind by a move — `shared/git.md` § Ignored files survive a move, and git will not tell you.
 
 ```bash
 find . -type d -name __pycache__ -not -path './.git/*'

@@ -13,15 +13,6 @@ Read [shared/git.md](shared/git.md) first.
 
 Step 0 inspects the repo and prints an **execution plan** that marks each downstream step as `RUN` or `SKIP`. Follow that plan exactly — do not run a `SKIP` step, do not invent new ones. If any step exhausts its retry budget, stop and ask the user.
 
-## Common paths
-
-- **On base branch with changes** → branch off → (test) → commit → PR → CI → merge → (worktree cleanup).
-- **On base branch, clean tree, commits the remote does not have** → branch off carrying them, reset the base ref → PR → CI → merge.
-- **On feature branch with open PR** → (test) → (commit) → push → CI → merge.
-- **Clean tree, on base, no open PR, nothing unpushed** → early-exit at step 0; nothing to ship.
-
----
-
 ## Step classification
 
 | Step                | Runs when                                                            |
@@ -34,10 +25,6 @@ Step 0 inspects the repo and prints an **execution plan** that marks each downst
 | 5. CI               | The PR reports at least one check, or the repository declares a workflow that would. |
 | 6. Merge            | Always (unless `--draft` — stop after step 4).                       |
 | 7. Worktree cleanup | A `git worktree` holds the branch just shipped. It is removed only when this run is not standing in it. |
-
-> **Early exit overrides everything.** If preflight finds a clean tree AND no open PR for the current branch AND we're on the base branch AND the base carries no commit its remote does not have → there is nothing to ship; report and stop. Steps 1–7 do not run.
-
-A clean tree is not an empty run. Commits sitting on the local base and missing from `origin/<base>` — someone committed to the base by hand — are exactly what this skill exists to land, and reporting "nothing to ship" over them leaves work that only `git log` will ever mention. Step 1 branches off and carries them.
 
 ---
 
@@ -74,7 +61,7 @@ With the base resolved, ask whether it carries work of its own:
 git rev-list --count origin/<base>..<base>
 ```
 
-Non-zero means someone committed to the base by hand and never pushed. Those commits are shippable work, not an empty run — this is what the early-exit clause guards against and what step 1 branches off.
+**Early exit.** On the base branch, with a clean tree, no open pull request, and that count at zero, there is nothing to ship: report, stop, and run no step 1–7. Non-zero is the case that looks identical and is not — someone committed to the base by hand, and those commits are exactly what this skill exists to land. Step 1 branches off and carries them.
 
 ### 0d. Open PR for the current branch
 
@@ -84,51 +71,16 @@ Only meaningful when the current branch is not the base branch:
 gh pr list --head "$(git branch --show-current)" --state open --json number,url,headRefName
 ```
 
-### 0e. Test command detection — first match wins
+### 0e. Test command detection
 
-| Marker                               | Command                                                                 |
-|--------------------------------------|-------------------------------------------------------------------------|
-| `scripts/test`, `justfile`, `Makefile` target `test` | run that target                                          |
-| `package.json` `scripts.test`        | `<pm> test` — pm via lockfile (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `bun.lock` → bun, else npm) |
-| `Cargo.toml`                         | `cargo test`                                                            |
-| `pyproject.toml`                     | `uv run pytest` if `uv.lock`; else `pytest`; else `python -m unittest`  |
-| `go.mod`                             | `go test ./...`                                                         |
-| `*.csproj` / `*.sln`                 | `dotnet test`                                                           |
-| `Gemfile`                            | `bundle exec rake test` if `Rakefile`, else `rspec`                     |
-| `tests/` or `test/` holding `test_*.py`, none of the markers above | `pytest <dir>` when a `conftest.py`, `pytest.ini`, or a `[tool.pytest*]` section exists; else `python3 -m unittest discover -s <dir>` |
-| none of the above                    | read the project's CI before concluding there is none — see below       |
+[references/detection.md](references/detection.md) § Test command. Record what matched.
+Step 2a needs three answers told apart: a command that ran, a command that was found and
+could not run here, and no command declared anywhere — including the project's CI.
 
-**A repository with no marker is not a repository with no tests.** A packaging file is
-the usual place a test command is declared, not the only one: a repository can carry
-hundreds of tests under `tests/` and ship no `pyproject.toml` at all. Before reporting
-"no test command", read what the project's own CI runs — that is the command its
-maintainers actually trust:
+### 0f. Lint command detection
 
-```bash
-grep -hiE '(pytest|unittest|jest|vitest|rspec|go test|cargo test|dotnet test|npm test|make test)' .github/workflows/*.yml 2>/dev/null
-```
-
-Take the command it names, dropping CI-only decoration — a `-v`, a coverage wrapper, a
-matrix variable. Step 2 SKIPs only when this finds nothing either.
-
-Never report a run that did not happen. When a command is found but cannot run here — an
-interpreter version the tests refuse, a dependency that is not installed — name the
-command and say why it did not run. That is a different report from "no test command",
-and collapsing the two hides a test suite nobody executed.
-
-### 0f. Lint command detection — only what the project declares
-
-A linter the project does not configure is not this skill's to impose. First match wins:
-
-| Marker                                        | Command                                       |
-|-----------------------------------------------|-----------------------------------------------|
-| `lint` target in `scripts/`, `justfile`, `Makefile` | run that target                          |
-| `package.json` `scripts.lint`                 | `<pm> run lint` — pm resolved as in 0e        |
-| `ruff.toml`, `.ruff.toml`, or `[tool.ruff]` in `pyproject.toml` | `ruff check .` and `ruff format --check .` |
-| `Cargo.toml`                                  | `cargo clippy`                                |
-| `.golangci.yml` / `.golangci.yaml`            | `golangci-lint run`                           |
-| `go.mod`, none of the above                   | `go vet ./...`                                |
-| none of the above                             | step 2b SKIPs                                 |
+[references/detection.md](references/detection.md) § Lint command. Nothing detected means
+step 2b SKIPs; a linter the project does not configure is not this skill's to impose.
 
 ### 0g. CI presence
 
@@ -141,20 +93,10 @@ grep -lE 'pull_request|push:' .github/workflows/*.y*ml 2>/dev/null
 
 Either trigger reports on the pull request — a `push` workflow fires when step 4 pushes the branch. What matters is whether this repository has a workflow that *will* produce a check, because step 5 has to tell "no CI here" apart from "CI has not registered yet".
 
-### 0h. Version bump detection — only what the project declares
+### 0h. Version bump detection
 
-Some projects publish from a version string, not from the default branch: an installer
-that compares versions skips a merge that left the string alone, and its log says
-"already at the latest version" while saying nothing untrue. Detect the project's own
-bumper — first match wins:
-
-| Marker                                              | Command                                       |
-|-----------------------------------------------------|-----------------------------------------------|
-| `bump-version.py` / `bump_version.py` in `scripts/` | run it with the resolved version              |
-| `bump` or `version` target in `scripts/`, `justfile`, `Makefile` | run that target                  |
-| `package.json` with a `version` field               | `<pm> version <resolved>` — pm resolved as in 0e |
-| `Cargo.toml` `[package]` `version`                  | `cargo set-version <resolved>`, or report and stop when `cargo-edit` is absent |
-| none of the above                                   | step 3a SKIPs — nothing here declares a version to move |
+[references/detection.md](references/detection.md) § Version bumper. Record the bumper and
+whether `--bump` was passed.
 
 **Finding a bumper is not a reason to run it.** Whether a change is a release is a
 judgment, and the number is not derivable from a diff — a bug fix and a breaking change
@@ -187,17 +129,7 @@ After printing: stop if `--dry-run` was passed, otherwise proceed immediately. W
 Only when on the base branch **and** there is something to ship — an uncommitted change, a commit `origin/<base>` does not have, or both.
 
 - If the user passed a positional `[branch-name]`, use it.
-- Otherwise derive `{type}/{slug}`:
-  - **type** — pick by this order:
-    1. `docs` if every changed file is `*.md` or text.
-    2. `chore` if every changed file is config / deps / lockfile (`*.json`, `*.yml`, `*.toml`, lockfiles).
-    3. `fix` if the commit subject (drafted in step 3) starts with "fix"/"bug"/"resolve".
-    4. else `feat`.
-  - **slug** — 3–5 words, kebab-case. Build from:
-    1. The commit subject's content words (drop conjunctions, articles, the leading verb), OR
-    2. The longest common directory prefix of the changed files.
-    3. If both are unhelpful, fall back to `chore/sync-<dominant-dir-name>`.
-  - Avoid reading large diffs to invent a slug — the commit subject is enough.
+- Otherwise name it per [shared/git.md](shared/git.md) § Branch names, taking the subject from the commit drafted in step 3.
 - `git checkout -b <name>`.
 
 If already on a feature branch → SKIP.
@@ -398,25 +330,21 @@ Never `--admin`. A merge that needs it is one a human should look at.
 ## 7. Worktree cleanup
 
 Only about the worktree holding the branch just shipped. Another tool's worktree, or one
-for an unrelated branch, is not this run's business — `/dev:cleanup` owns those.
+for an unrelated branch, is not this run's business — the cleanup skill owns those.
 
-### 7a. The worktree this run is standing in is never removed
+### 7a. The home worktree
 
-Compare the toplevel recorded in step 0b against `git worktree list`. It has to be that
-recorded value: after a `cd` to the primary checkout, `git rev-parse --show-toplevel` no
-longer answers the question.
+Per [shared/git.md](shared/git.md) § The home worktree, this run never removes the one it
+is standing in. Identify it by comparing the toplevel recorded in step 0b against
+`git worktree list`, which has to be that recorded value: after a `cd` to the primary
+checkout, `git rev-parse --show-toplevel` no longer answers the question.
 
-Per [shared/git.md](shared/git.md), changing directory does not make the removal safe —
-the session's tooling, its scratch state, and its open file handles all live there, and
-nothing running inside can undo the deletion. Report it and move on to 7c:
+Report it and move on to 7c:
 
 ```
 Worktree kept: <path> — this session is running in it.
-Remove it from the primary checkout once the session ends, or run /dev:cleanup there.
+Remove it from the primary checkout once the session ends, or run the cleanup skill there.
 ```
-
-That is a completed step 7, not a failure. Shipping from a worktree is the common case,
-so this is the common outcome.
 
 ### 7b. A worktree for the shipped branch that this run is not in
 
@@ -443,12 +371,14 @@ Remaining worktrees, and where `<base>` now points in the primary checkout.
 
 ## Flags
 
+Each names the step that owns it. The rule lives in that step.
+
 - `--dry-run` — print the execution plan and stop. Nothing is written, pushed, or merged.
-- `--no-test` — skip all of step 2, tests and lint alike, even where both were detected. Useful for docs-only / config-only ships.
+- `--no-test` — skip all of step 2, tests and lint alike.
 - `--draft` — open the PR as a draft and stop after step 4.
-- `--base=<branch>` — override base branch resolution. Without this flag, base is detected per step 0c.
-- `--merge-strategy=squash|merge|rebase` — force one, subject to what the repository allows. Without it, step 6 picks from that and from how many commits the branch carries.
-- `--bump=<version|major|minor|patch>` — run the project's own bumper in step 3a, so the version moves in the same commit as the change. Without it step 3a SKIPs even where 0h found a bumper, and the report says so. Never inferred: whether a change is a release is the author's call, not a property of the diff.
+- `--base=<branch>` — override the base step 0c would resolve.
+- `--merge-strategy=squash|merge|rebase` — force one of step 6's three, subject to what the repository allows.
+- `--bump=<version|major|minor|patch>` — run the bumper 0h detected, in step 3a.
 - `[branch-name]` (positional) — branch name when step 1 triggers.
 
 ## Reporting
@@ -468,10 +398,6 @@ Attention:     <base reset to <sha>; CI never registered; worktree kept — …;
 the base ref moved in step 1a, a CI window that expired without a check, a worktree kept
 because this session is standing in it, a version bumper found and not run. Empty is a
 valid value; a silent one is not.
-
-That last one is not a formality. A repository that publishes from its version string
-reaches nobody on a merge that left the string alone, and the shipping run is the last
-moment anyone is looking.
 
 **Early exit (nothing to ship)**:
 
