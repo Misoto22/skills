@@ -1,81 +1,50 @@
 Shipping a change is a sequence everyone already knows: branch, test, commit, open a pull request, wait for CI, merge, tidy up. The cost is never in knowing it — it is in the step that gets skipped at five in the afternoon. `ship` runs the whole sequence and refuses to skip anything silently.
 
-```diagram
+```steps
 {
-  "direction": "column",
-  "nodes": [
+  "steps": [
     {
-      "id": "pre",
-      "label": "0 · Preflight",
+      "n": "00",
+      "label": "Preflight",
       "note": "always — prints the plan",
-      "accent": true
+      "anchor": true
     },
     {
-      "id": "branch",
-      "label": "1 · Branch off base",
+      "n": "01",
+      "label": "Branch off base",
       "note": "on the base branch, with something to ship"
     },
     {
-      "id": "test",
-      "label": "2 · Test & lint",
+      "n": "02",
+      "label": "Test & lint",
       "note": "only what the project declares"
     },
     {
-      "id": "commit",
-      "label": "3 · Commit",
+      "n": "03",
+      "label": "Commit",
       "note": "secrets gate before staging"
     },
     {
-      "id": "pr",
-      "label": "4 · Pull request"
+      "n": "04",
+      "label": "Pull request"
     },
     {
-      "id": "ci",
-      "label": "5 · CI",
+      "n": "05",
+      "label": "CI",
       "note": "re-polls before concluding there are none"
     },
     {
-      "id": "merge",
-      "label": "6 · Merge"
+      "n": "06",
+      "label": "Merge"
     },
     {
-      "id": "clean",
-      "label": "7 · Worktree cleanup",
+      "n": "07",
+      "label": "Worktree cleanup",
       "note": "never the one this run is standing in"
     }
   ],
-  "edges": [
-    {
-      "from": "pre",
-      "to": "branch"
-    },
-    {
-      "from": "branch",
-      "to": "test"
-    },
-    {
-      "from": "test",
-      "to": "commit"
-    },
-    {
-      "from": "commit",
-      "to": "pr"
-    },
-    {
-      "from": "pr",
-      "to": "ci"
-    },
-    {
-      "from": "ci",
-      "to": "merge"
-    },
-    {
-      "from": "merge",
-      "to": "clean"
-    }
-  ],
   "caption": "Preflight marks every step RUN or SKIP, and the run follows that plan exactly. A clean tree on the base branch with nothing unpushed and no open pull request exits at step 0.",
-  "label": "The seven steps ship runs, and what each one depends on"
+  "label": "The eight steps ship runs, and what each one depends on"
 }
 ```
 

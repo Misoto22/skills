@@ -1,81 +1,50 @@
 发布一次改动是个谁都知道的流程：开分支、跑测试、提交、开 PR、等 CI、合并、收拾干净。成本从来不在「知道」，而在下午五点被省掉的那一步。`ship` 把整条流程跑完，并且拒绝悄悄跳过任何一步。
 
-```diagram
+```steps
 {
-  "direction": "column",
-  "nodes": [
+  "steps": [
     {
-      "id": "pre",
-      "label": "0 · 预检",
-      "note": "总是执行——打印执行计划",
-      "accent": true
+      "n": "00",
+      "label": "预检",
+      "note": "总是执行 · 打印执行计划",
+      "anchor": true
     },
     {
-      "id": "branch",
-      "label": "1 · 从基线开分支",
+      "n": "01",
+      "label": "从基线开分支",
       "note": "在基线分支上、且有东西可发时"
     },
     {
-      "id": "test",
-      "label": "2 · 测试与 lint",
+      "n": "02",
+      "label": "测试与 lint",
       "note": "只跑项目自己声明的命令"
     },
     {
-      "id": "commit",
-      "label": "3 · 提交",
+      "n": "03",
+      "label": "提交",
       "note": "密钥闸门设在暂存之前"
     },
     {
-      "id": "pr",
-      "label": "4 · 开 PR"
+      "n": "04",
+      "label": "开 PR"
     },
     {
-      "id": "ci",
-      "label": "5 · 等 CI",
+      "n": "05",
+      "label": "等 CI",
       "note": "先重试确认，再下「没有检查」的结论"
     },
     {
-      "id": "merge",
-      "label": "6 · 合并"
+      "n": "06",
+      "label": "合并"
     },
     {
-      "id": "clean",
-      "label": "7 · 清理 worktree",
+      "n": "07",
+      "label": "清理 worktree",
       "note": "本次运行所在的那个永不删除"
     }
   ],
-  "edges": [
-    {
-      "from": "pre",
-      "to": "branch"
-    },
-    {
-      "from": "branch",
-      "to": "test"
-    },
-    {
-      "from": "test",
-      "to": "commit"
-    },
-    {
-      "from": "commit",
-      "to": "pr"
-    },
-    {
-      "from": "pr",
-      "to": "ci"
-    },
-    {
-      "from": "ci",
-      "to": "merge"
-    },
-    {
-      "from": "merge",
-      "to": "clean"
-    }
-  ],
   "caption": "预检把每一步标成 RUN 或 SKIP，后续严格照这份计划执行。在基线分支上、工作树干净、没有未推送的提交、也没有开着的 PR，就在第 0 步退出。",
-  "label": "ship 的七个步骤，以及每一步的触发条件"
+  "label": "ship 的八个步骤，以及每一步的触发条件"
 }
 ```
 
