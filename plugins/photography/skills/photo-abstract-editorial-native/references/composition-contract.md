@@ -32,7 +32,9 @@ Use this exception only when both conditions are true:
 1. The oriented source width divided by height is at most `0.85`.
 2. The standard top-and-bottom board would be taller than `1.8 ×` its width.
 
-Set the board height to the source height. Place the complete, unmodified source on the left edge. Use an ivory artwork field on the right whose width is at least `0.60 × source height`; centre `lower-art` in that field without enlarging it. This keeps the source on the left and lower-art on the right while avoiding an excessively tall document.
+Set the board height to the source height. Place the complete, unmodified source on the left edge. Use an ivory artwork field on the right whose width is at least `0.60 × source height`; centre `lower-art` in that field without enlarging it, giving it the same breathing room the standard layout does — 90% of the field width and 78% of the board height. This keeps the source on the left and lower-art on the right while avoiding an excessively tall document.
+
+Every portrait source reaches this exception. The tall row of the table above reserves enough lower canvas that no ratio at or below `0.85` produces a standard board within the `1.8 ×` trigger, so that row's work is to size the board the trigger measures rather than one that is ever delivered.
 
 Keep the source and artwork field visually separate, but do not add a decorative border, a forced divider, a crop, or a ratio-matching resize. Preserve the lower panel's title and required white space.
 

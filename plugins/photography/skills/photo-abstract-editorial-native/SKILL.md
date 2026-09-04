@@ -23,9 +23,13 @@ Do not ask an image generator to recreate the photograph. Keep the source pixels
 
 ## 2. Compose without distortion
 
-Read [the composition contract](references/composition-contract.md) before laying out the board. It defines the output geometry and the checks that prevent the two known failures: a soft upper photo and a squashed lower panel.
+Run the composer. It derives the board geometry, refuses an upscale or a stretch, and writes the manifest step 3 requires:
 
-Use a flat ivory artwork field. Centre the lower artwork with generous breathing room. Keep its native aspect ratio and never upscale it. Preserve any title that belongs to the supplied lower panel; do not invent labels, frames, watermarks, or extra decoration.
+```bash
+python3 scripts/compose_board.py --source <photo> --lower-art <panel> --out <board.jpg> --source-class original
+```
+
+Record how the source was obtained with `--source-class`: `original`, `photos-export`, `cloud-original`, or `derivative-fallback`. [The composition contract](references/composition-contract.md) is what the script implements; read it to explain a result, or to lay a board out by hand where the script cannot run. Preserve any title that belongs to the supplied lower panel; do not invent labels, frames, watermarks, or extra decoration.
 
 ## 3. Audit before delivery
 
@@ -35,13 +39,7 @@ Visually inspect at least one landscape and one portrait result in a batch. Reje
 
 ## 4. Visual examples
 
-The examples are real user-authorized boards produced during the native-resolution audit. They demonstrate the intended proportion-preserving result, not templates to reuse.
-
-![Whale comparison board: sharp photograph above a centered abstract panel](assets/examples/whale-native-board.jpg)
-
-![Harbour bridge comparison board: a wide source remains wide above its lower abstraction](assets/examples/harbour-bridge-native-board.jpg)
-
-![Portrait side-by-side comparison board: a tall source is intact on the left and its lower abstraction remains intact on the right](assets/examples/portrait-native-board.jpg)
+Three user-authorized boards from the native-resolution audit ship in `assets/examples/`, and this skill's reader document renders them. They show the intended proportion-preserving result, not templates to reuse.
 
 ## 5. Attribution and scope
 
