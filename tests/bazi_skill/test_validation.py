@@ -127,6 +127,17 @@ class ChartValidationTests(unittest.TestCase):
         self.assertIn("pillars.primary.hour", problems)
         self.assertIn("scores.primary.ledger", problems)
 
+    def test_an_absent_sensitivity_flag_is_named(self) -> None:
+        """Silence about the boundary is indistinguishable from a confident no."""
+
+        broken = copy.deepcopy(self.chart)
+        del broken["sensitivity"]
+
+        self.assertIn(
+            "sensitivity.alternate_day_boundary",
+            "; ".join(defects(add_checksum(broken), CHART)),
+        )
+
     def test_a_structural_defect_is_named_before_the_checksum(self) -> None:
         """An edited artifact fails both ways; only one of them says what to fix."""
 

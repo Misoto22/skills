@@ -148,6 +148,15 @@ class ZiweiValidationTests(unittest.TestCase):
 
         self.assertIn("chart.alternate.palaces", "; ".join(defects(add_checksum(broken), ZIWEI)))
 
+    def test_an_absent_sensitivity_flag_is_named(self) -> None:
+        broken = copy.deepcopy(self.chart)
+        del broken["sensitivity"]
+
+        self.assertIn(
+            "sensitivity.alternate_day_boundary",
+            "; ".join(defects(add_checksum(broken), ZIWEI)),
+        )
+
     def test_a_structural_defect_is_named_before_the_checksum(self) -> None:
         broken = copy.deepcopy(self.chart)
         del broken["chart"]["primary"]["palaces"][0]

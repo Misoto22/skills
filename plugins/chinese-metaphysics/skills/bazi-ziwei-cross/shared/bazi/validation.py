@@ -156,7 +156,7 @@ def _chart_defects(envelope: Mapping[str, Any]) -> list[str]:
     if not _get(envelope, "time", "true_solar"):
         problems.append("time.true_solar: the day and hour pillars rest on it")
 
-    declared = bool(_get(envelope, "sensitivity", "alternate_day_boundary"))
+    declared = _sensitivity_flag(envelope, problems)
     for block in ("pillars", "facts", "scores"):
         present = _get(envelope, block, "alternate") is not None
         if declared and not present:
@@ -168,6 +168,24 @@ def _chart_defects(envelope: Mapping[str, Any]) -> list[str]:
         problems.extend(_fact_defects(envelope, "alternate"))
         problems.extend(_score_defects(envelope, "alternate"))
     return problems
+
+
+def _sensitivity_flag(envelope: Mapping[str, Any], problems: list[str]) -> bool:
+    """Return whether a boundary alternate is declared, and require it to say so.
+
+    A source that omits the flag entirely reads as "no alternate", which is the
+    one wrong answer: every reading skill has to tell a person whether the
+    boundary choice moved their chart, and silence is indistinguishable from a
+    confident no.
+    """
+
+    flag = _get(envelope, "sensitivity", "alternate_day_boundary")
+    if not isinstance(flag, bool):
+        problems.append(
+            "sensitivity.alternate_day_boundary: required, and true or false; "
+            "an absent flag reads as a confident no"
+        )
+    return flag is True
 
 
 def _identity_defects(envelope: Mapping[str, Any]) -> list[str]:
@@ -428,7 +446,7 @@ def _ziwei_defects(envelope: Mapping[str, Any]) -> list[str]:
     if not _get(envelope, "time", "true_solar"):
         problems.append("time.true_solar: the hour branch rests on it")
 
-    declared = bool(_get(envelope, "sensitivity", "alternate_day_boundary"))
+    declared = _sensitivity_flag(envelope, problems)
     present = _get(envelope, "chart", "alternate") is not None
     if declared and not present:
         problems.append("chart.alternate: declared by sensitivity, and missing")
