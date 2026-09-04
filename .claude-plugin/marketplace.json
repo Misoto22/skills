@@ -35,6 +35,7 @@
       "source": "./plugins/dev",
       "skills": [
         "./skills/cleanup",
+        "./skills/retitle",
         "./skills/ship",
         "./skills/sync"
       ]

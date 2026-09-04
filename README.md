@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twenty skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twenty-one skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -48,6 +48,7 @@ Twenty skills in seven plugins. The plugin name is the command prefix, and each 
 - **[sync](plugins/dev/skills/sync/SKILL.md)** (`/dev:sync`) — fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards; a diverged branch is reported, never rebased.
 - **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
+- **[retitle](plugins/dev/skills/retitle/SKILL.md)** (`/dev:retitle`) — renames agent conversations onto a dated `MMDD｜类型｜主题` scheme. Every rename is proposed as a two-column table first; a conversation whose subject cannot be recovered keeps the name it had.
 
 #### `brand` — visual identity assets
 
@@ -224,7 +225,7 @@ flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:repo-polish"]
-  V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"]
+  V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"] & RT["/dev:retitle"]
   A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
   SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
@@ -234,7 +235,7 @@ flowchart LR
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,PB,T,R,SY,SH,CL,SN,SR,SW,SV s
+  class E,PB,T,R,SY,SH,CL,RT,SN,SR,SW,SV s
 ```
 
 <details>

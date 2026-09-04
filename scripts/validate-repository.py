@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 TESTS_ROOT = ROOT / "tests"
 MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 
 # Lowercase letters, digits and hyphens. Claude Code is lenient about a plugin
 # or marketplace name; the claude.ai marketplace sync is not, and a keyword that
@@ -37,7 +37,7 @@ PUBLISHED = {
         "ziwei-reading",
     ],
     "astrology": ["natal-chart", "natal-reading", "synastry", "synastry-reading"],
-    "dev": ["cleanup", "ship", "sync"],
+    "dev": ["cleanup", "retitle", "ship", "sync"],
     "docs": ["repo-polish"],
     "writing": ["email", "personal-blog", "tempering"],
 }

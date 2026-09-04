@@ -34,3 +34,10 @@ select = [
 # reads plain key/value pairs and does not fold YAML scalars, so a wrapped
 # description would be rejected by the validator it is meant to satisfy.
 "scripts/new-skill.py" = ["E501"]
+
+# The session-naming hook is a prompt template. Its separator is the fullwidth vertical
+# line U+FF5C, which the scheme requires and an ASCII pipe would break, so the ambiguous
+# character rules cannot apply; and its reminder text is injected verbatim, so wrapping a
+# paragraph to the line limit would either change what the model reads or scatter one
+# string across a dozen fragments.
+"plugins/*/skills/*/assets/*.py" = ["RUF001", "RUF002", "E501", "EXE001"]

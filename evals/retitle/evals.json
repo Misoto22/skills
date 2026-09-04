@@ -1,0 +1,132 @@
+{
+  "skill": "retitle",
+  "triggers": [
+    {
+      "id": "messy-titles",
+      "prompt": "My conversation titles are a mess. Make them consistent.",
+      "expected": "Fires, and proposes the two-column table before renaming anything."
+    },
+    {
+      "id": "chinese-normalize",
+      "prompt": "帮我规范一下对话名称，太乱了",
+      "expected": "Fires on the Chinese phrasing the description spells out."
+    },
+    {
+      "id": "chinese-batch-rename",
+      "prompt": "把 Codex 里所有会话标题统一改成带日期的格式",
+      "expected": "Fires on a second Chinese phrasing, and treats the date as creation time rather than last-updated.",
+      "holdout": true
+    },
+    {
+      "id": "rename-sessions",
+      "prompt": "Rename my Codex sessions so I can actually find things in the sidebar.",
+      "expected": "Fires, detects the Codex database, and excludes cloud-hosted rows."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "rename-branch",
+      "prompt": "Rename this git branch to something clearer.",
+      "expected": "Does not fire. It renames conversations, never branches."
+    },
+    {
+      "id": "delete-old-chats",
+      "prompt": "Delete all my conversations from before June.",
+      "expected": "Does not fire. It never decides what to delete or archive."
+    },
+    {
+      "id": "chinese-rename-project",
+      "prompt": "帮我把项目名称改一下",
+      "expected": "Does not fire. Project names are explicitly out of scope, and Chinese phrasing must not blur the boundary.",
+      "holdout": true
+    },
+    {
+      "id": "clean-merged-branches",
+      "prompt": "清理一下合并过的分支",
+      "expected": "Does not fire; removing merged branches is a different job.",
+      "routes_to": "cleanup"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "preview-before-write",
+      "prompt": "Retitle my Codex conversations. There are 317 of them. Apply it.",
+      "expectations": [
+        "Prints one table with the header `| 原名称 | 新名称 |` before writing any title, despite being told to apply.",
+        "Does not include unchanged conversations as table rows; reports them as a count with reasons.",
+        "States the resolved timezone and that dates come from creation time."
+      ]
+    },
+    {
+      "id": "cloud-rows-excluded",
+      "prompt": "Retitle my Codex conversations. 195 are under host_id 'local' and 122 under a chatgpt: host.",
+      "expectations": [
+        "Renames only the 195 local rows.",
+        "Reports the 122 cloud-hosted rows as excluded, because the cloud is their source and a local write is reverted at the next sync.",
+        "Does not offer to rename them anyway."
+      ]
+    },
+    {
+      "id": "unrecoverable-subject-kept",
+      "prompt": "Retitle this Codex conversation. Its current title is 新功能讨论 and the rollout file is unavailable.",
+      "expectations": [
+        "Keeps the original title verbatim rather than inventing a subject.",
+        "Reports it as kept, with the reason.",
+        "Does not fall back to a ninth 类型 or a generic subject."
+      ]
+    },
+    {
+      "id": "audit-is-not-research",
+      "prompt": "Retitle this session. The work was auditing my own website's SEO and reporting what was weak; nothing was changed.",
+      "expectations": [
+        "Classifies it 审计, not 研究 — the object inspected is the user's own site, not the outside world.",
+        "Does not classify it 优化, since nothing was changed.",
+        "Produces a title shaped MMDD｜审计｜<subject> with the fullwidth separator."
+      ]
+    },
+    {
+      "id": "research-stays-research",
+      "prompt": "Retitle this session. The work was comparing which SEO tools are worth paying for; nothing of mine was inspected.",
+      "expectations": [
+        "Classifies it 研究, not 审计 — it reads the outside world rather than inspecting something the user owns.",
+        "Does not invent a tenth type for it."
+      ],
+      "holdout": true
+    },
+    {
+      "id": "writes-through-the-app-server",
+      "prompt": "Apply the confirmed Codex renames.",
+      "expectations": [
+        "Renames through the app server's thread/name/set, not by writing local_thread_catalog.display_title.",
+        "States that display_title is a derived read-model and a direct write is reverted when the scanner next reconciles the thread.",
+        "Backs up ~/.codex/session_index.jsonl first and verifies with thread/read rather than trusting the request count."
+      ]
+    },
+    {
+      "id": "retries-overload-from-the-store",
+      "prompt": "Half the Codex renames came back with -32001 Server overloaded.",
+      "expectations": [
+        "Resends in small batches rather than all at once.",
+        "Decides what to resend by comparing session_index.jsonl against the plan, not by replaying the error list, so the retry converges however the first attempt failed.",
+        "Does not report the run as complete until the store matches the plan."
+      ]
+    },
+    {
+      "id": "claude-code-batch-uses-created-at",
+      "prompt": "Retitle all my Claude Code sessions, archived ones too.",
+      "expectations": [
+        "Lists sessions with include_archived true.",
+        "Reads createdAt per session with get_session rather than dating them from lastActivityAt.",
+        "Leaves sessions already shaped MMDD｜类型｜主题 alone instead of re-deriving them."
+      ]
+    },
+    {
+      "id": "recheck-keeps-the-session-date",
+      "prompt": "This session started on the 3rd and it is now the 4th. Its subject has changed — retitle it.",
+      "expectations": [
+        "Keeps MMDD at the date the session started, changing only 类型 and 主题.",
+        "Does not move the date to today, which would break the chronological order the scheme exists for."
+      ]
+    }
+  ]
+}
