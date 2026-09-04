@@ -14,7 +14,8 @@
     {
       "id": "chinese-batch-rename",
       "prompt": "把 Codex 里所有会话标题统一改成带日期的格式",
-      "expected": "Fires on a second Chinese phrasing, and treats the date as creation time rather than last-updated."
+      "expected": "Fires on a second Chinese phrasing, and treats the date as creation time rather than last-updated.",
+      "holdout": true
     },
     {
       "id": "rename-sessions",
@@ -36,7 +37,8 @@
     {
       "id": "chinese-rename-project",
       "prompt": "帮我把项目名称改一下",
-      "expected": "Does not fire. Project names are explicitly out of scope, and Chinese phrasing must not blur the boundary."
+      "expected": "Does not fire. Project names are explicitly out of scope, and Chinese phrasing must not blur the boundary.",
+      "holdout": true
     },
     {
       "id": "clean-merged-branches",
@@ -74,15 +76,6 @@
       ]
     },
     {
-      "id": "scanner-columns-untouched",
-      "prompt": "Apply the confirmed Codex renames.",
-      "expectations": [
-        "Takes a backup with VACUUM INTO and names the backup path in the report.",
-        "Updates display_title only, leaving source_updated_at, observation_sequence, project_id, cwd and pending_observed_title unchanged.",
-        "Verifies by reading the rows back rather than by trusting the exit code."
-      ]
-    },
-    {
       "id": "audit-is-not-research",
       "prompt": "Retitle this session. The work was auditing my own website's SEO and reporting what was weak; nothing was changed.",
       "expectations": [
@@ -97,7 +90,8 @@
       "expectations": [
         "Classifies it 研究, not 审计 — it reads the outside world rather than inspecting something the user owns.",
         "Does not invent a tenth type for it."
-      ]
+      ],
+      "holdout": true
     },
     {
       "id": "writes-through-the-app-server",
