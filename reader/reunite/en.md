@@ -26,6 +26,16 @@ Plan: 720 entries to copy into 3 account index(es), +114.3MB
 
 That report is the whole of a default run. It writes nothing until you pass `--apply`, because 114MB and three directories is not a decision to make on someone's behalf without showing them the number first.
 
+## Renaming, and why one run is not enough
+
+A rename writes one index file. Once a conversation exists in three indexes, renaming it under one account leaves the other two holding the old name — and copying cannot fix that, because the entry is already there.
+
+So each run also reconciles titles. Where copies of one conversation disagree, the most recently written file wins and its name is written into the others. Only the title moves; everything else in those files is that account's own record of the conversation.
+
+The report lists every one it is about to change, because the signal is not infallible — file mtime is the only timestamp a rename actually moves, and an unrelated rewrite of a stale copy can make it the newest. `--no-titles` turns the pass off entirely.
+
+This is what makes a naming sweep worth running at all: rename under one account, run this, and the names reach the others.
+
 ## What it refuses to do
 
 **It never deletes.** Every run only adds files, and it records each one it added. `--undo` removes exactly those paths — not files the app wrote, not entries a previous merge already reconciled.

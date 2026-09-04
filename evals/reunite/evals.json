@@ -21,6 +21,11 @@
       "holdout": true,
       "prompt": "帮我找回以前那些对话，侧边栏现在只剩几条了",
       "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
+    },
+    {
+      "id": "titles-diverged-after-switch",
+      "prompt": "I renamed a bunch of conversations under one account but my other account still shows the old titles.",
+      "expected": "Fires; title reconciliation across account indexes is part of what it does."
     }
   ],
   "non_triggers": [
@@ -78,6 +83,15 @@
         "States that the sidebar is unchanged until the desktop app restarts, because the app reads this index at startup and does not rescan while running.",
         "Flags that restarting interrupts conversations that are still running, and leaves the timing to the user.",
         "Says the run is recorded and reversible with --undo."
+      ]
+    },
+    {
+      "id": "titles-reach-the-other-accounts",
+      "prompt": "The naming sweep renamed 40 conversations while I was signed in as my personal account. I just switched to my work account and they still show the old names.",
+      "expectations": [
+        "Explains that a rename writes one index file, so the other accounts' copies still hold the old name, and that copying alone cannot fix it because the entry is already present.",
+        "Runs reunite, which reconciles the diverged titles as part of its normal pass, rather than proposing a fresh renaming run under the second account.",
+        "Notes that the reconciled titles are recorded and that --undo puts them back."
       ]
     }
   ]
