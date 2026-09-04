@@ -46,6 +46,7 @@ MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
 GROUPING_MANIFEST = ROOT / "skills.sh.json"
 TRANSLATIONS = ROOT / "i18n"
 EVALS_ROOT = ROOT / "evals"
+READER_ROOT = ROOT / "reader"
 REGISTRY = ROOT / "registry.json"
 
 # Locales carried alongside the English. Adding one means adding i18n/<code>.json
@@ -59,6 +60,21 @@ LOCALES = ("zh",)
 # agent executes, so a reader who does not read English gets this instead.
 GROUP_FIELDS = ("title", "description", "summary")
 SKILL_FIELDS = ("description", "overview")
+
+# Locales a reader document is authored in. English is one of them, which is the
+# difference between this and LOCALES above: `overview` exists because a Chinese
+# reader cannot use the English body, whereas a reader document replaces that body
+# for everyone. A SKILL.md is written for the agent that executes it — dense,
+# imperative, and as long as the instructions need to be — and rendering it more
+# prettily does not make it something a person evaluating the skill wants to read.
+#
+# Authored at `reader/<skill>/<locale>.md` — a repository-root tree like `evals/`
+# rather than a directory inside the skill, and for the same reason: a plugin is
+# copied wholesale into a cache on install, and these documents are for the
+# website, not for the agent that runs there. Markdown rather than more JSON in
+# `i18n/`, which carries short strings and stops being reviewable as a diff once
+# an entry runs to paragraphs.
+READER_LOCALES = ("en", "zh")
 
 # Bumped when a consumer would have to change to keep reading this file. Adding
 # an optional field is not that; removing or repurposing one is.
@@ -144,6 +160,35 @@ def _examples(skill: str) -> dict:
         "triggers": [case["prompt"] for case in suite.get("triggers", [])],
         "nonTriggers": [case["prompt"] for case in suite.get("non_triggers", [])],
     }
+
+
+def _reader(skill: str) -> dict[str, str]:
+    """Return {locale: Markdown} for the skill's reader documents.
+
+    Required, one per locale, now that every published skill carries the full
+    set. It was optional while the set was being written; leaving it optional
+    afterwards is the failure that survives review, because one skill among
+    twenty-one silently falling back to the agent's instructions reads as an
+    oversight nobody notices — the same reason the translations above are held
+    to covering exactly what is published.
+    """
+
+    documents: dict[str, str] = {}
+    for locale in READER_LOCALES:
+        path = READER_ROOT / skill / f"{locale}.md"
+        if not path.is_file():
+            raise SystemExit(
+                f"error: {path.relative_to(ROOT)} does not exist. Every published skill"
+                f" carries a reader document in every locale; the site renders it in"
+                f" place of SKILL.md."
+            )
+        text = path.read_text(encoding="utf-8").strip()
+        if not text:
+            raise SystemExit(f"error: {path.relative_to(ROOT)} is empty")
+        if PLACEHOLDER.search(text):
+            raise SystemExit(f"error: {path.relative_to(ROOT)} is still the scaffolded text")
+        documents[locale] = text
+    return documents
 
 
 def _bookmarks(marketplace: dict, published: set[str]) -> list[dict]:
@@ -280,6 +325,7 @@ def _skill_entry(name: str, directory: Path, validator: ModuleType, repository: 
     # should not publish an empty string every renderer then special-cases.
     if "argument-hint" in frontmatter:
         entry["argumentHint"] = frontmatter["argument-hint"]
+    entry["reader"] = _reader(name)
     return entry
 
 

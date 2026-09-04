@@ -67,6 +67,29 @@ policy:
   allow_implicit_invocation: true
 """
 
+# The locales a reader document is authored in, mirroring build-registry.py.
+# English is one of them: a reader document is not a translation of SKILL.md but
+# a replacement for it, so every reader gets one.
+READER_LOCALES = ("en", "zh")
+
+READER_TEMPLATE = """PLACEHOLDER — one paragraph in {locale} saying what {skill} is for, written
+for someone deciding whether to install it rather than for the agent that runs it.
+
+## PLACEHOLDER
+
+What it does, in the terms a reader already has. Show the artefact it produces
+where showing beats describing.
+
+## PLACEHOLDER
+
+How it is run, and what it asks for before it writes anything.
+
+## PLACEHOLDER
+
+What it will not do — the boundary the frontmatter description already draws,
+stated where a reader will look for it.
+"""
+
 PLUGIN_README_TEMPLATE = """# Published skills
 
 Only release-ready, recursively discoverable skills belong in this directory.
@@ -129,6 +152,23 @@ def main() -> int:
         created,
     )
 
+    # One per locale, scaffolded so the build rejects them — the same bargain the
+    # SKILL.md description and the i18n entries make. A reader document is what
+    # the site renders in place of SKILL.md, and SKILL.md is written for the agent
+    # that executes it, so a skill published without one shows a person the
+    # instructions rather than an explanation.
+    #
+    # Outside the skill directory, like evals/: a plugin is copied wholesale into
+    # a cache on install, and these are for the website rather than for the agent.
+    reader_dir = ROOT / "reader" / args.skill
+    reader_dir.mkdir(parents=True)
+    for locale in READER_LOCALES:
+        _write(
+            reader_dir / f"{locale}.md",
+            READER_TEMPLATE.format(skill=args.skill, locale=locale),
+            created,
+        )
+
     if new_plugin:
         description = f"PLACEHOLDER — what {args.plugin} skills are for."
         plugin_manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -183,9 +223,13 @@ def main() -> int:
     if new_plugin:
         print(f"     Including `keywords` in plugins/{args.plugin}/plugin.json — the terms a")
         print("     plugin directory searches on, and the only field nothing here reads.")
-    print(f"  3. Write evals/{args.skill}/evals.json — at least three prompts it must fire")
+    print(f"  3. Write reader/{args.skill}/*.md — what the site")
+    print("     shows a person instead of SKILL.md, one per locale. Not a translation of")
+    print("     the body: the body is what the agent executes. build-registry.py refuses")
+    print("     the scaffolded text the same way.")
+    print(f"  4. Write evals/{args.skill}/evals.json — at least three prompts it must fire")
     print("     on and two it must stay out of. run-evals.py --check fails until it exists.")
-    print("  4. python3 scripts/validate-repository.py")
+    print("  5. python3 scripts/validate-repository.py")
     return 0
 
 

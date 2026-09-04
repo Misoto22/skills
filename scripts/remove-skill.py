@@ -30,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 EVALS_ROOT = ROOT / "evals"
+READER_ROOT = ROOT / "reader"
 DEPRECATED_ROOT = ROOT / "deprecated"
 
 
@@ -92,15 +93,19 @@ def _retire_files(
     delete: bool,
     touched: list[str],
 ) -> None:
-    """Move or remove the skill tree, the evaluation cases, and an emptied plugin."""
+    """Move or remove the skill tree, its evaluation cases and reader documents, and an emptied plugin."""
 
     evals_dir = EVALS_ROOT / skill
+    reader_dir = READER_ROOT / skill
     if delete:
         shutil.rmtree(skill_dir)
         touched.append(f"{skill_dir.relative_to(ROOT)} (deleted)")
         if evals_dir.is_dir():
             shutil.rmtree(evals_dir)
             touched.append(f"{evals_dir.relative_to(ROOT)} (deleted)")
+        if reader_dir.is_dir():
+            shutil.rmtree(reader_dir)
+            touched.append(f"{reader_dir.relative_to(ROOT)} (deleted)")
     else:
         destination = DEPRECATED_ROOT / plugin / skill
         if destination.exists():
@@ -111,6 +116,9 @@ def _retire_files(
         if evals_dir.is_dir():
             shutil.move(str(evals_dir), str(destination / "evals"))
             touched.append(f"{(destination / 'evals').relative_to(ROOT)} (moved)")
+        if reader_dir.is_dir():
+            shutil.move(str(reader_dir), str(destination / "reader"))
+            touched.append(f"{(destination / 'reader').relative_to(ROOT)} (moved)")
 
     if retires_plugin:
         plugin_root = PLUGINS_ROOT / plugin
