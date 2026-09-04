@@ -302,3 +302,24 @@ class ArtifactFieldTests(unittest.TestCase):
     def test_a_case_without_one_carries_no_artifact_block(self) -> None:
         message = HARNESS._behavior_user_message("email", {"id": "p", "prompt": "hi"})
         self.assertNotIn("<artifact-json>", message)
+        self.assertNotIn("already passed this skill's validation", message)
+
+    def test_an_artifact_case_is_told_validation_already_passed(self) -> None:
+        """Without it, a verify-then-read skill returns the validation report.
+
+        bazi-reading opens with "use the vendored validator and stop on a
+        checksum mismatch". Handed a bare artifact it cannot check, it wrote a
+        defect report and declined the reading — so the case graded a refusal it
+        had asked not to receive. `fixture` never hit this: handing over a
+        "validator-produced ledger" already says the check has passed.
+        """
+
+        case = {
+            "id": "probe",
+            "prompt": "Give me a complete reading of this valid chart artifact.",
+            "expectations": ["produces a reader report"],
+            "artifact": "fixtures/valid-chart.json",
+        }
+        message = HARNESS._behavior_user_message("bazi-reading", case)
+        self.assertIn("already passed this skill's validation", message)
+        self.assertIn("rather than reporting on", message)

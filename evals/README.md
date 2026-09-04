@@ -89,9 +89,16 @@ the same decision, asked of the half of it the runner can see. Where the skill's
 work is genuinely an artifact — an image, a composed board — assert the
 constraint it names and the value it derives, not that it says it will comply.
 
-A case that needs real data supplies it with `artifact`. A case that needs real
-tools cannot be scored here at all, and should assert the decision rather than
-pretend to observe the outcome.
+A case that needs real data supplies it with `artifact`. The prompt then states
+that the artifact has already passed the skill's validation step, because a skill
+whose workflow opens with "run the validator" cannot run one here and will
+otherwise return the validation report instead of the work. **An `artifact` must
+therefore be a valid one** — generate it with the skill's own calculator. A case
+that tests a refusal over a corrupt source supplies no artifact and describes the
+corruption in its prompt, which is how those cases already pass.
+
+A case that needs real tools cannot be scored here at all, and should assert the
+decision rather than pretend to observe the outcome.
 
 `non_triggers` is the half that matters. A skill that fires on everything scores
 perfectly on its own triggers, and the cost lands on whichever skill it took the
