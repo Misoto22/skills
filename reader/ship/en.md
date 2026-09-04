@@ -1,5 +1,84 @@
 Shipping a change is a sequence everyone already knows: branch, test, commit, open a pull request, wait for CI, merge, tidy up. The cost is never in knowing it — it is in the step that gets skipped at five in the afternoon. `ship` runs the whole sequence and refuses to skip anything silently.
 
+```diagram
+{
+  "direction": "column",
+  "nodes": [
+    {
+      "id": "pre",
+      "label": "0 · Preflight",
+      "note": "always — prints the plan",
+      "accent": true
+    },
+    {
+      "id": "branch",
+      "label": "1 · Branch off base",
+      "note": "on the base branch, with something to ship"
+    },
+    {
+      "id": "test",
+      "label": "2 · Test & lint",
+      "note": "only what the project declares"
+    },
+    {
+      "id": "commit",
+      "label": "3 · Commit",
+      "note": "secrets gate before staging"
+    },
+    {
+      "id": "pr",
+      "label": "4 · Pull request"
+    },
+    {
+      "id": "ci",
+      "label": "5 · CI",
+      "note": "re-polls before concluding there are none"
+    },
+    {
+      "id": "merge",
+      "label": "6 · Merge"
+    },
+    {
+      "id": "clean",
+      "label": "7 · Worktree cleanup",
+      "note": "never the one this run is standing in"
+    }
+  ],
+  "edges": [
+    {
+      "from": "pre",
+      "to": "branch"
+    },
+    {
+      "from": "branch",
+      "to": "test"
+    },
+    {
+      "from": "test",
+      "to": "commit"
+    },
+    {
+      "from": "commit",
+      "to": "pr"
+    },
+    {
+      "from": "pr",
+      "to": "ci"
+    },
+    {
+      "from": "ci",
+      "to": "merge"
+    },
+    {
+      "from": "merge",
+      "to": "clean"
+    }
+  ],
+  "caption": "Preflight marks every step RUN or SKIP, and the run follows that plan exactly. A clean tree on the base branch with nothing unpushed and no open pull request exits at step 0.",
+  "label": "The seven steps ship runs, and what each one depends on"
+}
+```
+
 ## The preflight decides the run, and says so first
 
 Before touching anything it inspects the repository and prints an execution plan marking every downstream step `RUN` or `SKIP`. What it found decides the plan: whether a test command exists, whether the project declares CI, whether there is already an open pull request for this branch.
