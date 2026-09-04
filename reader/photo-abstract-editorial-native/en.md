@@ -1,5 +1,15 @@
 This skill does the one layer that actually needed watching: the composite and its quality control.
 
+## What it produces
+
+Three boards from the native-resolution audit, published with the author's permission. They show the proportion the composite keeps, not a template to copy.
+
+![Whale comparison board: a sharp photograph above a centred abstract panel](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/whale-native-board.jpg)
+
+![Harbour bridge comparison board: a wide source stays wide above its lower abstraction](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/harbour-bridge-native-board.jpg)
+
+![Portrait side-by-side board: a tall source intact on the left, its lower abstraction intact on the right](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/portrait-native-board.jpg)
+
 ## Neither half may be stretched
 
 The upper half is always the original photograph after automatic orientation correction, and may only be scaled down proportionally. The lower half is an abstract panel you supply, or one made by another skill you have permission to use, and it may not be enlarged or squashed either.

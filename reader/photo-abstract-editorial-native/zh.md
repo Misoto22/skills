@@ -1,5 +1,15 @@
 这个技能只做之前真正需要人盯着的那一层：拼版与质量控制。
 
+## 成品长什么样
+
+三张来自原生分辨率审查的成品，已获作者授权公开。它们展示的是拼版保住的比例，不是可以照抄的模板。
+
+![鲸鱼对照板：清晰的照片位于居中抽象面板之上](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/whale-native-board.jpg)
+
+![海港大桥对照板：横幅原图在上半部保持横幅，下半部为其抽象面板](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/harbour-bridge-native-board.jpg)
+
+![竖幅左右并排对照板：高瘦的原图完整置于左侧，其抽象面板完整置于右侧](https://github.com/Misoto22/skills/raw/main/plugins/photography/skills/photo-abstract-editorial-native/assets/examples/portrait-native-board.jpg)
+
 ## 两个部分都不许被拉伸
 
 上半部分始终是经自动校正方向后的原始照片，只允许按比例缩小。下半部分是你提供、或由另一个已获许可的技能制作的抽象面板，同样不允许被放大或压扁。
