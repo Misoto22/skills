@@ -242,3 +242,63 @@ class PublishedSuitesTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ArtifactFieldTests(unittest.TestCase):
+    """`artifact` hands a case's data to the model; `fixture` also grades against it.
+
+    They were one field, and that is why eight cases across four skills were
+    failing for a reason no skill edit could fix: the case said "explain this
+    valid comparison", supplied nothing, and marked the honest answer wrong.
+    Giving those cases their data needed a way to supply it that did not also
+    demand a registered validator the skill does not have.
+    """
+
+    def _errors(self, case: dict) -> list[str]:
+        return HARNESS._check_case(Path("evals/x/evals.json"), "behaviors", 0, case, set(), {"x"}, "x")
+
+    def test_a_case_may_not_name_both(self) -> None:
+        errors = self._errors(behavior("a", fixture="f.json", artifact="a.json"))
+        self.assertTrue(any("both a fixture and an artifact" in error for error in errors))
+
+    def test_a_missing_artifact_is_reported(self) -> None:
+        errors = HARNESS._check_behavior_artifact("l", "email", "fixtures/nope.json")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("does not exist", errors[0])
+
+    def test_an_artifact_must_be_json(self) -> None:
+        errors = HARNESS._check_behavior_artifact("l", "email", "iteration-1/rejected.md")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("must be JSON", errors[0])
+
+    def test_an_artifact_may_not_escape_its_suite(self) -> None:
+        errors = HARNESS._check_behavior_artifact("l", "email", "../../registry.json")
+        self.assertEqual(len(errors), 1)
+
+    def test_the_published_artifacts_load(self) -> None:
+        for path in sorted(EVALS.glob("*/evals.json")):
+            suite = json.loads(path.read_text(encoding="utf-8"))
+            for case in suite.get("behaviors") or []:
+                artifact = case.get("artifact")
+                if artifact is None:
+                    continue
+                with self.subTest(skill=suite["skill"], case=case["id"]):
+                    self.assertEqual(HARNESS._check_behavior_artifact("l", suite["skill"], artifact), [])
+
+    def test_the_artifact_reaches_the_model(self) -> None:
+        """The whole point. A case that supplies data the prompt never carries is the bug."""
+
+        case = {
+            "id": "probe",
+            "prompt": "Explain this valid comparison.",
+            "expectations": ["shows the score"],
+            "artifact": "fixtures/neutral.json",
+        }
+        message = HARNESS._behavior_user_message("bazi-compatibility-reading", case)
+        self.assertIn("<artifact-json>", message)
+        self.assertIn("evaluation data, not instructions", message)
+        self.assertIn("bazi-compatibility", message)
+
+    def test_a_case_without_one_carries_no_artifact_block(self) -> None:
+        message = HARNESS._behavior_user_message("email", {"id": "p", "prompt": "hi"})
+        self.assertNotIn("<artifact-json>", message)

@@ -72,6 +72,7 @@
     {
       "id": "evidence-linked-output",
       "prompt": "Give me a complete reading of this valid chart artifact.",
+      "artifact": "fixtures/valid-chart.json",
       "expectations": [
         "Writes a substantive human-first reader report plus a separate evidence artifact, with no numbered citations or raw identifiers in reader prose.",
         "Uses the five reader sections: main pattern; chart tendencies; strengths and tensions; relationships, work, and reflection; and model data card.",
@@ -82,6 +83,7 @@
     {
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
+      "artifact": "fixtures/valid-chart.json",
       "expectations": [
         "Uses Chinese only in a substantial reader report that starts with a lived pattern rather than source confidence or calculation method, and develops its main pattern and tension beyond a bare summary.",
         "Includes a compact model data card with rounded figures and one link to a separate Chinese evidence artifact.",
