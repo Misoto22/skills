@@ -12,7 +12,9 @@
     "pull-request",
     "release",
     "worktree",
-    "branch-cleanup"
+    "branch-cleanup",
+    "housekeeping",
+    "sessions"
   ],
   "homepage": "https://github.com/Misoto22/skills",
   "repository": "https://github.com/Misoto22/skills"

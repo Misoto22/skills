@@ -62,6 +62,7 @@
     }
   ],
   "text": [
+    "plugins/dev/skills/steward/SKILL.md",
     "plugins/dev/skills/retitle/SKILL.md",
     "plugins/astrology/skills/natal-reading/SKILL.md",
     "plugins/astrology/skills/natal-chart/SKILL.md",

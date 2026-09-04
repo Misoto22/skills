@@ -1,0 +1,6 @@
+interface:
+  display_name: "Steward"
+  short_description: "Sweep every active repository; report what needs merging"
+  default_prompt: "Use $steward to sweep every repository my sessions have touched: fast-forward each base, remove what merged, keep titles in scheme, and report what is ready to merge and what needs me — asking nothing if nobody is here to answer."
+policy:
+  allow_implicit_invocation: true

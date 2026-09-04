@@ -20,12 +20,13 @@
     },
     {
       "title": "Dev",
-      "description": "The loop around a change \u2014 pull the base branch level, land the change as a merged pull request, then remove what shipping left behind.",
+      "description": "The loop around a change \u2014 pull the base branch level, land the change as a merged pull request, then remove what shipping left behind \u2014 and a steward that runs that loop across every active repository at once.",
       "skills": [
         "sync",
         "ship",
         "cleanup",
-        "retitle"
+        "retitle",
+        "steward"
       ]
     },
     {
