@@ -3,7 +3,7 @@ name: bazi-chart
 description: Calculate one reusable BaZi chart from a named person's exact birth date, minute, and birthplace, write canonical JSON plus data-only Markdown, then start the natal reading automatically. Use for 八字排盘, 生辰八字, four pillars, or informal single-person birth details. Not for two-person compatibility, existing-chart interpretation, Da Yun, annual luck, or event forecasts.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.13.1"
 ---
 
 # BaZi Chart

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "writing",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Portable agent skills for evidence-safe articles and reliable messages.",
   "author": {
     "name": "skills contributors"

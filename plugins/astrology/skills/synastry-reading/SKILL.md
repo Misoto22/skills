@@ -3,7 +3,7 @@ name: synastry-reading
 description: Use when $synastry hands off a JSON v2 artifact, or when someone supplies a synastry-chart schema 2.0 JSON path or object and asks for 合盘解读, interpretation, relationship dynamics, or an evidence-linked Markdown report. Not for legacy TXT, raw birth details, one-person natal charts, recalculation, transits, forecasts, predictions, or compatibility scores.
 license: AGPL-3.0-or-later
 metadata:
-  version: "0.13.0"
+  version: "0.13.1"
 ---
 
 # Synastry Reading

@@ -3,7 +3,7 @@ name: sync
 description: Bring the local repository in line with its remote — fetch, prune, fast-forward the base branch, and report what diverged. It never rebases a feature branch, never resolves a conflict, and never discards a local commit. Use when asked to sync, pull latest, update from main, get up to date, catch up with remote, 同步一下, 拉一下最新的, 更新到最新, 跟 main 对齐, 更新一下代码. Not for shipping changes, deleting merged branches, or resolving a merge conflict.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.13.1"
 argument-hint: "[--base=<branch>] [--all]"
 ---
 
@@ -81,7 +81,7 @@ For the current branch when it is not the base:
 | Ahead only | `ahead N — unpushed work` |
 | Behind only | `behind N — rebase onto <base> when ready` |
 | Diverged | `diverged: N ahead, M behind — rebase or merge, your call` |
-| Upstream gone | `upstream gone — the pull request was probably merged and the branch deleted; /dev:cleanup removes it` |
+| Upstream gone | `upstream gone — the pull request was probably merged and the branch deleted; the cleanup skill removes it` |
 
 Never rebase automatically. A rebase rewrites commits, and one run without being asked is indistinguishable from losing work.
 
@@ -99,7 +99,7 @@ git for-each-ref --format='%(refname:short) %(upstream:short) %(upstream:track)'
 |---|---|---|
 | `[behind N]` | strictly behind | fast-forward |
 | `[ahead N]`, `[ahead N, behind M]` | carries local commits | skip — step 4's rules apply |
-| `[gone]` | upstream pruned | skip, report; `/dev:cleanup` decides its fate |
+| `[gone]` | upstream pruned | skip, report; the cleanup skill decides its fate |
 | empty, with an upstream | up to date | nothing to do |
 | empty, with no upstream | never pushed | skip, report |
 
