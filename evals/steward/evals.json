@@ -1,0 +1,135 @@
+{
+  "skill": "steward",
+  "triggers": [
+    {
+      "id": "chinese-majordomo",
+      "prompt": "大内总管，把所有项目巡一遍，看看哪些分支该合并了",
+      "expected": "Fires on the Chinese name, runs the inventory first, and reports the merge ledger across every repository."
+    },
+    {
+      "id": "sweep-all-repos",
+      "prompt": "Sweep all my repos: sync them, clean up what merged, and tell me what's waiting on me.",
+      "expected": "Fires, discovers the repositories from the session stores, and runs sync then cleanup in each before reporting."
+    },
+    {
+      "id": "chinese-scheduled-housekeeping",
+      "prompt": "定时清理本地环境，每天早上跑一遍，提醒我哪些需要 merge",
+      "expected": "Fires on a second Chinese phrasing, and installs the schedule through the harness with --unattended rather than running once and forgetting the request."
+    },
+    {
+      "id": "what-needs-merging",
+      "prompt": "What needs merging across my projects right now?",
+      "expected": "Fires, and answers with the branch ledger — ready, blocked, unshipped — rather than merging anything.",
+      "holdout": true
+    },
+    {
+      "id": "chinese-scan-worktrees",
+      "prompt": "扫一下所有 worktree 和 session，把没用的收拾掉",
+      "expected": "Fires on the worktree phrasing, keeps every occupied worktree, and removes only what cleanup's own rules remove."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "one-repo-cleanup",
+      "prompt": "清理一下仓库，清掉合并过的分支",
+      "expected": "Does not fire. One repository, the one the user is in, is cleanup's job.",
+      "routes_to": "cleanup"
+    },
+    {
+      "id": "one-repo-sync",
+      "prompt": "同步一下，拉一下最新的",
+      "expected": "Does not fire. Pulling one repository level is sync's job.",
+      "routes_to": "sync"
+    },
+    {
+      "id": "titles-only",
+      "prompt": "会话名太乱了，帮我规范对话名称",
+      "expected": "Does not fire. Renaming conversations on their own belongs to retitle.",
+      "routes_to": "retitle"
+    },
+    {
+      "id": "ship-this",
+      "prompt": "Ship this branch and merge it.",
+      "expected": "Does not fire. Landing a branch is ship's job; the steward only reports a branch as ready.",
+      "routes_to": "ship"
+    },
+    {
+      "id": "chinese-merge-this-pr",
+      "prompt": "把这个 PR 合了",
+      "expected": "Does not fire. Merging one pull request is shipping, and Chinese phrasing must not blur the boundary.",
+      "routes_to": "ship"
+    },
+    {
+      "id": "resolve-conflict",
+      "prompt": "Resolve the merge conflict on feat/parser for me.",
+      "expected": "Does not fire. It never resolves a conflict, and neither does any skill it delegates to.",
+      "holdout": true
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "unattended-proposes-titles-only",
+      "prompt": "Run the steward unattended. The Codex catalogue has 40 titles outside the MMDD｜类型｜主题 scheme, 28 of them older than the 30-day window.",
+      "expectations": [
+        "Runs retitle up to its two-column table and writes no title, because a scheduler is not a confirmation.",
+        "Puts the proposed renames, or their count and where the table was written, into the report.",
+        "Does not check whether the session-naming hook is installed — the dev plugin registers it — and reports only a hand-installed duplicate if one is still registered in the agent's settings."
+      ]
+    },
+    {
+      "id": "occupied-worktree-kept",
+      "prompt": "Sweep. In repo A, the worktree .claude/worktrees/foo holds branch feat/foo, whose pull request #41 merged; the tree is clean, and a session wrote to it two hours ago.",
+      "expectations": [
+        "Keeps .claude/worktrees/foo and does not delete feat/foo, naming the session activity as the reason.",
+        "Does not treat the merged pull request and clean tree as overriding occupancy.",
+        "Lists the worktree under Kept with the session that holds it."
+      ]
+    },
+    {
+      "id": "merge-ledger-without-merging",
+      "prompt": "Sweep my repositories. In repo A: feat/x has open PR #12 with green checks and no review requirement; feat/y has open PR #13 with one failing check; feat/z has 4 commits, no pull request, and its last commit was 45 days ago.",
+      "expectations": [
+        "Reports feat/x as ready to merge with the command to run, and does not merge it.",
+        "Reports feat/y as blocked by CI and names the failing check.",
+        "Reports feat/z as stale unshipped work under Needs you, and deletes nothing."
+      ]
+    },
+    {
+      "id": "vanished-checkout-continues",
+      "prompt": "Sweep. One of the sessions in the last two weeks ran in a directory that no longer exists on disk, and twelve more ran in dev-agents-* directories under the system temp directory.",
+      "expectations": [
+        "Reports the vanished directory as missing and the twelve sandboxes as temporary, in the skipped counts.",
+        "Does not sync or clean the temporary checkouts.",
+        "Continues the sweep over the remaining repositories rather than stopping."
+      ]
+    },
+    {
+      "id": "dry-run-writes-nothing",
+      "prompt": "大内总管 --dry-run，看看现在各个仓库什么状态",
+      "expectations": [
+        "Reports in Chinese, because that is the language of the request.",
+        "Prints the inventory and the branch ledger without fetching, fast-forwarding, deleting, or renaming anything.",
+        "Says the branch states are as of the last fetch."
+      ],
+      "holdout": true
+    },
+    {
+      "id": "schedule-on-request",
+      "prompt": "Make the steward run every weekday morning around nine.",
+      "expectations": [
+        "Installs the sweep through the harness's scheduler with --unattended, rather than running it once.",
+        "Picks a minute that is not :00 or :30 and says which scheduler was used and how to remove it.",
+        "Checks the scheduler's existing list first so a second copy is not registered."
+      ]
+    },
+    {
+      "id": "one-repository-failing-does-not-stop-the-sweep",
+      "prompt": "Sweep. gh is not authenticated for the host that repo C lives on; repos A, B and D are fine.",
+      "expectations": [
+        "Sweeps A, B and D fully.",
+        "Reports C as failed with the command and what it printed, under Needs you, rather than as synced or clean.",
+        "Does not prompt for authentication in an unattended run."
+      ]
+    }
+  ]
+}

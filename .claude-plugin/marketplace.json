@@ -37,6 +37,7 @@
         "./skills/cleanup",
         "./skills/retitle",
         "./skills/ship",
+        "./skills/steward",
         "./skills/sync"
       ]
     },

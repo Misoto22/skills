@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twenty-one skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twenty-two skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -49,6 +49,7 @@ Twenty-one skills in seven plugins. The plugin name is the command prefix, and e
 - **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
 - **[retitle](plugins/dev/skills/retitle/SKILL.md)** (`/dev:retitle`) — renames agent conversations onto a dated `MMDD｜TYPE｜subject` scheme, English by default and Chinese with `--lang=zh`. Every rename is proposed as a two-column table first; a conversation whose subject cannot be recovered keeps the name it had.
+- **[steward](plugins/dev/skills/steward/SKILL.md)** (`/dev:steward`) — sweeps every repository your sessions have touched: fast-forwards each base, removes what merged, keeps titles in scheme, and reports what is ready to merge and which worktrees a live session still occupies. It runs forked and unattended, so a question a pass would have asked lands in the report instead of blocking a run nobody is watching.
 
 #### `brand` — visual identity assets
 
@@ -225,17 +226,17 @@ flowchart LR
   M["misoto22<br/>marketplace"] --> W["writing"] & D["docs"] & V["dev"] & A["astrology"]
   W --> E["/writing:email"] & PB["/writing:personal-blog"] & T["/writing:tempering"]
   D --> R["/docs:repo-polish"]
-  V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"] & RT["/dev:retitle"]
+  V --> SY["/dev:sync"] & SH["/dev:ship"] & CL["/dev:cleanup"] & RT["/dev:retitle"] & ST["/dev:steward"]
   A --> SN["/astrology:synastry"] & SR["/astrology:synastry-reading"]
   SW(["writing/shared<br/>tone · format"]) -.vendored.-> E & PB & T
-  SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL
+  SV(["dev/shared<br/>git"]) -.vendored.-> SY & SH & CL & ST
 
   classDef m fill:#0969da,stroke:#0969da,color:#fff
   classDef p fill:#1f883d,stroke:#1f883d,color:#fff
   classDef s fill:#eaeef2,stroke:#8c959f,color:#1f2328
   class M m
   class W,D,V,A p
-  class E,PB,T,R,SY,SH,CL,RT,SN,SR,SW,SV s
+  class E,PB,T,R,SY,SH,CL,RT,ST,SN,SR,SW,SV s
 ```
 
 <details>
