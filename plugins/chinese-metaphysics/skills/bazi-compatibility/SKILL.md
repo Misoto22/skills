@@ -3,7 +3,7 @@ name: bazi-compatibility
 description: Compare two people from reusable BaZi chart JSON files, two complete birth records, or one of each; write auditable interaction data and transparent general or relationship-specific scores before automatic interpretation. Use for 八字合婚, 合八字, two-person compatibility, 配不配, or whether two charts work together. Not for one-person natal work, reading an existing comparison, forecasting, or missing birth minutes.
 license: MIT
 metadata:
-  version: "0.15.0"
+  version: "0.15.2"
 ---
 
 # BaZi Compatibility
