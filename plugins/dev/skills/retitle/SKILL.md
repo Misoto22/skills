@@ -3,7 +3,7 @@ name: retitle
 description: Normalize agent conversation titles onto a dated `MMDD｜TYPE｜subject` scheme — English by default, Chinese with `--lang=zh` — across Codex, Claude Code, and any client that exposes its session list. The date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
-  version: "0.14.0"
+  version: "0.15.0"
 argument-hint: "[--client=codex|claude-code] [--lang=en|zh] [--tz=<zone>] [--apply]"
 ---
 

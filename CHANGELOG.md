@@ -2,12 +2,13 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 0.15.0 — 2026-09-05
 
 - Added `steward` to `dev` — the 大内总管. `sync`, `ship` and `cleanup` each work in the repository they are run in, and nothing ran them across the dozen a person actually has open; which branches were waiting to be merged was whichever ones someone remembered. The steward finds every active repository from where sessions leave traces — Claude Code's transcripts and running sessions, Codex's thread catalogue, and any roots named — resolves each worktree to its primary checkout, runs sync, cleanup and retitle in each, and returns one ledger: ready to merge, blocked and why, unshipped, stale, kept.
 - Two things it owns that the delegated skills cannot see. **Occupancy**: a worktree with a live process, or with session activity inside a window, is never removed and its branch never deleted, whatever git and the forge say about the branch — a session resumed into a deleted directory breaks every command after it, and git cannot see the session. **Unattended mode**: every question a pass would have stopped to ask lands in the report instead of blocking a run nobody is watching, and `retitle` proposes without writing, for the reason its own confirmation table exists.
 - It is the first skill to declare `context: fork`. A sweep is the case CONTRIBUTING describes for it — a long private session whose transcript the caller never needs. Measured on one machine, one run covered 15 repositories, 121 worktrees and 44 open pull requests, and none of that intermediate traffic is what was asked for. Forked, the report is the whole delivery rather than a summary sitting on evidence the caller can scroll to, which is why it is written to `~/.local/state/steward/last-sweep.md` before it is returned and why the report names that path.
 - It never merges. A green pull request is reported with the command that would land it, because whether it should land today — a review still expected, a deploy window, a change meant to go in first — is not visible from a sweep. `scripts/inventory.py` is the discovery half: standard library only, opening the Codex catalogue read-only, and tested against real repositories and forged session stores.
+- `ci-pins.py`'s usage example moved off `ruff 0.15.0`. The version in it is arbitrary — it demonstrates `bump`, and ruff is pinned at 0.14.6 — but `bump-version.py --audit` greps for the repository's own version string, so the example collided with this release and failed the audit CI runs. It now shows the pin's next patch, which is both what a reader would actually type and a number this repository does not use.
 
 ## 0.14.0 — 2026-09-05
 

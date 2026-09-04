@@ -91,7 +91,7 @@ class CalculatorSkillContractTests(unittest.TestCase):
         text = CALCULATOR_SKILL.read_text(encoding="utf-8")
 
         self.assertRegex(text, r"\A---\nname: synastry\n")
-        self.assertIn('version: "0.14.0"', text)
+        self.assertIn('version: "0.15.0"', text)
         self.assertLess(len(text.splitlines()), 500)
 
     def test_calculator_is_json_only_and_has_no_fixed_identity(self) -> None:

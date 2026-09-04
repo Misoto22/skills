@@ -8,7 +8,7 @@ refuses any literal occurrence the file does not account for.
 
   python3 scripts/ci-pins.py spec claude-code    Print <package>@<version>
   python3 scripts/ci-pins.py check               Fail on drift, or an undeclared occurrence
-  python3 scripts/ci-pins.py bump ruff 0.15.0    Move one pin everywhere it is written
+  python3 scripts/ci-pins.py bump ruff 0.14.7    Move one pin everywhere it is written
 
 Not only npm and pip packages. A runtime is asked for as `3.13` or `22`, and the
 model an unattended evaluation bills against is not a version at all — both used
