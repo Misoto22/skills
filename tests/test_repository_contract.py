@@ -2721,17 +2721,34 @@ class RepositoryContractTests(unittest.TestCase):
                 f"registry.json and {name}'s reader/ disagree",
             )
 
-    def test_registry_omits_reader_rather_than_publishing_an_empty_map(self) -> None:
-        """An empty object is a shape every renderer then special-cases, like argumentHint."""
+    def test_every_published_skill_carries_a_reader_document_per_locale(self) -> None:
+        """One skill falling back to the agent's instructions is the oversight nobody notices."""
 
         registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
         for group in registry["groups"]:
             for skill in group["skills"]:
-                if "reader" in skill:
+                for locale in ("en", "zh"):
                     self.assertTrue(
-                        skill["reader"],
-                        f"skill {skill['name']} publishes an empty reader map",
+                        skill.get("reader", {}).get(locale, "").strip(),
+                        f"skill {skill['name']} has no {locale} reader document",
                     )
+
+    def test_registry_refuses_a_skill_with_no_reader_document(self) -> None:
+        """Required like the translations, now that every published skill carries one."""
+
+        with repository_copy() as copied:
+            (copied / "reader" / "ship" / "zh.md").unlink()
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reader/ship/zh.md does not exist", result.stderr)
 
     def test_registry_refuses_an_emptied_reader_document(self) -> None:
         """A blank file is a blank page, and it is the failure a build can catch for free."""

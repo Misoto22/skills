@@ -411,6 +411,10 @@
               "description": "当两个人的出生信息需要一份带不确定度的 JSON v2 合盘计算时使用，包括合盘、星盘配对、精确时间、有界的时间窗口或只有日期的记录。不适用于解读已有的 v2 文件、旧版 TXT、单人本命盘、行运、预测或所谓契合度分数。",
               "overview": "这个技能只负责算，不负责解读。它的核心是把不确定度当作一等公民：出生时间未知或只精确到小时，会被表示成一个有界的时间窗口，而不是随便取个中间值假装精确。计算结果写成 JSON v2 文件，其中记录了用的是哪个星历后端、哪个版本，好让结论可以被复核。默认按隐私最小化处理，只有明确要求归档模式时才保留完整出生信息。算完之后它会把文件交给解读技能，两步之间的边界是刻意的——计算可以复核，解读会随语境变化。"
             }
+          },
+          "reader": {
+            "en": "`synastry` computes; it does not interpret. What it is built around is treating uncertainty as a first-class value.\n\n## An uncertain birth time is recorded as uncertain\n\nA birth time that is unknown, or known only to the hour, is represented as a bounded window rather than collapsed to a midpoint that pretends to precision.\n\nThe reason is that a midpoint makes the uncertainty disappear into the number. Once \"sometime in the afternoon\" has been written down as 14:00, every later conclusion that rests on the ascendant and the houses looks exactly as reliable as one from an exact time. Keeping the window in the file is what lets the reading step know which conclusions to soften.\n\n## The result can be checked\n\nThe calculation is written as a JSON v2 file recording which ephemeris backend produced it and at which version. The same birth details differ by seconds between backends, and without that record there is no way to explain why two runs disagree.\n\n## Privacy-minimal by default\n\nFull birth information is retained only when archival mode is asked for. By default the file keeps what the calculation needs rather than what identifies a person.\n\n## It hands off when it is done\n\nWhen the calculation finishes it hands the file to the reading skill. The boundary is deliberate: a calculation can be checked, an interpretation shifts with context, and putting both in one artefact drags the first one's credibility down to the second's.\n\n## What it does not do\n\nIt does not interpret, does not read the legacy TXT format, does not compute a single-person natal chart, and produces no transits, forecasts, or compatibility score.",
+            "zh": "`synastry` 只负责算，不负责解读。它的核心是把不确定度当作一等公民。\n\n## 出生时间不确定时，它记录不确定\n\n出生时间未知、或只精确到小时，会被表示成一个有界的时间窗口，而不是随便取个中间值假装精确。\n\n理由是取中间值会让不确定度消失在数字里：一个「大概下午」的出生时间被写成 14:00 之后，后面所有依赖上升点和宫位的结论都会显得和精确出生时间算出来的一样可靠。窗口留在文件里，解读那一步才知道哪些结论该降低确定性。\n\n## 结论可以被复核\n\n计算结果写成 JSON v2 文件，里面记录了用的是哪个星历后端、哪个版本。同一份出生资料在不同后端上会有分秒之差，不记下来就没法解释两次结果为什么不同。\n\n## 默认隐私最小化\n\n只有明确要求归档模式时才保留完整出生信息。默认情况下文件里留的是计算需要的东西，不是身份需要的东西。\n\n## 算完之后交给解读\n\n算完它把文件交给解读技能。两步之间的边界是刻意的：计算可以复核，解读会随语境变化，把它们放在一个产物里，前者的可信度会被后者拖着走。\n\n## 它不做的事\n\n它不解读、不读旧版 TXT 文件、不算单人本命盘，不做流年、预测，也不给「合不合适」打分。"
           }
         },
         {
@@ -441,6 +445,10 @@
               "description": "当 synastry 交来一份 JSON v2 文件，或有人提供 synastry-chart schema 2.0 的 JSON 路径或对象并要求合盘解读、关系动态分析或一份逐条附依据的 Markdown 报告时使用。不适用于旧版 TXT、原始出生信息、单人本命盘、重新计算、行运、预测或契合度分数。",
               "overview": "这个技能读的是已经算好的合盘文件，它自己不做任何天文计算。它的输出是一份 Markdown 报告，特点是每一条判断都链回文件里的具体相位数据——你能看到「这条结论是从哪几个相位推出来的」，而不是一段无从核对的描述。它会根据文件里记录的不确定度调整措辞：出生时间是个时间窗口时，与上升点、宫位相关的解读会相应降低确定性，而不是照样写得斩钉截铁。"
             }
+          },
+          "reader": {
+            "en": "`synastry-reading` reads a synastry file that has already been computed. It performs no astronomical calculation of its own.\n\n## Every judgement links back to specific aspects\n\nThe output is a Markdown report in which each judgement links back to the aspect data in the file. You can see which aspects a conclusion was drawn from, rather than reading a description with nothing to check it against.\n\nThe format constrains the writer as much as it serves the reader: a judgement with no aspect behind it has nowhere to sit.\n\n## Uncertainty changes the wording\n\nIt reads the uncertainty recorded in the file and adjusts accordingly. Where the birth time is a window, the parts of the reading that rest on the ascendant and the houses are stated with correspondingly less certainty instead of being written flat.\n\n## What it does not do\n\nIt does not calculate — that is `synastry`. It does not read the legacy TXT format, does not accept raw birth details, does not compute a single-person natal chart, and produces no transits, forecasts, or compatibility score.",
+            "zh": "`synastry-reading` 读一份已经算好的合盘文件，自己不做任何天文计算。\n\n## 每条判断都链回具体相位\n\n输出是一份 Markdown 报告，特点是每一条判断都链回文件里的具体相位数据。你能看到这条结论是从哪几个相位推出来的，而不是一段无从核对的描述。\n\n这样写也约束了写的人：一条找不到对应相位的判断在这种格式里没有地方放。\n\n## 不确定度会改变措辞\n\n它读文件里记录的不确定度，并据此调整语气。出生时间是一个时间窗口时，与上升点、宫位相关的解读会相应降低确定性，而不是照样写得斩钉截铁。\n\n## 它不做的事\n\n它不做计算——那是 `synastry`。不读旧版 TXT、不接受原始出生资料、不算单人本命盘，不做流年和预测，也不给「合不合适」打分。"
           }
         },
         {
@@ -559,6 +567,10 @@
               "description": "根据某人确切的出生日期、分钟与出生地，排出一份可复用的八字命盘，写出规范的 JSON 与纯数据的 Markdown，随后自动开始原局解读。适用于八字排盘、生辰八字、四柱，或非正式给出的单人出生信息。不适用于双人合婚、解读已有命盘、大运、流年或事件预测。",
               "overview": "这个技能把排盘和解读分开：它只产出数据，不下判断。输入是精确到分钟的出生时间和出生地，输出是一份规范化的 JSON 命盘（四柱、十神、藏干、五行分布）以及一份只有数据、没有结论的 Markdown。分钟精度是硬要求，因为时柱会因此改变；出生地则用于真太阳时校正。排完之后它自动把文件交给解读技能——命盘可以复用，同一份数据可以被反复解读而不必重算。"
             }
+          },
+          "reader": {
+            "en": "`bazi-chart` separates casting the chart from reading it: it produces data and passes no judgement.\n\n## It needs the minute, and the birthplace\n\nMinute precision is a hard requirement, because the hour pillar changes with it. The birthplace is used for the true-solar-time correction — the same clock time at opposite ends of a zone differs by enough to move a pillar.\n\n## What it produces\n\nA normalised JSON chart — the four pillars, the ten gods, the hidden stems, the elemental distribution — and a Markdown rendering that carries the data and no conclusions.\n\nThe Markdown states no judgement so that the artefact stays valid after the interpretation around it changes.\n\n## It hands off when it is done\n\nWhen the chart is cast it passes the file to the reading skill. The chart is reusable: the same data can be read again and again without being recomputed.\n\n## What it does not do\n\nIt does not interpret, does not do two-person compatibility, does not touch luck pillars or annual cycles, and makes no dated prediction.",
+            "zh": "`bazi-chart` 把排盘和解读分开：它只产出数据，不下判断。\n\n## 输入要精确到分钟，还要出生地\n\n分钟精度是硬要求，因为时柱会因此改变。出生地用于真太阳时校正——同一个钟点在东西两端差出的时间足以换一根柱。\n\n## 输出\n\n一份规范化的 JSON 命盘（四柱、十神、藏干、五行分布），以及一份只有数据、没有结论的 Markdown。\n\nMarkdown 里不写判断，是为了让这份产物在解读换了口径之后仍然有效。\n\n## 排完之后交给解读\n\n排完它自动把文件交给解读技能。命盘可以复用：同一份数据可以被反复解读，不必重算。\n\n## 它不做的事\n\n它不解读，不做两个人的合婚，不碰大运流年，不做任何带时间的预测。"
           }
         },
         {
@@ -586,6 +598,10 @@
               "description": "把一份已完成的单人八字 JSON 命盘、或等价的经过核对的四柱数据，解读成一份逐条附依据的静态原局报告。适用于计算器交来文件时，或有人要求解读八字、看命局、说明日主强弱、格局与喜用神的场合。不适用于原始出生信息、双人合婚、大运流年、带日期的预测或数据不完整的情况。",
               "overview": "这个技能读已经排好的命盘，产出一份面向读者的原局分析，长度目标在 1400 到 1900 字之间——足够把每个格局、每处张力和可落地的观察展开讲，而不是给一段谁都看得懂但谁也用不上的概括。它的关键约束是「静态」：只讲命盘本身，不碰大运流年，也不做带时间的预测。所有技术性证据（分数、来源 ID、校验和、推算过程）写进单独的存档文件，读者拿到的报告里只有结论和它依据的那几个具体事实。"
             }
+          },
+          "reader": {
+            "en": "`bazi-reading` reads a chart that has already been cast and writes the natal analysis for a reader.\n\n## The length is a constraint, not a target\n\nIt aims for 1,400 to 1,900 characters — enough to open up each structure, each tension and each observation you could act on, rather than a summary anybody can follow and nobody can use.\n\nThe floor stops it collapsing into \"your chart is short on water\". The ceiling stops it saying the same thing three ways.\n\n## The natal chart only\n\nIts governing constraint is that it is static: the chart itself, never the luck pillars or annual cycles, and no dated prediction.\n\n## The technical evidence is filed separately\n\nScores, source ids, checksums and the derivation all go to a separate archive file. What the reader receives carries the conclusions and the specific facts behind them, not an output they have to learn to read first.\n\n## What it does not do\n\nIt does not cast a chart — that is `bazi-chart`. No compatibility reading, no luck pillars or annual cycles, and no dated prediction.",
+            "zh": "`bazi-reading` 读一份已经排好的命盘，产出面向读者的原局分析。\n\n## 长度是个约束，不是目标\n\n篇幅目标在 1400 到 1900 字之间——足够把每个格局、每处张力和可落地的观察展开讲，而不是给一段谁都看得懂但谁也用不上的概括。\n\n下限是防止它退回成一句「你五行缺水」，上限是防止它把同一件事换三种说法再讲一遍。\n\n## 只讲原局\n\n它的关键约束是静态：只讲命盘本身，不碰大运流年，也不做带时间的预测。\n\n## 技术证据另存\n\n所有分数、来源 ID、校验和、推算过程写进单独的存档文件。读者拿到的报告里只有结论和它依据的那几个具体事实，而不是一份需要先学会读的输出。\n\n## 它不做的事\n\n它不排盘——那是 `bazi-chart`。不做合婚，不做流年、大运，不预测任何有日期的事件。"
           }
         },
         {
@@ -614,6 +630,10 @@
               "description": "从两份可复用的八字命盘 JSON、两份完整出生记录、或一份命盘加一份记录中，比较两个人；在自动进入解读之前，先写出可核对的相互作用数据与透明的总体或分场景评分。不适用于单人命盘工作、解读已有的比较结果、预测，或出生时间缺少分钟的情况。",
               "overview": "这个技能只做比较和计分，解读交给另一个技能。它把两份命盘之间的相互作用逐项列出——天干五合、地支六合三合、刑冲害破——每一项都写进可核对的数据文件，然后据此给出总体分以及恋爱、婚姻、友情、家庭、工作几个场景各自的分数。评分过程是透明的：每一分的加减都能追到具体哪一组干支关系，而不是一个黑箱里出来的数字。它明确拒绝在出生时间缺少分钟时工作，因为时柱直接影响配偶宫。"
             }
+          },
+          "reader": {
+            "en": "`bazi-compatibility` compares and scores. The reading is another skill's job.\n\n## Every point traces to a specific relation\n\nIt enumerates the interactions between two charts — stem combinations, branch combinations and trines, and the clashes, harms and destructions — writes each into a checkable data file, and scores from that: an overall figure plus separate ones for romance, marriage, friendship, family and work.\n\nThe scoring is transparent: every point added or subtracted traces back to the particular stem-and-branch relation behind it, rather than emerging from a black box. A score that cannot be taken apart and checked is no different from an offhand opinion.\n\n## Without the minute it refuses\n\nIt does not run on a birth time without minutes. The hour pillar decides the spouse palace, and the spouse palace is the whole subject here — a compatibility score computed from the wrong hour pillar is specific in every digit and wrong in every digit.\n\n## What it does not do\n\nIt does not interpret, does not write the report, and produces no verdict on whether two people suit each other. The scores say which areas run smoothly and which need work; `bazi-compatibility-reading` writes them up.",
+            "zh": "`bazi-compatibility` 只做比较和计分，解读交给另一个技能。\n\n## 每一分都能追到具体关系\n\n它把两份命盘之间的相互作用逐项列出——天干五合、地支六合三合、刑冲害破——每一项都写进可核对的数据文件，然后据此给出总体分，以及恋爱、婚姻、友情、家庭、工作几个场景各自的分数。\n\n评分过程是透明的：每一分的加减都能追到具体哪一组干支关系，而不是一个黑箱里出来的数字。一个不能被拆开检查的分数，和一句随口的判断没有区别。\n\n## 缺分钟时它拒绝工作\n\n出生时间没有分钟就不算。时柱直接影响配偶宫，而配偶宫正是这件事的核心——用错的时柱算出来的合婚分，每一位都是具体的，也每一位都靠不住。\n\n## 它不做的事\n\n它不解读、不写报告，也不输出「合不合适」的结论。分数说明的是哪些方面会顺、哪些需要经营，报告由 `bazi-compatibility-reading` 来写。"
           }
         },
         {
@@ -641,6 +661,10 @@
               "description": "把一份已完成的八字合婚 JSON 文件、或等价的经过核对的比较结果，解读成一份平衡、分方向、逐条附依据的关系报告。适用于合婚计算器交来结果之后，或有人要求解释已经算出的总体、恋爱、婚姻、友情、家庭、工作分数时。不适用于原始出生记录、单人解读、重新计算、预测，或要一个非黑即白的缘分结论。",
               "overview": "这个技能读已经算好的合婚数据，写一份 1800 到 2400 字的关系报告。它有两个刻意的约束。一是「分方向」：A 对 B 的影响和 B 对 A 的影响是两件事，报告分别陈述，而不是给出一个混在一起的双向结论。二是「平衡」：有利与不利的相互作用都要写，不能只挑好听的说。它拒绝输出「合不合适」这种二元判断——数据能说明哪些方面会顺、哪些方面需要经营，但不能替两个人决定要不要在一起。"
             }
+          },
+          "reader": {
+            "en": "`bazi-compatibility-reading` takes compatibility data that has already been computed and writes a 1,800 to 2,400 character report on the relationship. Two constraints shape it.\n\n## It reads in both directions separately\n\nWhat A brings to B and what B brings to A are two different things, and the report states them separately rather than merging them into one two-way conclusion.\n\nMerging hides the most useful part: the common case in a relationship is that one direction runs easily and the other takes work, and averaged together that reads as \"fine overall\".\n\n## It stays balanced\n\nFavourable and unfavourable interactions both get written. A report listing only the favourable ones gives the reader nothing to decide with, because it would be true of any two people.\n\n## It refuses a verdict\n\nThe data can say which areas run smoothly and which need work. It cannot decide for two people whether to be together.\n\n## What it does not do\n\nIt does not compute — that is `bazi-compatibility`. It does not cast a single-person chart, does not touch luck pillars or annual cycles, and makes no dated prediction.",
+            "zh": "`bazi-compatibility-reading` 读已经算好的合婚数据，写一份 1800 到 2400 字的关系报告。它有两个刻意的约束。\n\n## 分方向\n\nA 对 B 的影响和 B 对 A 的影响是两件事，报告分别陈述，而不是给出一个混在一起的双向结论。\n\n合在一起写会掩盖最有用的那部分信息：一段关系里常见的情况正是一个方向顺、另一个方向费力，而合并之后它读起来像「总体还行」。\n\n## 平衡\n\n有利与不利的相互作用都要写，不能只挑好听的说。一份只列出有利项的报告，读者没法用它做任何判断，因为它对任何两个人都成立。\n\n## 它拒绝给二元判断\n\n数据能说明哪些方面会顺、哪些方面需要经营，但不能替两个人决定要不要在一起。\n\n## 它不做的事\n\n它不计算——那是 `bazi-compatibility`。不排单人命盘，不碰大运流年，不做带日期的预测。"
           }
         },
         {
@@ -670,6 +694,10 @@
               "description": "把一个人的生辰排成十二宫紫微命盘，产出可复用的 JSON 与纯数据 Markdown；没有明确性别就不排，因为大限方向无从判定。",
               "overview": "紫微斗数以农历月日安星，和八字用节气分月是两套不同的历法口径。这个技能把生辰解析成十二宫命盘：宫位、主星辅星、生年四化、大限窗口，全部写进可复核的 JSON 与纯数据 Markdown，不做任何解读。它要求明确给出性别——大限的顺逆由年干阴阳配合性别决定，缺一不可，而且绝不从姓名或称呼推断。晚子时出生会额外产出一份 00:00 换日的备用盘，因为农历日一变，紫微和跟它锚定的每一颗星都会移位。"
             }
+          },
+          "reader": {
+            "en": "Zi Wei Dou Shu places its stars by the lunar month and day, which is a different calendar convention from the solar terms BaZi divides months on. `ziwei-chart` resolves birth details into the twelve-palace chart and interprets nothing.\n\n## What it produces\n\nThe palaces, the major and support stars, the birth-year transformations and the decade windows, written as checkable JSON and a data-only Markdown rendering.\n\n## Sex has to be stated\n\nWhether the decades run forward or backward is decided by the year stem's polarity together with sex; neither alone settles it. The skill never infers it from a name or a form of address — a wrong guess reverses the whole decade sequence while the chart still looks entirely normal.\n\n## A late Zi hour produces a second chart\n\nA birth in the late Zi hour also produces an alternative chart on the 00:00 day boundary. When the lunar day changes, Zi Wei and every star anchored to it move, so this is not a small difference within one chart but two different charts. Which one applies is a question traditions disagree on, so you get both.\n\n## What it does not do\n\nIt does not interpret — that is `ziwei-reading`. No BaZi, no two-person chart, no annual cycles, and no dated prediction.",
+            "zh": "紫微斗数以农历月日安星，和八字用节气分月是两套不同的历法口径。`ziwei-chart` 把生辰解析成十二宫命盘，不做任何解读。\n\n## 产出\n\n宫位、主星辅星、生年四化、大限窗口，全部写进可复核的 JSON 与纯数据 Markdown。\n\n## 性别必须明确给出\n\n大限的顺逆由年干阴阳配合性别决定，缺一不可。它绝不从姓名或称呼推断——猜错的代价是整条大限方向反了，而盘面看起来完全正常。\n\n## 晚子时会多出一张盘\n\n晚子时出生会额外产出一份 00:00 换日的备用盘。农历日一变，紫微和跟它锚定的每一颗星都会移位，所以这不是同一张盘的小差别，是两张不同的盘。哪一张对，是流派问题，它把两张都给你。\n\n## 它不做的事\n\n它不解读——那是 `ziwei-reading`。不做八字，不做两个人的合盘，不碰流年，不做任何带时间的预测。"
           }
         },
         {
@@ -699,6 +727,10 @@
               "description": "解读已排好的紫微命盘，写成以读者为先的报告，审计明细单独成文；水墨风海报只在被要求时才出。",
               "overview": "接收已排好的紫微命盘，写成给人读的报告，机器细节另存一份审计文件。解读从命宫、宫内主星与庙旺、对宫和三合入手；四化被当作命盘的重心而不是判决，化忌标记的是注意力与摩擦聚集的地方。空宫借对宫来读，不当作「这件事没有」。报告会明说所依据的是一家流派，别家在某些星曜和四化上会有不同安法。要水墨风单页 HTML 时才出，而且模型只产数据，版式由模板锁死。"
             }
+          },
+          "reader": {
+            "en": "`ziwei-reading` takes a Zi Wei chart that has already been cast and writes it up for a person, keeping the machine detail in a separate audit file.\n\n## Where it starts\n\nThe reading starts from the life palace, the major stars in it and their brightness, the opposite palace and the trine.\n\nThe four transformations are treated as the chart's centre of gravity rather than as a verdict: a 化忌 marks where attention and friction collect, not that something will go wrong there.\n\n## An empty palace borrows from its opposite\n\nAn empty palace is read through its opposite rather than as an absence. No major star in a palace says that the strength of that matter comes from across the chart, not that the matter is missing from your life.\n\n## It says which tradition it follows\n\nThe report states that it follows one tradition, and that others place certain stars and transformations differently. Without that sentence a reader takes one lineage's answer as the only one, and has no way to judge a different arrangement when they meet it elsewhere.\n\n## The ink-wash page\n\nThe single-page ink-wash HTML is produced only when asked for, and the model contributes data only — the layout is fixed by the template, so the same data produces the same page every time.\n\n## What it does not do\n\nIt does not cast a chart — that is `ziwei-chart`. No BaZi, no synastry, no annual or decade forecasting, and no dated prediction.",
+            "zh": "`ziwei-reading` 接收一张已排好的紫微命盘，写成给人读的报告，机器细节另存一份审计文件。\n\n## 从哪里入手\n\n解读从命宫、宫内主星与庙旺、对宫和三合入手。\n\n四化被当作命盘的重心而不是判决：化忌标记的是注意力与摩擦聚集的地方，不是「这里会出事」。\n\n## 空宫借对宫\n\n空宫借对宫来读，不当作「这件事没有」。一个宫里没有主星，说的是这件事的力量从对面来，而不是这件事在你生命里缺席。\n\n## 它说明自己站在哪一家\n\n报告会明说所依据的是一家流派，别家在某些星曜和四化上会有不同安法。不写这一句，读者会把一家之言当成唯一答案，然后在别处看到不同排法时无从判断。\n\n## 水墨单页\n\n要水墨风单页 HTML 时才出，而且模型只产数据，版式由模板锁死——这样同一份数据每次出来的页面是一样的。\n\n## 它不做的事\n\n它不排盘——那是 `ziwei-chart`。不做八字，不做合盘，不碰流年和大限推演，不做带日期的预测。"
           }
         },
         {
@@ -728,6 +760,10 @@
               "description": "把同一个人的八字与紫微两张盘对着读，矛盾如实记录，不合成一个分数。",
               "overview": "把同一个人的八字与紫微两份已验证的命盘对着读。先确认两份描述的是同一个人和同一个时刻，再逐领域给出同向、互补或矛盾的判定。两套体系换年点不同——八字在立春，紫微在正月初一——年柱不一致是历法约定，不是算错。矛盾如实披露，不取中间值也不挑一边站；来源相同的两个结论会被点明是「一条证据说了两遍」。不产出合成分数，因为五行百分比和宫位安排之间没有站得住脚的算术。"
             }
+          },
+          "reader": {
+            "en": "`bazi-ziwei-cross` reads one person's BaZi and Zi Wei charts against each other, both already validated.\n\n## First it confirms they are the same person and the same moment\n\nBoth charts have to describe the same person at the same instant, and the run stops if that check fails. Read two charts from different moments against each other and every agreement and every contradiction it finds is fabricated.\n\n## A different year pillar is a calendar convention\n\nThe two systems start the year at different points: BaZi at 立春, Zi Wei at the first day of the first lunar month. So for anyone born between those two dates the year pillars simply differ — that is not an error, and the report says so before comparing anything.\n\n## Contradictions are stated\n\nEach area gets a verdict: agreeing, complementary, or contradictory. Contradictions are written as they are, without averaging and without picking a side.\n\nTwo conclusions drawn from the same source are named as one piece of evidence stated twice. Where both systems derive a judgement from the same pillar it looks like two independent confirmations and is one.\n\n## No combined score\n\nThere is no defensible arithmetic between an elemental percentage and a palace arrangement, and forcing a single figure out of them erases exactly the parts of each system that should not be averaged away.\n\n## What it does not do\n\nIt does not cast charts — that is `bazi-chart` and `ziwei-chart`. No compatibility reading, no luck pillars or annual cycles, and no dated prediction.",
+            "zh": "`bazi-ziwei-cross` 把同一个人的八字与紫微两份已验证的命盘对着读。\n\n## 先确认是同一个人、同一个时刻\n\n两份盘必须描述同一个人和同一个时刻，这一步不通过就不往下走。对着读两份来自不同时间的盘，得到的每一条「一致」和「矛盾」都是假的。\n\n## 年柱不一致是历法约定\n\n两套体系换年点不同：八字在立春，紫微在正月初一。所以在这两个日期之间出生的人，两份盘的年柱本来就不一样——这不是算错，报告会先说明这件事，再往下比。\n\n## 矛盾如实披露\n\n逐领域给出同向、互补或矛盾的判定。矛盾照写，不取中间值，也不挑一边站。\n\n来源相同的两个结论会被点明是「一条证据说了两遍」：两套体系都从同一根柱推出来的判断，看起来像两个独立佐证，其实只有一份。\n\n## 不产出合成分数\n\n五行百分比和宫位安排之间没有站得住脚的算术，硬凑一个总分只会让两套体系里最不该被平均掉的部分消失。\n\n## 它不做的事\n\n它不排盘——那是 `bazi-chart` 和 `ziwei-chart`。不做合婚，不碰大运流年，不做带日期的预测。"
           }
         }
       ]

@@ -165,22 +165,23 @@ def _examples(skill: str) -> dict:
 def _reader(skill: str) -> dict[str, str]:
     """Return {locale: Markdown} for the skill's reader documents.
 
-    Missing is allowed, and deliberately so while the set is being written: a
-    skill with no reader document renders the way it always has. Once every
-    published skill carries one in every locale this becomes an error like the
-    translations above, since a half-covered set is the failure that survives
-    review — one skill among twenty silently falling back reads as an oversight
-    nobody notices.
-
-    An empty result is dropped by the caller rather than published as `{}`, the
-    same way `argumentHint` is omitted rather than sent as an empty string.
+    Required, one per locale, now that every published skill carries the full
+    set. It was optional while the set was being written; leaving it optional
+    afterwards is the failure that survives review, because one skill among
+    twenty-one silently falling back to the agent's instructions reads as an
+    oversight nobody notices — the same reason the translations above are held
+    to covering exactly what is published.
     """
 
     documents: dict[str, str] = {}
     for locale in READER_LOCALES:
         path = READER_ROOT / skill / f"{locale}.md"
         if not path.is_file():
-            continue
+            raise SystemExit(
+                f"error: {path.relative_to(ROOT)} does not exist. Every published skill"
+                f" carries a reader document in every locale; the site renders it in"
+                f" place of SKILL.md."
+            )
         text = path.read_text(encoding="utf-8").strip()
         if not text:
             raise SystemExit(f"error: {path.relative_to(ROOT)} is empty")
@@ -324,9 +325,7 @@ def _skill_entry(name: str, directory: Path, validator: ModuleType, repository: 
     # should not publish an empty string every renderer then special-cases.
     if "argument-hint" in frontmatter:
         entry["argumentHint"] = frontmatter["argument-hint"]
-    reader = _reader(name)
-    if reader:
-        entry["reader"] = reader
+    entry["reader"] = _reader(name)
     return entry
 
 
