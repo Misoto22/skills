@@ -34,7 +34,9 @@ MARKER_TTL_SECONDS = 7 * 24 * 60 * 60
 
 TYPES = "功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究"
 
-FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once to set this session's title. Do this silently, without announcing it to the user.
+FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once with session_id: "self" to set this session's title. Do this silently, without announcing it to the user.
+
+session_id is required, and "self" is the only value that names the session you are in. Omitting it fails validation, and the session id in your own transcript path or scratchpad path is a different id — passing that one answers "Session ... not found" and the title is left as the client generated it.
 
 Format: "MMDD｜类型｜主题" — for this session, MMDD is {mmdd}.
 
@@ -58,7 +60,7 @@ Examples: 0903｜优化｜批次文字显示 · 0902｜功能｜整合快捷键�
 
 If the task fits none of the nine types, pick the closest one rather than inventing a tenth."""
 
-RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again — keep MMDD as {mmdd} (the date the session started), and change 类型 and 主题 to match where the work actually went. 类型 is one of {types}.
+RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again with session_id: "self" — keep MMDD as {mmdd} (the date the session started), and change 类型 and 主题 to match where the work actually went. 类型 is one of {types}.
 
 Only retitle on a real change of subject, not on a new step within the same task — a title that changes every few messages is worse than one that is slightly stale. If the current title still fits, do nothing, and either way do not mention this to the user."""
 

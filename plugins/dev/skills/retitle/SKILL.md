@@ -3,7 +3,7 @@ name: retitle
 description: Normalize agent conversation titles onto a dated `MMDD｜类型｜主题` scheme across Codex, Claude Code, and any client that exposes its session list — the date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
-  version: "0.11.0"
+  version: "0.11.1"
 argument-hint: "[--client=codex|claude-code] [--tz=<zone>] [--apply]"
 ---
 
@@ -183,7 +183,7 @@ Claude Code's session API addresses **any** session by id, so this half is a bat
 |---|---|
 | `list_sessions` | every session, `include_archived: true` — the archived ones are exactly the finished work whose titles nobody will fix later |
 | `get_session` | one session's `createdAt`, which is the field section 2 requires. The listing carries only `lastActivityAt`, and naming a session for the day it was last touched puts it under the wrong date |
-| `set_session_title` | the rename, by `sessionId` or the literal `"self"` |
+| `set_session_title` | the rename, by `sessionId` or the literal `"self"`. `session_id` is required — a call that omits it fails validation, and the id in a session's own transcript or scratchpad path is a different id that answers "not found" |
 
 The client auto-titles a new session before the model has done anything, so `list_sessions` mixes generated titles with any the scheme has already set. Skip the ones that already match `MMDD｜类型｜主题` rather than re-deriving them — a session renamed twice is a session whose 主题 drifts for no reason.
 
@@ -215,6 +215,7 @@ That must print one JSON object containing `MMDD｜类型｜主题`. Remove the 
 
 - **The full rule fires on a session's first prompt; a short re-check fires every fifth prompt after.** A session's direction drifts, and a title set in its first minute goes stale — but the full rule is long, and injecting it every turn would cost more context than the title is worth. `SESSION_TITLE_RECHECK_EVERY` in the environment changes the cadence; `0` fires once and never re-checks.
 - **The re-check tells the model to retitle only on a real change of subject.** Without that bar a title changes every few messages, which is worse than one that is slightly stale, and the user watches it thrash.
+- **It names `session_id: "self"` in the call it asks for.** Left to infer the argument, a model calls `set_session_title` with a title alone, is told `session_id` is required, then supplies the session id it can see — the one in its transcript or scratchpad path. That is the CLI's id, not the client's, so the second call answers "not found" and the session keeps the title the client generated. Two failed calls and a silently unrenamed session is what one missing sentence cost.
 - **It resolves `MMDD` itself** rather than asking the model, so a session running past midnight keeps the date it opened on.
 - **Every failure path exits 0 with no output.** Unreadable event, unwritable marker, missing directory: the hook stays silent. A broken hook blocks the user's prompt, and no titling scheme is worth that.
 - **It is Python with no imports beyond the standard library.** The obvious shell version needs `jq` to read the event, and a hook lands on whatever machine the skill was installed on.

@@ -84,6 +84,20 @@ class SessionNamingHookTests(unittest.TestCase):
         # 审计 collapses into 研究 unless the reminder carries what separates them.
         self.assertIn("The line is the object", context)
 
+    def test_both_reminders_name_the_session_argument(self) -> None:
+        # `set_session_title` requires `session_id`, and only the literal "self" reaches
+        # the running session. A reminder that omits it costs the model a validation
+        # error, then a guess at the id in its own transcript path — which answers
+        # "not found", so the session keeps whatever title the client generated.
+        first = self.run_hook("argument")
+        self.assertEqual(self.kind(first), "full")
+        self.assertIn('session_id: "self"', json.loads(first)["hookSpecificOutput"]["additionalContext"])
+        for _ in range(4):
+            self.run_hook("argument")
+        sixth = self.run_hook("argument")
+        self.assertEqual(self.kind(sixth), "recheck")
+        self.assertIn('session_id: "self"', json.loads(sixth)["hookSpecificOutput"]["additionalContext"])
+
     def write_transcript(self, first_timestamp: str) -> str:
         path = self.config / "transcript.jsonl"
         path.write_text(json.dumps({"timestamp": first_timestamp, "type": "user"}) + "\n", encoding="utf-8")
