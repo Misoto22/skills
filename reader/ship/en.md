@@ -1,4 +1,4 @@
-Shipping a change is a sequence everyone already knows: branch, test, commit, open a pull request, wait for CI, merge, tidy up. The cost is never in knowing it — it is in the step that gets skipped at five in the afternoon. `ship` runs the whole sequence and refuses to skip anything silently.
+`ship` takes a change from your working tree to a merged pull request: branch off, run the project's own tests, commit, open the pull request, wait for CI, merge, then clean up the worktree. Which steps ran, which were skipped, and why, all go in the report.
 
 ```steps
 {
@@ -48,38 +48,36 @@ Shipping a change is a sequence everyone already knows: branch, test, commit, op
 }
 ```
 
-## The preflight decides the run, and says so first
+## The preflight and the execution plan
 
-Before touching anything it inspects the repository and prints an execution plan marking every downstream step `RUN` or `SKIP`. What it found decides the plan: whether a test command exists, whether the project declares CI, whether there is already an open pull request for this branch.
+Step 0 is a preflight. It reads the repository's state — which branch you are on, whether the tree is clean, whether there are unpushed commits, whether this branch already has an open pull request — and prints an execution plan marking every later step RUN or SKIP. The rest of the run follows that plan exactly: a step marked SKIP does not run, and no step outside the plan is added along the way. `--dry-run` prints the plan and stops.
 
-That plan is the contract for the rest of the run — a step marked `SKIP` does not run, and no step outside the plan is invented. `--dry-run` prints it and stops.
+The reason for the plan is that "ship" means different things in different states: uncommitted changes on the base branch, an open pull request on a feature branch, and a clean tree whose local base carries commits the remote does not are three different paths. Settling the state first means nothing downstream has to guess.
 
-A clean tree on the base branch with nothing unpushed and no open pull request exits right there. Nothing to ship is a result, not a failure.
+A clean tree on the base branch with nothing unpushed and no open pull request exits at step 0 and reports that there is nothing to ship. One case looks like that and is not: somebody committed to `main` by hand, so the local base carries commits the remote does not. That branches off and carries them rather than reporting no work.
 
-The one case that looks like nothing and is not: commits sitting on your local base that the remote does not have, because somebody committed to `main` by hand. Reporting "nothing to ship" over those leaves work that only `git log` will ever mention, so the run branches off and carries them.
+## Where the test, lint and version commands come from
 
-## Nothing is inferred that is actually a judgment
+The test command, the lint command and the version bumper are read from wherever the project declares them — a script in `package.json`, a `justfile` target, a `Makefile` rule, and the CI configuration. Matching stops at the first hit; a project that declares none skips that step, and the report says skipped rather than passed. A failing test is retried at most twice before the run stops and asks.
 
-The test command, the lint command and the version bumper are detected from what the project itself declares — a script in `package.json`, a `justfile` target, a `Makefile` rule. Detection stops at the first match, and a project that declares none simply skips that step and says so.
+The version bumper is the exception: found or not, it runs only when `--bump` is passed. Whether a change is a release is the author's call rather than a property of the diff. Detected and not asked for is reported as skipped.
 
-Detection is not the same as deciding. Whether a change is a release is the author's call and not a property of the diff, so the version bumper runs only when `--bump` is passed. Found but not asked for is reported as skipped rather than helpfully run.
+## The credential scan before the commit
 
-## The last moment before it becomes public
+A scan runs before anything is staged. It reads the content of the change rather than file names, and it covers untracked files. Untracked files have to be read separately because `git diff` never mentions them, and a freshly created `config.local.json` holding a live token is exactly that case.
 
-A secret pushed to a remote is compromised even after a force-push removes it, so the gate sits immediately before staging — over the content of the change rather than over file names, and over untracked files too, because `git diff` never mentions those and they are exactly where a fresh `config.local.json` with a live token would be.
+A hit stops the run and asks. It does not decide alone: fixtures and documentation legitimately hold credential-shaped strings, so what comes back is the file, the line and a question.
 
-A match stops the run and asks. It does not decide alone: fixtures and documentation legitimately contain credential-shaped strings, so what you get is the file, the line, and a question.
+Staging is by explicit path, never `git add -A`. Untracked files it cannot classify are collected into a single prompt and asked about in one round trip.
 
-Staging is by explicit path. Never `git add -A` — every ambiguous untracked file is collected into one prompt and asked about in a single round trip, rather than swept in or asked about one at a time.
+## Waiting for CI
 
-## Waiting for CI, honestly
+"No checks reported" means two different things minutes apart. A pull request opened seconds ago reports none because GitHub has not registered the workflow run yet, and that looks identical to a repository with no CI at all. Merging on the second reading ships without the checks the project wrote.
 
-"No checks reported" means two different things minutes apart. A pull request opened seconds ago reports none because GitHub has not registered the run yet, and that reads identically to a repository with no CI at all. Merging on that reading ships without the checks the project wrote.
+So the preflight has already established whether the repository declares a workflow. Where one is declared, the run re-polls for up to a minute before concluding; if nothing registers, the report says `CI skipped` with the number of workflows declared. Where none is, step 5 is skipped outright.
 
-So the preflight already established which case this is. Where a workflow declares a trigger, the run re-polls for up to a minute before concluding there are none — and if nothing registers, the report says `CI skipped` with the count of workflows that were declared. That line is the difference between a check that was green and a check that never ran.
+Merge states that need a person — a missing required review, a failing non-required check, a conflict with the base — stop and ask. Conflicts are never resolved automatically.
 
-A merge state that needs a person — a required review missing, a non-required check red, a conflict with the base — stops and asks. Conflicts are never auto-resolved.
+## What it does not do
 
-## What it will not do
-
-It does not tag a release, publish a package, or deploy: those are decisions that follow a merge rather than parts of it. It will not write a commit message without pushing it. It never force-pushes the base branch, never resolves a merge conflict on your behalf, and never removes the worktree the run is standing in — that one is reported as kept, because the deletion cannot be undone from inside it.
+It does not tag a release, publish a package, or deploy; those are separate work that follows a merge. It does not write a commit message without pushing it. It does not force-push the base branch, does not resolve merge conflicts for you, and does not remove the worktree the run is standing in — that one is reported as kept, because the deletion cannot be carried out from inside it.
