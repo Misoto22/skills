@@ -17,6 +17,7 @@ breaks a user's prompt is worse than a session with a dull title.
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import json
 import os
 import re
@@ -65,6 +66,31 @@ Only retitle on a real change of subject, not on a new step within the same task
 def _recheck_every() -> int:
     raw = os.environ.get("SESSION_TITLE_RECHECK_EVERY", "")
     return int(raw) if raw.isdigit() else DEFAULT_RECHECK_EVERY
+
+
+def _session_mmdd(event: dict) -> str:
+    """The date the session opened, not today.
+
+    A re-check can fire days after a session started, and a session can simply run past
+    midnight. Resolving `MMDD` as "now" on every firing rewrites the date to whichever day
+    the reminder happened to land on — which destroys the one thing the scheme orders by,
+    and does it silently, because the title still looks well-formed.
+
+    The transcript's first timestamped record is when the session began, so read that and
+    fall back to today only when there is no transcript to read.
+    """
+    path = event.get("transcript_path")
+    if isinstance(path, str) and path:
+        with (
+            contextlib.suppress(OSError, ValueError, json.JSONDecodeError),
+            open(path, encoding="utf-8") as handle,
+        ):
+            for line in handle:
+                stamp = json.loads(line).get("timestamp")
+                if isinstance(stamp, str) and stamp:
+                    parsed = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                    return parsed.astimezone().strftime("%m%d")
+    return time.strftime("%m%d")
 
 
 def _marker_dir() -> Path:
@@ -120,9 +146,9 @@ def main() -> int:
     count = _bump(directory / re.sub(r"[^A-Za-z0-9._-]", "_", session_id))
 
     every = _recheck_every()
-    # The date the session started, resolved here rather than by the model: a session
-    # running past midnight must keep the date it opened on.
-    fields = {"mmdd": time.strftime("%m%d"), "types": TYPES}
+    # Resolved here rather than by the model, and from the transcript rather than the
+    # clock — see _session_mmdd.
+    fields = {"mmdd": _session_mmdd(event), "types": TYPES}
     if count == 1:
         context = FULL_RULE.format(**fields)
     elif every > 0 and count % every == 1:

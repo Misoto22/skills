@@ -125,6 +125,14 @@
         "Reads createdAt per session with get_session rather than dating them from lastActivityAt.",
         "Leaves sessions already shaped MMDD｜类型｜主题 alone instead of re-deriving them."
       ]
+    },
+    {
+      "id": "recheck-keeps-the-session-date",
+      "prompt": "This session started on the 3rd and it is now the 4th. Its subject has changed — retitle it.",
+      "expectations": [
+        "Keeps MMDD at the date the session started, changing only 类型 and 主题.",
+        "Does not move the date to today, which would break the chronological order the scheme exists for."
+      ]
     }
   ]
 }

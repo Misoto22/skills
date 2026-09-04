@@ -12,6 +12,7 @@ Two failures this prevents, both found by hand before the hook was published:
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import subprocess
 import sys
@@ -31,13 +32,16 @@ class SessionNamingHookTests(unittest.TestCase):
         self.config = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
 
-    def run_hook(self, session_id: str, *, every: str | None = None) -> str:
+    def run_hook(self, session_id: str, *, every: str | None = None, transcript: str | None = None) -> str:
         env = {"HOME": str(self.config), "CLAUDE_CONFIG_DIR": str(self.config), "PATH": "/usr/bin:/bin"}
         if every is not None:
             env["SESSION_TITLE_RECHECK_EVERY"] = every
+        event = {"session_id": session_id}
+        if transcript is not None:
+            event["transcript_path"] = transcript
         result = subprocess.run(
             [sys.executable, str(HOOK)],
-            input=json.dumps({"session_id": session_id}),
+            input=json.dumps(event),
             capture_output=True,
             text=True,
             env=env,
@@ -79,6 +83,39 @@ class SessionNamingHookTests(unittest.TestCase):
             self.assertIn(kind, context)
         # 审计 collapses into 研究 unless the reminder carries what separates them.
         self.assertIn("The line is the object", context)
+
+    def write_transcript(self, first_timestamp: str) -> str:
+        path = self.config / "transcript.jsonl"
+        path.write_text(json.dumps({"timestamp": first_timestamp, "type": "user"}) + "\n", encoding="utf-8")
+        return str(path)
+
+    def test_the_date_comes_from_the_session_not_from_today(self) -> None:
+        # A re-check days later, or a session running past midnight, must not move the
+        # date — it is the only thing the sidebar orders by.
+        transcript = self.write_transcript("2026-08-13T22:15:00.000Z")
+        context = json.loads(self.run_hook("dated", transcript=transcript))["hookSpecificOutput"][
+            "additionalContext"
+        ]
+        expected = dt.datetime.fromisoformat("2026-08-13T22:15:00.000+00:00").astimezone().strftime("%m%d")
+        self.assertIn(f"MMDD is {expected}", context)
+        self.assertNotIn(f"MMDD is {dt.datetime.now().strftime('%m%d')}", context.replace(expected, ""))
+
+    def test_the_recheck_carries_the_same_session_date(self) -> None:
+        transcript = self.write_transcript("2026-08-13T22:15:00.000Z")
+        expected = dt.datetime.fromisoformat("2026-08-13T22:15:00.000+00:00").astimezone().strftime("%m%d")
+        for _ in range(5):
+            self.run_hook("dated-recheck", transcript=transcript)
+        context = json.loads(self.run_hook("dated-recheck", transcript=transcript))["hookSpecificOutput"][
+            "additionalContext"
+        ]
+        self.assertIn("Title re-check", context)
+        self.assertIn(f"keep MMDD as {expected}", context)
+
+    def test_an_unreadable_transcript_falls_back_to_today(self) -> None:
+        context = json.loads(self.run_hook("nodate", transcript="/nonexistent/transcript.jsonl"))[
+            "hookSpecificOutput"
+        ]["additionalContext"]
+        self.assertIn(f"MMDD is {dt.datetime.now().strftime('%m%d')}", context)
 
     def test_an_empty_marker_from_the_shell_version_upgrades_in_place(self) -> None:
         self.run_hook("upgrade")
