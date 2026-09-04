@@ -3,7 +3,7 @@ name: bazi-chart
 description: Calculate one reusable BaZi chart from a named person's exact birth date, minute, and birthplace, write canonical JSON plus data-only Markdown, then start the natal reading automatically. Use for 八字排盘, 生辰八字, four pillars, or informal single-person birth details. Not for two-person compatibility, existing-chart interpretation, Da Yun, annual luck, or event forecasts.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 ---
 
 # BaZi Chart
@@ -66,13 +66,15 @@ The command prints exactly two absolute paths on success: canonical JSON first, 
 
 ## Validate and hand off
 
-Read the JSON back and verify:
+Read the JSON back through the gate the reading skill runs:
 
-- schema is `chinese-metaphysics.bazi-chart`, version 1;
-- checksum matches canonical content;
-- all four primary pillars, facts, scores, time corrections, and model ids exist;
-- an alternate is complete when `alternate_day_boundary` is true;
-- Markdown names the same checksum and contains no interpretation.
+```bash
+python3 scripts/validate_artifact.py CHART.json
+```
+
+It checks the schema and version, the canonical checksum, all four primary pillars with their facts and scores, the time corrections and model ids, and a complete alternate whenever `alternate_day_boundary` is true. Exit 2 means the run produced something unreadable: report every defect it names, and never create or repair an artifact by hand.
+
+Then confirm the Markdown names the same checksum and contains no interpretation.
 
 After validation, automatically invoke `bazi-reading` with the exact JSON path. Do not wait for a second user request. Do not invoke it when calculation or validation failed. After the reading completes, report the chart JSON, chart Markdown, reader-report Markdown, and separate evidence-artifact Markdown paths.
 

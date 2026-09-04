@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from .artifacts import CHART_SCHEMA, COMPATIBILITY_SCHEMA, SCHEMAS, add_checksum, validate_envelope
+from .validation import CHART, POSITIONS
+from .validation import defects as artifact_defects
 
 SHARED_ROOT = Path(__file__).resolve().parents[1]
-POSITIONS = ("year", "month", "day", "hour")
 
 
 class CompatibilityError(ValueError):
@@ -346,19 +347,16 @@ def _confidence(left: dict[str, Any], right: dict[str, Any], spread: float) -> d
 
 
 def _validate_chart_shape(chart: dict[str, Any]) -> None:
-    try:
-        for key in ("primary",):
-            for position in POSITIONS:
-                chart["pillars"][key][position]["stem"]
-                chart["pillars"][key][position]["branch"]
-            chart["facts"][key]["interactions"]
-            chart["scores"][key]["adjusted_distribution"]
-            chart["scores"][key]["confidence"]["level"]
-        if chart["pillars"].get("alternate") is not None:
-            chart["facts"]["alternate"]["interactions"]
-            chart["scores"]["alternate"]["adjusted_distribution"]
-    except (KeyError, TypeError) as error:
-        raise CompatibilityError(f"incomplete chart source: missing {error}") from error
+    """Refuse a source this comparison would otherwise read fields out of blindly.
+
+    Delegated rather than restated: the reading skills' gate asks the same
+    question of the same artifact, and two copies of "what a complete chart is"
+    is how a comparison comes to accept a source a reading then refuses.
+    """
+
+    problems = artifact_defects(chart, CHART)
+    if problems:
+        raise CompatibilityError(f"incomplete chart source: {'; '.join(problems)}")
 
 
 def _clamp(value: float) -> float:

@@ -3,7 +3,7 @@ name: bazi-compatibility
 description: Compare two people from reusable BaZi chart JSON files, two complete birth records, or one of each; write auditable interaction data and transparent general or relationship-specific scores before automatic interpretation. Use for 八字合婚, 合八字, two-person compatibility, 配不配, or whether two charts work together. Not for one-person natal work, reading an existing comparison, forecasting, or missing birth minutes.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 ---
 
 # BaZi Compatibility
@@ -71,7 +71,15 @@ The command prints canonical JSON and data-only Markdown absolute paths, in that
 
 ## Validate and hand off
 
-Read the output JSON back and verify schema/version, checksum, both source identities and chart checksums, all five dimensions and weights, both directions where relevant, general arithmetic, optional contextual profile, confidence, and sensitivity variants. Confirm the Markdown names the same checksum and contains data only.
+Read the output JSON back through the gate the reading skill runs:
+
+```bash
+python3 scripts/validate_artifact.py COMPARISON.json
+```
+
+It checks the schema and version, the canonical checksum, both source identities and their distinct chart checksums, all five dimensions with their ledgers and weights, the general arithmetic those weights produce, a contextual score against its own profile, confidence, and the sensitivity range the displayed score has to sit inside. Exit 2 means the run produced something unreadable: report every defect it names, and do not complete a partial comparison by hand.
+
+Then confirm the Markdown names the same checksum and contains data only.
 
 After validation, automatically invoke `bazi-compatibility-reading` with the exact JSON path. Do not wait for another user message and do not invoke it after any failure. After the reading completes, report both compatibility artifact paths, the reader-report path, and the separate evidence-artifact path.
 

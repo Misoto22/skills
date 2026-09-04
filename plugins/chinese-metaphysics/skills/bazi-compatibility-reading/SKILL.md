@@ -3,7 +3,7 @@ name: bazi-compatibility-reading
 description: Interpret a completed BaZi compatibility JSON artifact or equivalent verified comparison as a balanced, directional, evidence-linked relationship report. Use after the compatibility calculator or when asked to explain general, romance, marriage, friendship, family, or work scores already computed for two charts. Not for raw birth records, one-person readings, recalculation, predictions, or a binary destiny verdict.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 ---
 
 # BaZi Compatibility Reading
@@ -20,7 +20,13 @@ Before writing either file, read and follow `shared/report-presentation.md`. It 
 
 Accept a `chinese-metaphysics.bazi-compatibility` JSON artifact at schema version 1 with a valid canonical checksum, or complete pasted equivalent data. Pasted data must include two names and chart checksums, model version, all five dimensions with weights/scores/ledgers, general score, optional contextual profile and score, confidence, and every sensitivity variant. Mark complete pasted input `pasted-complete`; do not claim checksum validation when none exists.
 
-Use the vendored `shared/bazi/artifacts.py` validator for JSON. Stop on checksum mismatch, unsupported version, missing identity, wrong weights, incomplete positive or negative ledger, arithmetic mismatch, a contextual score without its profile, or an alternate range without variants. Name the defect and route source records to `bazi-compatibility`; never reconstruct a score.
+Validate a JSON artifact before interpreting a single score:
+
+```bash
+python3 scripts/validate_artifact.py COMPARISON.json
+```
+
+Exit 0 prints both names and the checksum to record. Exit 2 means stop, and prints every defect it found — a stale checksum, an unsupported version, a missing identity or chart checksum, a weight that disagrees with the declared model, a general or contextual score its own dimensions do not produce, a contextual score without its profile, a sensitivity range the displayed score sits outside. Name those defects and route the source records to `bazi-compatibility`; never reconstruct a score. A `pasted-complete` source has no artifact to run this against: hold it to the same fields by hand.
 
 ## Evidence index before prose
 

@@ -3,7 +3,7 @@ name: repo-polish
 description: Build or restore a repository's public face — README, hero banner, LICENSE, SECURITY.md, CONTRIBUTING.md, the forge's one-line About text, and its GitHub or GitLab topics — written from what the repository's own files say. Every pass runs unless flags narrow it. Use when asked to 装修一下仓库, 仓库装修, 美化仓库, 把开源文件补齐, 写个 readme, 加个 license, 补个安全策略, 设置仓库 topics, 仓库描述写一下, polish this repo, set the repo up properly, add a security policy, fill in the repository description, or tag a repository on GitHub. Not for API reference docs, changelogs, release notes, marketing landing pages, or the source code itself.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 argument-hint: "[--readme] [--banner] [--license] [--security] [--contributing] [--description] [--topics] [--audit] [--dry-run]"
 ---
 

@@ -3,7 +3,7 @@ name: ziwei-chart
 description: Place one twelve-palace Zi Wei Dou Shu 命盘 from someone's stated birth moment, birthplace, and gender, recording palaces, stars, 生年四化, and 大限 windows as reusable placement data. Use for 紫微斗数, 紫微排盘, 排紫微, 紫微命盘, 十二宫, or purple star astrology. Not for 八字 four pillars, matching two people, comparing two systems against each other, 流年 or monthly transformations, or a 命盘 that has already been placed.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 ---
 
 # Zi Wei Chart
@@ -69,17 +69,15 @@ The command prints exactly two absolute paths on success: canonical JSON first, 
 
 ## Validate and hand off
 
-Read the JSON back and verify:
+Read the JSON back through the gate the reading skill runs:
 
-- schema is `chinese-metaphysics.ziwei-chart`, version 1;
-- checksum matches canonical content;
-- twelve palaces exist, each with a branch, a stem, and a palace name;
-- the life palace and the body palace are both marked;
-- the bureau, the lunar date, and the year pillar exist;
-- every placed transformation names a star that appears in a palace, and any unplaced transformation is listed rather than dropped;
-- twelve decade ranges exist and run in one consistent direction;
-- an alternate is complete when `alternate_day_boundary` is true;
-- Markdown names the same checksum and contains no interpretation.
+```bash
+python3 scripts/validate_artifact.py CHART.json
+```
+
+It checks the schema and version, the canonical checksum, twelve palaces each carrying a branch, stem and name, the life and body palaces both marked and agreeing with their pointers, the bureau and lunar date and year pillar, every placed transformation landing on a star that sits in a palace, any unplaced transformation listed rather than dropped, twelve decade ranges running one direction, and a complete alternate whenever `alternate_day_boundary` is true. Exit 2 means the run produced something unreadable: report every defect it names, and never create or repair an artifact by hand.
+
+Then confirm the Markdown names the same checksum and contains no interpretation.
 
 After validation, automatically invoke `ziwei-reading` with the exact JSON path. Do not wait for a second user request. Do not invoke it when placement or validation failed. After the reading completes, report the chart JSON, chart Markdown, reader-report Markdown, and separate evidence-artifact Markdown paths.
 

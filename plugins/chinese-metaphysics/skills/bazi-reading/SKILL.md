@@ -3,7 +3,7 @@ name: bazi-reading
 description: Interpret a completed single-person BaZi JSON chart or equivalent verified four-pillar data as an evidence-linked static natal report. Use when a calculator hands off its artifact or someone asks to 解读八字, 看命局, explain day-master strength, structure, or favorable elements from an existing chart. Not for raw birth details, relationship matching, luck cycles, dated predictions, or incomplete source data.
 license: MIT
 metadata:
-  version: "0.13.0"
+  version: "0.14.0"
 ---
 
 # BaZi Reading
@@ -24,7 +24,13 @@ Accept one of:
 2. Its verified Markdown rendering together with the matching JSON. Markdown alone is not a machine source.
 3. Complete pasted equivalent data containing identity, all four pillars and boundaries, facts, interaction records, both score distributions, day-master ledger, model versions, confidence, and alternate sensitivity. Mark this source `pasted-complete`; do not pretend it had a checksum.
 
-Use the vendored `shared/bazi/artifacts.py` validator for a JSON artifact. Stop on checksum mismatch, unsupported schema/version, a missing hour pillar, an incomplete score ledger, or a sensitivity flag without a complete alternate. Name the exact defect and route raw details back to `bazi-chart`; never patch or infer a field.
+Validate a JSON artifact before reading a word of it:
+
+```bash
+python3 scripts/validate_artifact.py CHART.json
+```
+
+Exit 0 prints the name and checksum to record. Exit 2 means stop, and prints every defect it found — a stale checksum, an unsupported schema or version, a missing hour pillar, an empty score ledger, a declared alternate that is absent. Name those defects and route the raw details back to `bazi-chart`; never patch or infer a field. A `pasted-complete` source has no artifact to run this against: hold it to the same fields by hand and say no checksum was verified.
 
 ## Build an evidence ledger first
 
