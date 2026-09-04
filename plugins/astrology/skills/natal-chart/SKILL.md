@@ -3,7 +3,7 @@ name: natal-chart
 description: Compute one person's natal chart from an exact birth date, minute, and place — planet positions with sign, house, dignity and retrograde state, the four angles, intra-chart aspects, sect, and the classical lots, written as canonical JSON plus data-only Markdown. Use for 本命盘, 星盘, 出生星图, natal chart, birth chart, my rising sign, my chart's aspects, or where a planet sits. Not for two-person 合盘, interpreting a chart that already exists, transits, progressions, returns, or any dated prediction.
 license: AGPL-3.0-or-later
 metadata:
-  version: "0.10.0"
+  version: "0.11.0"
 ---
 
 # Natal Chart

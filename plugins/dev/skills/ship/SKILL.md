@@ -3,7 +3,7 @@ name: ship
 description: Ship the current changes as a merged pull request — branch off, run the project's tests, commit, open the PR, wait for CI, merge, and clean up the worktree. Runs a preflight first that marks each step RUN or SKIP, so a clean tree on the base branch exits without doing anything. Use when asked to ship it, ship this, land it, get this merged, open a PR and merge it, push this up and merge, 发出去, 合掉, 开个 PR 合了, 把这些改动提上去, 推上去合并. Not for tagging a release, publishing a package, deploying, or writing a commit message without pushing it.
 license: MIT
 metadata:
-  version: "0.10.0"
+  version: "0.11.0"
 argument-hint: "[branch-name] [--dry-run] [--no-test] [--draft] [--base=<branch>] [--bump=<version|major|minor|patch>] [--merge-strategy=<squash|merge|rebase>]"
 ---
 
@@ -171,7 +171,7 @@ Ship plan for <branch> → <base>:
   [done]       0. Preflight
   [<RUN|SKIP>] 1. Branch off <base>     <reason>
   [<RUN|SKIP>] 2. Test & lint           <reason — e.g. "detected: cargo test, cargo clippy" / "--no-test passed">
-  [<RUN|SKIP>] 3. Commit                <reason — e.g. "5 files modified; --bump=minor → 0.10.0" / "5 files modified; bumper found, no --bump" / "working tree clean">
+  [<RUN|SKIP>] 3. Commit                <reason — e.g. "5 files modified; --bump=minor → 0.11.0" / "5 files modified; bumper found, no --bump" / "working tree clean">
   [<RUN|SKIP>] 4. PR                    <reason — "create new" or "reuse #42">
   [<RUN|SKIP>] 5. CI                    <reason — "2 workflows declared" / "no workflow declares a check">
   [<RUN|SKIP>] 6. Merge                 <reason — "squash-merge" or "--draft: stop after step 4">
