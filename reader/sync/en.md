@@ -1,16 +1,16 @@
-`sync` brings a local repository in line with its remote and then states plainly what did not line up. It fetches, prunes the tracking refs whose upstream is gone, fast-forwards the base branch, and reports every branch that needs a decision — without making any of those decisions for you.
+`sync` does one thing: it lays out the difference between your local repository and its remote, and performs only the part of that which is unambiguously safe. It fetches, prunes the tracking refs whose upstream is gone, fast-forwards the base branch, and lists every branch that needs a decision from you.
 
-## It only ever fast-forwards
+## It only fast-forwards
 
-Where a branch has diverged, choosing between rebase, merge and reset is your call, and guessing it destroys work. So the skill fast-forwards what can be fast-forwarded and reports the rest.
+The base branch moves only when it can be fast-forwarded. When it cannot, the local branch carries commits the remote does not, and the run reports the divergence and stops.
 
-A rebase run without being asked is indistinguishable from losing work, which is why there is no flag to turn one on.
+The reason is that the three choices available at that point — rebase, merge, reset — can all lose work, and deciding whether to lose it is a person's call rather than a sync tool's. There is not even a flag to turn automatic rebasing on: a rebase run without being asked is indistinguishable in its result from losing work.
 
-Two smaller refusals follow from the same rule. Tags are fetched but never pruned: `--prune-tags` deletes every local tag the remote does not carry, including one you made by hand five minutes ago, and a tag is sometimes the only thing keeping a commit reachable. And a dirty working tree that blocks the fast-forward is reported with the files that blocked it — stashing on your behalf is how uncommitted work goes missing.
+The same rule produces two smaller refusals. Tags are fetched but never pruned, because `--prune-tags` deletes every local tag the remote does not carry, including one made by hand five minutes ago, and a tag is sometimes the only thing keeping a commit reachable. And when a dirty working tree blocks the fast-forward, the run reports which files blocked it rather than stashing them for you.
 
 ## It reports before it writes
 
-Every line of the opening report comes from a command that writes nothing: the state of the working tree, the current branch's position against its upstream, how far the base is behind, which branches lost their upstream in the prune, and which worktrees exist.
+Every line of the opening report comes from a command that writes nothing: the state of the working tree, how far the current branch is ahead of or behind its upstream, how far the base is behind, which branches lost their upstream in the prune, and which worktrees exist.
 
 ```
 Sync <repo> → <base>
@@ -21,13 +21,13 @@ Sync <repo> → <base>
   worktrees      3
 ```
 
-A field no command could fill is reported as unknown, never estimated and never quietly dropped.
+A field no command could fill is reported as unknown. It is not estimated, and it is not quietly dropped.
 
-## Then it tells you what your branch is doing
+## What your branch is doing
 
-The base branch gets fast-forwarded. Your feature branch gets a sentence:
+The base branch is fast-forwarded. The feature branch you are on is left alone and given a sentence:
 
-| State | What you are told |
+| State | Reported as |
 |---|---|
 | No upstream | push with `-u` to create one |
 | Ahead only | unpushed work |
@@ -35,8 +35,8 @@ The base branch gets fast-forwarded. Your feature branch gets a sentence:
 | Diverged | N ahead, M behind — rebase or merge, your call |
 | Upstream gone | the pull request was probably merged and the branch deleted; `/dev:cleanup` removes it |
 
-With `--all` every local branch is classified the same way, and the ones that are strictly behind are fast-forwarded without being checked out. A branch held by another worktree is skipped with that as the reason, which is a fact rather than an error.
+With `--all`, every local branch is classified the same way, and the ones that are strictly behind are fast-forwarded without being checked out. A branch held by another worktree is skipped with that as the reason: the ref is pinned by a working tree, so the command would be refused anyway.
 
-## What it will not do
+## What it does not do
 
-It does not ship changes, delete branches, or resolve a merge conflict. It never rebases, never resets, and never discards a local commit. Everything it refused to decide is collected under `attention` in the final report, with the options stated and none of them picked.
+It does not ship changes, delete branches, or resolve merge conflicts. It does not rebase, does not reset, and does not discard a local commit. Everything it refused to decide is collected under `attention` at the end of the report, with the options stated and none of them chosen.
