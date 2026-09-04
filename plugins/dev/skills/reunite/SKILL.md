@@ -1,10 +1,10 @@
 ---
 name: reunite
-description: Make every signed-in account see every conversation in the desktop app's sidebar. The app keeps one conversation index per account, so signing in as a second account hides the first account's history — this unions the indexes, adding entries and never removing one. Use when asked why sessions disappeared after switching accounts, where my old conversations went, share sessions between two accounts, merge the session lists, 换账号以后 session 都不见了, 会话历史没了, 两个账号共享会话, 把 session 列表合起来, 找回以前的对话. Not for deleting conversations, renaming them (that is retitle), or moving history between machines.
+description: Make every signed-in account see every conversation in the desktop app's sidebar. The app keeps one conversation index per account, so signing in as a second account hides the first account's history — this unions the indexes and brings a shared conversation's diverged titles back onto one name, adding entries and never removing one. Use when asked why sessions disappeared after switching accounts, where my old conversations went, share sessions between two accounts, merge the session lists, 换账号以后 session 都不见了, 会话历史没了, 两个账号共享会话, 把 session 列表合起来, 找回以前的对话. Not for deleting conversations, renaming them (that is retitle), or moving history between machines.
 license: MIT
 metadata:
   version: "0.15.0"
-argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--undo]"
+argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--no-titles] [--undo]"
 ---
 
 # Reunite
@@ -36,11 +36,21 @@ Report first, always. The report names each account index, its conversation coun
 
 `--into` narrows what receives the union — `all` (default), `current` for just the signed-in account, or a specific `accountUuid`. Narrow it when one of the accounts is long dead and does not deserve a copy of everything.
 
+## Titles drift after a union, and a second run is where that shows
+
+A rename writes one index file. So once a conversation exists in three indexes, renaming it under one account leaves the other two holding the old name, and copying cannot fix it — the entry is already there, so a plain union skips it.
+
+Each run therefore also reconciles titles: where copies of one conversation disagree, the most recently written file wins, and its `title`, `titleSource` and `previousTitles` are written into the others. Nothing else in those files moves; the rest is that account's own record of the conversation.
+
+File mtime is the signal because it is the only timestamp a rename actually moves — `lastActivityAt` records the conversation, not the record of it. That is not infallible: an unrelated rewrite of a stale copy makes it the newest, and it then wins with the older name. So every reconciliation is listed by name in the report, the value it replaced is recorded, and `--no-titles` turns the whole pass off.
+
+This is what makes a naming sweep worth running. Rename under one account, run this, and the names reach the others.
+
 ## What the script refuses to do
 
-- **It never deletes.** Every run only adds files, and records what it added in `.session-merge-manifest.json` beside the account directories. `--undo` removes exactly those paths and nothing else — not files the app wrote, not files a previous merge already reconciled.
+- **It never deletes.** Every run only adds files, and records both what it added and every title it replaced in `.session-merge-manifest.json` beside the account directories. `--undo` removes exactly those paths and puts exactly those titles back — not files the app wrote, not titles this skill never touched. A manifest written before titles were reconciled is a bare list of paths and is still read as one, so an older merge stays undoable.
 - **It skips orphans.** An index entry whose `cliSessionId` has no transcript under `~/.claude/projects/` would appear in the sidebar and open to nothing, which is worse than not appearing. The report counts them; `--keep-orphans` copies them anyway.
-- **It is idempotent.** A second run plans zero copies. Run it again after every stretch of work under one account, since new conversations only land in that account's index.
+- **It is idempotent.** A second run with nothing new plans zero copies and zero reconciliations. Run it again after every stretch of work under one account, and after any renaming pass: new conversations only land in that account's index, and new names only land in that account's copy.
 
 ## The restart
 
@@ -57,9 +67,11 @@ Session index <root>
 
 Plan: <N> entries to copy into <M> account index(es), +<size>
   skipped <N> whose transcript is gone
+  <N> stale titles to reconcile
+    <account>  → <winning title>
 ```
 
-After `--apply`, say how many were copied, that `--undo` takes them back, and that the sidebar is unchanged until the app restarts. A merge reported as done while the sidebar still looks the same reads as a failure.
+After `--apply`, say how many were copied and how many titles were reconciled, that `--undo` takes both back, and that the sidebar is unchanged until the app restarts. A merge reported as done while the sidebar still looks the same reads as a failure.
 
 ## Platform
 
