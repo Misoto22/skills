@@ -97,6 +97,14 @@ therefore be a valid one** — generate it with the skill's own calculator. A ca
 that tests a refusal over a corrupt source supplies no artifact and describes the
 corruption in its prompt, which is how those cases already pass.
 
+A fail-fast preflight needs the same sentence for the same reason. `ship` opens
+by stopping the run when `gh`, authentication, or a remote is missing, and none
+of the three exists in this runner — so it answered with that refusal, and every
+expectation phrased as an outcome failed against it. Its prompts now close with
+`Environment prerequisites already passed and the state described is what
+preflight read`, which is the artifact sentence in a skill that validates its
+environment rather than its input.
+
 A case that needs real tools cannot be scored here at all, and should assert the
 decision rather than pretend to observe the outcome.
 

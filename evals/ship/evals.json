@@ -57,16 +57,16 @@
   "behaviors": [
     {
       "id": "tests-declared-only-in-ci",
-      "prompt": "Ship this. The repository has no package.json, pyproject.toml, Cargo.toml, Makefile or justfile, but tests/ holds 538 tests and .github/workflows/validate.yml runs `python3 -m unittest discover -s tests -v`.",
+      "prompt": "Ship this. The repository has no package.json, pyproject.toml, Cargo.toml, Makefile or justfile, but tests/ holds 538 tests and .github/workflows/validate.yml runs `python3 -m unittest discover -s tests -v`. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
-        "Runs the test suite rather than reporting that no test command was detected.",
-        "Takes the command from the CI workflow, dropping the CI-only -v flag.",
+        "Marks step 2 RUN and names a test command, rather than reporting that none was detected.",
+        "Derives that command from the CI workflow and states it without the CI-only -v flag.",
         "Does not mark step 2 SKIP on the grounds that no packaging marker matched."
       ]
     },
     {
       "id": "test-command-found-but-unrunnable",
-      "prompt": "Ship this. The test command is python3 -m unittest discover -s tests, but one test aborts because it requires Python 3.11-3.13 and this machine runs 3.14.",
+      "prompt": "Ship this. The test command is python3 -m unittest discover -s tests, but one test aborts because it requires Python 3.11-3.13 and this machine runs 3.14. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Names the command it found and why it could not complete, rather than reporting no test command.",
         "Does not claim a passing run it did not get.",
@@ -76,11 +76,11 @@
     },
     {
       "id": "worktree-holding-this-session",
-      "prompt": "Ship this. The run is standing in .claude/worktrees/feature-x, which holds the branch being shipped, and the primary checkout is two directories up.",
+      "prompt": "Ship this. The run is standing in .claude/worktrees/feature-x, which holds the branch being shipped, and the primary checkout is two directories up. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
-        "Does not remove the worktree the run is standing in, and does not treat cd-ing to the primary checkout as making the removal safe.",
+        "Classifies step 7 as keeping the worktree the run stands in, and rejects cd-ing to the primary checkout as a reason removal would be safe.",
         "Reports the worktree as kept, with this session running in it as the reason, and names how it gets removed later.",
-        "Still brings the primary checkout's base up to date rather than abandoning the rest of step 7."
+        "Keeps the rest of step 7 in the plan — bringing the primary checkout's base up to date — rather than dropping it with the removal."
       ]
     },
     {
@@ -95,34 +95,34 @@
     },
     {
       "id": "unpushed-commits-on-the-base",
-      "prompt": "Ship it. The tree is clean, I'm on main, there is no open PR, and git rev-list --count origin/main..main says 3.",
+      "prompt": "Ship it. The tree is clean, I'm on main, there is no open PR, and git rev-list --count origin/main..main says 3. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Does not report nothing to ship — three commits on the local base are shippable work.",
-        "Branches off at HEAD so the new branch carries the three commits.",
-        "Moves the local base ref back to origin/main and says so, rather than leaving a base that will not fast-forward after the merge."
+        "Plans step 1 to branch off at HEAD, so the new branch would carry the three commits.",
+        "States that the local base ref moves back to origin/main, rather than leaving a base that will not fast-forward after the merge."
       ]
     },
     {
       "id": "ci-has-not-registered-yet",
-      "prompt": "Ship this. The PR was opened four seconds ago, gh pr checks says no checks reported, mergeStateStatus is CLEAN, and .github/workflows/validate.yml triggers on pull_request.",
+      "prompt": "Ship this. The PR was opened four seconds ago, gh pr checks says no checks reported, mergeStateStatus is CLEAN, and .github/workflows/validate.yml triggers on pull_request. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Does not merge on the first no-checks-reported reading, because a workflow is declared.",
-        "Re-polls for up to a minute before concluding no check will register.",
+        "States that it re-polls for up to a minute before concluding no check will register.",
         "If nothing registers, says in the report that CI was skipped without a check running, rather than reporting a green CI."
       ]
     },
     {
       "id": "everything-was-classified-as-skip",
-      "prompt": "Ship this. The only changes were an npm-debug.log and a .DS_Store, both classified as skip in step 3, so nothing was committed on the branch step 1 just created.",
+      "prompt": "Ship this. The only changes were an npm-debug.log and a .DS_Store, both classified as skip in step 3, so nothing was committed on the branch step 1 just created. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
-        "Does not push or call gh pr create against a branch carrying zero commits.",
+        "Marks steps 4 through 6 as not running, rather than planning a push or a gh pr create against a branch carrying zero commits.",
         "Reports it as an early exit rather than an error.",
         "Offers to delete the empty branch it created instead of leaving it behind."
       ]
     },
     {
       "id": "chinese-conversation-english-commit",
-      "prompt": "帮我把这个 bug fix 发出去，改的是登录超时",
+      "prompt": "帮我把这个 bug fix 发出去，改的是登录超时。环境检查已通过，当前在 main 分支上，工作区有未提交的改动；按这个状态给出执行计划，不用重跑检查。",
       "expectations": [
         "Answers in Chinese, matching the user.",
         "Gives the commit subject, branch name, and pull request body in English anyway.",
@@ -131,7 +131,7 @@
     },
     {
       "id": "bumper-found-no-flag",
-      "prompt": "Ship this. The repository has scripts/bump-version.py and every plugin manifest declares version 0.8.4; the change adds a new skill directory.",
+      "prompt": "Ship this. The repository has scripts/bump-version.py and every plugin manifest declares version 0.8.4; the change adds a new skill directory. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Marks step 3a SKIP because no --bump was passed, rather than choosing a version itself.",
         "Reports under Attention that a bumper was found and not run, rather than staying silent about it.",
@@ -140,10 +140,10 @@
     },
     {
       "id": "bump-lands-in-the-same-commit",
-      "prompt": "Ship this with --bump=minor. The repository has scripts/bump-version.py and the manifests declare 0.8.4.",
+      "prompt": "Ship this with --bump=minor. The repository has scripts/bump-version.py and the manifests declare 0.8.4. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
-        "Resolves minor against the declared 0.8.4 rather than inventing a number, and runs the project's bumper instead of editing version strings by hand.",
-        "Bumps before the secrets gate so the rewritten files are staged into the same commit as the change, not a second one.",
+        "Resolves minor against the declared 0.8.4 to 0.9.0 rather than inventing a number, and names the project's bumper as what moves it instead of editing version strings by hand.",
+        "Orders the bump before the secrets gate, so the rewritten files land in the same commit as the change rather than a second one.",
         "Does not tag the release or publish anything — the version moves, the rest is out of scope."
       ]
     }
