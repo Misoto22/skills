@@ -80,18 +80,24 @@ test -e <old path> && find <old path> -type f | head
 
 `feat` · `fix` · `docs` when every changed file is prose · `chore` when every changed file is config, dependencies, or a lockfile · `refactor` · `test` · `ci`.
 
-Build the slug from the commit subject's content words — drop the leading verb, articles, and conjunctions. Reading a large diff to invent a name is wasted work; the subject already says it.
+Where more than one fits, take the first that does: `docs`, then `chore`, then `fix` when the commit subject opens with fix, bug, or resolve, then `feat`.
+
+Build the slug from the commit subject's content words — drop the leading verb, articles, and conjunctions. Where the subject will not carry it, use the longest common directory prefix of the changed files, and failing that `sync-<dominant directory>` under `chore`. Reading a large diff to invent a name is wasted work; the subject already says it.
 
 ## Worktrees
 
 A worktree cannot remove itself while you are standing in it, and a shell whose working directory has been deleted breaks every command that follows. Run `git worktree remove` from the primary checkout, and change directory out of the worktree first.
 
-**A worktree the current session runs in is never removed by that session**, and changing directory does not make it safe. The session's tooling, its scratch state, and its open file handles stay behind, and nothing running inside can undo the deletion. Whoever recycles that worktree does it from outside, once the session has ended.
+`git worktree list` reports the primary checkout too. More than one line means a worktree exists; one line means there is nothing to clean.
 
-Decide that before moving anywhere. Once you are in the primary checkout the question can no longer be asked, because `git rev-parse --show-toplevel` then answers for the primary:
+### The home worktree
+
+The worktree a session is running in is that session's **home worktree**, and no session removes its own. Changing directory does not make it safe: the session's tooling, its scratch state, and its open file handles stay behind, and nothing running inside can undo the deletion. A home worktree is recycled from outside, once the session has ended.
+
+Identify it before moving anywhere. Once you are in the primary checkout the question can no longer be asked, because `git rev-parse --show-toplevel` then answers for the primary:
 
 ```bash
 git rev-parse --show-toplevel   # record at the start of the run, compare later
 ```
 
-`git worktree list` reports the primary checkout too. More than one line means a worktree exists; one line means there is nothing to clean.
+Report a home worktree as kept, with that as the reason. It is a completed step, not a failure — running from a worktree is the common case.
