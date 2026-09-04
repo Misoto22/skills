@@ -493,6 +493,14 @@ ROUTING_SCHEMA = {
 # Classification, so use the least-expensive model alias exposed by the
 # gateway. JSON mode keeps the response machine-readable without
 # provider-specific schema wrappers.
+# Cloudflare fronts the gateway and returns a 524 at 120 seconds, so a call
+# still running at 180 has not been slow, it has been abandoned. Two attempts
+# rather than the SDK's default: a scan of ninety behavior cases retries every
+# one of them when the gateway is degraded, and five attempts at three minutes
+# is a run nobody waits for.
+CALL_TIMEOUT_SECONDS = 180.0
+CALL_MAX_RETRIES = 2
+
 ROUTER_MODEL = "deepseek-default"
 ROUTER_MAX_TOKENS = 2048
 ROUTER_MAX_ATTEMPTS = 2
@@ -579,7 +587,12 @@ def _litellm_client() -> object:
         raise SystemExit("error: model scoring needs LITELLM_EVALS_API_KEY")
     if not base_url.startswith("https://") or not base_url.rstrip("/").endswith("/v1"):
         raise SystemExit("error: LITELLM_EVALS_BASE_URL must be an HTTPS OpenAI-compatible /v1 endpoint")
-    return openai.OpenAI(api_key=api_key, base_url=base_url.rstrip("/"))
+    return openai.OpenAI(
+        api_key=api_key,
+        base_url=base_url.rstrip("/"),
+        timeout=CALL_TIMEOUT_SECONDS,
+        max_retries=CALL_MAX_RETRIES,
+    )
 
 
 def run(skills: list[str], split: str = "all") -> list[str]:
@@ -602,10 +615,10 @@ def run(skills: list[str], split: str = "all") -> list[str]:
                 scored += 1
                 verdict = _judge(skill, section, case, answer, known)
                 if verdict is None:
-                    print(f"  pass  {skill}/{case['id']}")
+                    print(f"  pass  {skill}/{case['id']}", flush=True)
                     continue
                 failures.append(f"{skill}/{case['id']}: {verdict}; routed to {answer!r} — {reason}")
-                print(f"  FAIL  {skill}/{case['id']} → {answer}")
+                print(f"  FAIL  {skill}/{case['id']} → {answer}", flush=True)
 
     print(f"\n{scored} {split} cases scored, {len(failures)} failed")
     return failures
@@ -1010,9 +1023,9 @@ def run_behaviors(skills: list[str], split: str = "all") -> list[str]:
                 violations = [_bounded_failure("behavior case could not run", error)]
             scored += 1
             if not violations:
-                print(f"  pass  {skill}/{case['id']}")
+                print(f"  pass  {skill}/{case['id']}", flush=True)
                 continue
-            print(f"  FAIL  {skill}/{case['id']}")
+            print(f"  FAIL  {skill}/{case['id']}", flush=True)
             failures.extend(f"{skill}/{case['id']}: {violation}" for violation in violations)
 
     print(f"\n{scored} {split} behavior cases scored, {len(failures)} violations")
