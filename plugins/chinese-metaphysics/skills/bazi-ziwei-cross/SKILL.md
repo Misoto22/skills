@@ -3,7 +3,7 @@ name: bazi-ziwei-cross
 description: Read one person's finished 八字 artifact and finished 紫微 artifact against each other, recording every place the two systems agree, complement, or flatly contradict, without merging them into a single number. Use for 八字紫微综合, 双系统印证, 两盘合参, or asking whether the two systems say the same thing about one person. Not for placing either 命盘, reading one system by itself, matching two people, or forecasting.
 license: MIT
 metadata:
-  version: "0.13.1"
+  version: "0.14.0"
 ---
 
 # BaZi and Zi Wei Cross-Reading
@@ -24,11 +24,17 @@ Require **both** of:
 1. A `chinese-metaphysics.bazi-chart` JSON artifact at schema version 1 with a valid canonical checksum.
 2. A `chinese-metaphysics.ziwei-chart` JSON artifact at schema version 1 with a valid canonical checksum.
 
-Validate both with the vendored `shared/bazi/artifacts.py` validator. Stop and name the exact defect on any checksum mismatch, unsupported schema or version, or incomplete chart. Route raw details back to the placing skill; never patch, infer, or place a missing chart yourself.
+Validate both in one run, BaZi first:
+
+```bash
+python3 scripts/validate_artifact.py BAZI.json ZIWEI.json
+```
+
+Exit 0 prints the person and both checksums to record. Exit 2 means stop: it names the side at fault and every defect it found. Route raw details back to the placing skill; never patch, infer, or place a missing chart yourself.
 
 ### The two charts must describe the same person and the same moment
 
-Before comparing anything, confirm that both artifacts carry the same `input.name`, `input.birth_date`, `input.birth_time`, `input.timezone`, and birthplace coordinates. If any differ, stop and say which field differs. Two charts for different moments produce a cross-reading that looks authoritative and means nothing.
+That same run checks each chart alone and then the pair — the resolved Gregorian date, birth time, timezone, coordinates, name, and whether both charts carry a boundary alternate or neither does. This is the half no single artifact can carry: two impeccable charts cast for different moments produce a cross-reading that looks authoritative and means nothing.
 
 ## The year-pillar difference is expected, not an error
 

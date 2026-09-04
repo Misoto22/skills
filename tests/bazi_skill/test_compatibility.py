@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import sys
 import unittest
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,25 +13,7 @@ from bazi.artifacts import add_checksum
 from bazi.compatibility import CompatibilityError, compare_charts
 from bazi.engine import build_chart
 
-
-class MeanSolarEphemeris:
-    epoch = datetime(2024, 1, 1, tzinfo=UTC)
-    rate = 360.0 / 365.2422
-
-    def julian_day(self, moment: datetime) -> float:
-        return (moment.astimezone(UTC) - self.epoch).total_seconds() / 86400.0
-
-    def from_julian_day(self, value: float) -> datetime:
-        return self.epoch + timedelta(days=value)
-
-    def sun_longitude(self, value: float) -> float:
-        return (280.0 + value * self.rate) % 360.0
-
-    def moon_longitude(self, value: float) -> float:
-        return (20.0 + value * 13.0) % 360.0
-
-    def equation_of_time(self, value: float) -> float:
-        return 0.0
+from bazi_skill.ephemeris_double import MeanSolarEphemeris
 
 
 def birth(name: str, birth_date: str, birth_time: str = "12:00") -> dict:

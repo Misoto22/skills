@@ -7,7 +7,6 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +16,8 @@ sys.path.insert(0, str(SHARED))
 
 from bazi.artifacts import validate_envelope
 from bazi.ephemeris import EphemerisUnavailable
+
+from bazi_skill.ephemeris_double import MeanSolarEphemeris
 
 VALID = {
     "name": "张三",
@@ -28,26 +29,6 @@ VALID = {
     "latitude": 31.23,
     "longitude": 121.47,
 }
-
-
-class MeanSolarEphemeris:
-    epoch = datetime(2024, 1, 1, tzinfo=UTC)
-    rate = 360.0 / 365.2422
-
-    def julian_day(self, moment: datetime) -> float:
-        return (moment.astimezone(UTC) - self.epoch).total_seconds() / 86400.0
-
-    def from_julian_day(self, value: float) -> datetime:
-        return self.epoch + timedelta(days=value)
-
-    def sun_longitude(self, value: float) -> float:
-        return (280.0 + value * self.rate) % 360.0
-
-    def moon_longitude(self, value: float) -> float:
-        return (20.0 + value * 13.0) % 360.0
-
-    def equation_of_time(self, value: float) -> float:
-        return 0.0
 
 
 def load_script():

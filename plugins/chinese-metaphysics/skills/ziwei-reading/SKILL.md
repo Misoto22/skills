@@ -3,7 +3,7 @@ name: ziwei-reading
 description: Interpret an already-placed Zi Wei 命盘 artifact, or equivalent verified twelve-palace data, writing a reader report plus a separate audit artifact and, when asked, an ink-wash HTML poster. Use for 解读紫微, 看命盘, 看十二宫, or explaining the stars sitting in 命宫, the 生年四化, and what each 大限 window emphasizes. Not for unplaced birth records, 八字 four pillars, comparing two systems against each other, matching two people, 流年, or dated predictions.
 license: MIT
 metadata:
-  version: "0.13.1"
+  version: "0.14.0"
 ---
 
 # Zi Wei Reading
@@ -26,7 +26,13 @@ Accept one of:
 2. Its verified Markdown rendering together with the matching JSON. Markdown alone is not a machine source.
 3. Complete pasted equivalent data containing identity, the lunar date and hour branch, the year pillar and its polarity, the bureau, the life and body palaces, all twelve palaces with their stems and placed stars, the year transformations including any unplaced ones, twelve decade ranges, the model version, and alternate sensitivity. Mark this source `pasted-complete`; do not pretend it had a checksum.
 
-Use the vendored `shared/bazi/artifacts.py` validator for a JSON artifact. Stop on checksum mismatch, unsupported schema or version, fewer than twelve palaces, a missing life or body palace, a transformation naming a star that appears nowhere, decade ranges running in two directions, or a sensitivity flag without a complete alternate. Name the exact defect and route raw details back to `ziwei-chart`; never patch or infer a field.
+Validate a JSON artifact before reading a single star:
+
+```bash
+python3 scripts/validate_artifact.py CHART.json
+```
+
+Exit 0 prints the name and checksum to record. Exit 2 means stop, and prints every defect it found — a stale checksum, an unsupported schema or version, fewer than twelve palaces, a life or body palace missing or marked twice, a transformation naming a star that sits in no palace, decade ranges that reverse halfway, a declared alternate that is absent. Name those defects and route the raw details back to `ziwei-chart`; never patch or infer a field. A `pasted-complete` source has no artifact to run this against: hold it to the same fields by hand and say no checksum was verified.
 
 ## Build an evidence ledger first
 

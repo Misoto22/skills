@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 TESTS_ROOT = ROOT / "tests"
 MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
-VERSION = "0.13.1"
+VERSION = "0.14.0"
 
 # Lowercase letters, digits and hyphens. Claude Code is lenient about a plugin
 # or marketplace name; the claude.ai marketplace sync is not, and a keyword that
