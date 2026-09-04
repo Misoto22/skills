@@ -1,6 +1,6 @@
 {
   "name": "photography",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Source-faithful photography presentation: compose original photographs and supplied artwork without distortion, then audit visual provenance and quality.",
   "author": {
     "name": "skills contributors"
