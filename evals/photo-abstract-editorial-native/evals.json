@@ -46,8 +46,8 @@
       "id": "portrait-lower-space",
       "prompt": "Compose a board from a tall portrait source and a wide lower panel.",
       "expectations": [
-        "Keeps the portrait source at its original aspect ratio and does not force the lower panel into portrait proportions.",
-        "Uses the portrait lower-canvas rule and records that neither panel was upscaled."
+        "Names the source's portrait aspect ratio as the binding constraint and refuses to force the lower panel into portrait proportions to fit it.",
+        "Derives the lower canvas from the portrait rule and states that neither panel is upscaled, both recorded in the manifest."
       ]
     },
     {

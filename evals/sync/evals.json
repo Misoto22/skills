@@ -91,8 +91,8 @@
       "id": "ahead-behind-not-transposed",
       "prompt": "同步一下，看看现在跟远端差多少",
       "expectations": [
-        "Reports in Chinese, because that is the language of the question.",
-        "Reports ahead and behind the right way round — commits only on the local branch are ahead, commits only on the upstream are behind.",
+        "Answers in Chinese, because that is the language of the question.",
+        "Puts ahead and behind the right way round — commits only on the local branch are ahead, commits only on the upstream are behind.",
         "Fast-forwards only, and reports a diverged branch instead of rebasing it."
       ]
     }

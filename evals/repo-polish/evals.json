@@ -91,8 +91,8 @@
       "id": "forge-write-confirmation",
       "prompt": "装修一下这个仓库，全套",
       "expectations": [
-        "Prints the plan table before writing anything.",
-        "Prints the exact description and topic values and asks before sending them to the forge.",
+        "Puts the plan table before any write.",
+        "Shows the exact description and topic values and asks before sending them to the forge.",
         "Reports the forge passes as blocked, with the commands to run, when the host cannot reach the forge.",
         "Never reports a forge field as set on the strength of having composed a value for it."
       ]

@@ -63,7 +63,7 @@
       "expectations": [
         "Keeps dependabot/github_actions/actions-435dda8292 and names open pull request #22 as the reason.",
         "States that deleting the branch would close that pull request.",
-        "Deletes the merged branches without holding them back over the one exception."
+        "Proceeds with the merged branches rather than holding them all back over the one exception."
       ]
     },
     {

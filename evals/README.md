@@ -61,10 +61,37 @@ edit budget are in [ITERATION.md](ITERATION.md).
   published skill should take it instead; that is the boundary between two
   descriptions, written down where both can be checked against it.
 - **`behaviors`** — what the skill must do once it has fired. Each carries
-  `expectations`, graded individually.
+  `expectations`, graded individually, and may carry an `artifact`: a JSON file
+  handed to the model as evaluation data. `fixture` is the stronger form —
+  the same injection, plus the draft checked against that artifact by the
+  skill's registered validators. A case names one or the other.
 - **`holdout`** — `true`, or absent. At least one per populated section, chosen
   as the surface the tuning cases cover least; never on a `routes_to` boundary,
   which is what a description edit already aims at. `--check` holds both rules.
+
+## What an expectation may assert
+
+A behavior case is scored in a text-only runner: the skill document is the
+system prompt, the case prompt is the user turn, and there are no tools, no
+filesystem, no git, and no image generator. **An expectation must name something
+a response can carry** — a plan, a classification, a refusal, a derived value,
+or produced prose. Never an effect on the world.
+
+This is not a style preference. An expectation reading "renames only the 195
+local rows" cannot be satisfied by any correct behaviour here, so the honest
+answer — that the rename cannot be performed — scores as a failure, and the case
+reports a skill defect that does not exist. Nineteen of eighty-three cases were
+failing that way before the rule was written down.
+
+Rewriting one is not lowering the bar. "Renames only the local rows" becomes
+"scopes the operation to the local rows and to no others": the same claim about
+the same decision, asked of the half of it the runner can see. Where the skill's
+work is genuinely an artifact — an image, a composed board — assert the
+constraint it names and the value it derives, not that it says it will comply.
+
+A case that needs real data supplies it with `artifact`. A case that needs real
+tools cannot be scored here at all, and should assert the decision rather than
+pretend to observe the outcome.
 
 `non_triggers` is the half that matters. A skill that fires on everything scores
 perfectly on its own triggers, and the cost lands on whichever skill it took the

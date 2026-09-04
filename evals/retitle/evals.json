@@ -52,8 +52,8 @@
       "id": "preview-before-write",
       "prompt": "Retitle my Codex conversations. There are 317 of them. Apply it.",
       "expectations": [
-        "Prints one table with the header `| 原名称 | 新名称 |` before writing any title, despite being told to apply.",
-        "Does not include unchanged conversations as table rows; reports them as a count with reasons.",
+        "States that it previews before writing despite being told to apply, and names the table it will print, with the header `| 原名称 | 新名称 |`.",
+        "Keeps unchanged conversations out of the table rows and accounts for them as a count with reasons.",
         "States the resolved timezone and that dates come from creation time."
       ]
     },
@@ -61,7 +61,7 @@
       "id": "cloud-rows-excluded",
       "prompt": "Retitle my Codex conversations. 195 are under host_id 'local' and 122 under a chatgpt: host.",
       "expectations": [
-        "Renames only the 195 local rows.",
+        "Scopes the operation to the 195 local rows and to no others.",
         "Reports the 122 cloud-hosted rows as excluded, because the cloud is their source and a local write is reverted at the next sync.",
         "Does not offer to rename them anyway."
       ]
@@ -97,9 +97,9 @@
       "id": "writes-through-the-app-server",
       "prompt": "Apply the confirmed Codex renames.",
       "expectations": [
-        "Renames through the app server's thread/name/set, not by writing local_thread_catalog.display_title.",
+        "Names the app server's thread/name/set as the write path and rules out writing local_thread_catalog.display_title directly.",
         "States that display_title is a derived read-model and a direct write is reverted when the scanner next reconciles the thread.",
-        "Backs up ~/.codex/session_index.jsonl first and verifies with thread/read rather than trusting the request count."
+        "Backs up ~/.codex/session_index.jsonl before writing and verifies through thread/read rather than trusting the request count."
       ]
     },
     {
@@ -115,8 +115,8 @@
       "id": "claude-code-batch-uses-created-at",
       "prompt": "Retitle all my Claude Code sessions, archived ones too.",
       "expectations": [
-        "Lists sessions with include_archived true.",
-        "Reads createdAt per session with get_session rather than dating them from lastActivityAt.",
+        "Lists sessions with include_archived true, because the request included the archived ones.",
+        "Takes each session's date from get_session's createdAt rather than from lastActivityAt.",
         "Leaves sessions already shaped MMDD｜类型｜主题 alone instead of re-deriving them."
       ]
     },
@@ -124,7 +124,7 @@
       "id": "recheck-keeps-the-session-date",
       "prompt": "This session started on the 3rd and it is now the 4th. Its subject has changed — retitle it.",
       "expectations": [
-        "Keeps MMDD at the date the session started, changing only 类型 and 主题.",
+        "Keeps MMDD at the date the session started and changes only 类型 and 主题.",
         "Does not move the date to today, which would break the chronological order the scheme exists for."
       ]
     }

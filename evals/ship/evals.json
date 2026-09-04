@@ -124,8 +124,8 @@
       "id": "chinese-conversation-english-commit",
       "prompt": "帮我把这个 bug fix 发出去，改的是登录超时",
       "expectations": [
-        "Reports progress in Chinese, matching the user.",
-        "Writes the commit subject, branch name, and pull request body in English anyway.",
+        "Answers in Chinese, matching the user.",
+        "Gives the commit subject, branch name, and pull request body in English anyway.",
         "Does not translate the conversation's Chinese into the commit message."
       ]
     },
