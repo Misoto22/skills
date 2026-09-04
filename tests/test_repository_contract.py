@@ -2708,9 +2708,7 @@ class RepositoryContractTests(unittest.TestCase):
 
         on_disk: dict[str, dict[str, str]] = {}
         for path in sorted(ROOT.glob("reader/*/*.md")):
-            on_disk.setdefault(path.parent.name, {})[path.stem] = path.read_text(
-                encoding="utf-8"
-            ).strip()
+            on_disk.setdefault(path.parent.name, {})[path.stem] = path.read_text(encoding="utf-8").strip()
 
         self.assertTrue(on_disk, "no reader document to hold the registry to")
         for name, documents in on_disk.items():
