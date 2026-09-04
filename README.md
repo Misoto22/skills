@@ -48,7 +48,7 @@ Twenty-one skills in seven plugins. The plugin name is the command prefix, and e
 - **[sync](plugins/dev/skills/sync/SKILL.md)** (`/dev:sync`) — fetches, prunes, and fast-forwards the base branch, then reports what diverged. It only fast-forwards; a diverged branch is reported, never rebased.
 - **[ship](plugins/dev/skills/ship/SKILL.md)** (`/dev:ship`) — lands the current changes as a merged pull request. A preflight marks each step RUN or SKIP, so a clean tree exits without doing anything, and any step that fails twice stops and asks.
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)** (`/dev:cleanup`) — removes what shipping left behind: merged branches, their worktrees, and ignored residue a move stranded. Every deletion is verified against the forge, not against git.
-- **[retitle](plugins/dev/skills/retitle/SKILL.md)** (`/dev:retitle`) — renames agent conversations onto a dated `MMDD｜类型｜主题` scheme. Every rename is proposed as a two-column table first; a conversation whose subject cannot be recovered keeps the name it had.
+- **[retitle](plugins/dev/skills/retitle/SKILL.md)** (`/dev:retitle`) — renames agent conversations onto a dated `MMDD｜TYPE｜subject` scheme, English by default and Chinese with `--lang=zh`. Every rename is proposed as a two-column table first; a conversation whose subject cannot be recovered keeps the name it had.
 
 #### `brand` — visual identity assets
 

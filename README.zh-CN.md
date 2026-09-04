@@ -48,7 +48,7 @@
 - **[sync](plugins/dev/skills/sync/SKILL.md)**（`/dev:sync`）—— 拉取远端、清掉已删除的远端分支引用、把基准分支快进到最新，然后报告哪里对不上。它只做快进：分叉了就如实报告，绝不替你 rebase。
 - **[ship](plugins/dev/skills/ship/SKILL.md)**（`/dev:ship`）—— 把当前改动开成 PR，等 CI 绿了合掉。开跑前先预检，每一步标成 RUN 或 SKIP，所以工作区本来就干净时它什么都不做就退出；哪一步连失败两次就停下来问。
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都拿 GitHub 上的状态核对过，而不是听 git 的。
-- **[retitle](plugins/dev/skills/retitle/SKILL.md)**（`/dev:retitle`）—— 把 agent 的对话名称统一成带日期的 `MMDD｜类型｜主题`。每一批改名都先出一张两列表格给你确认；主题实在推不出来的对话，保留原名不猜。
+- **[retitle](plugins/dev/skills/retitle/SKILL.md)**（`/dev:retitle`）—— 把 agent 的对话名称统一成带日期的 `MMDD｜TYPE｜subject`，默认英文，`--lang=zh` 换回中文词表。每一批改名都先出一张两列表格给你确认；主题实在推不出来的对话，保留原名不猜。
 
 #### `brand` —— 视觉识别资产
 

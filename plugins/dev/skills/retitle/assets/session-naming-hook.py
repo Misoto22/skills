@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: keep a Claude Code session titled `MMDD｜类型｜主题`.
+"""UserPromptSubmit hook: keep a Claude Code session titled `MMDD｜TYPE｜subject`.
 
 The batch half of this skill renames conversations that already exist. This is the
 live half: without it a new session keeps whichever title the client auto-generated,
@@ -32,17 +32,45 @@ from pathlib import Path
 DEFAULT_RECHECK_EVERY = 5
 MARKER_TTL_SECONDS = 7 * 24 * 60 * 60
 
-TYPES = "功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究"
+DEFAULT_LANG = "en"
 
-FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once with session_id: "self" to set this session's title. Do this silently, without announcing it to the user.
+# One vocabulary per language, and each one internally uniform in width — that is the
+# whole reason the English types are five uppercase letters rather than the natural
+# words. Two CJK characters are a fixed em each, so `优化` and `研究` occupy the same
+# pixels and the subject starts at the same x on every row. English in a proportional
+# UI font cannot reproduce that exactly, but a fixed letter count in uppercase gets
+# the jitter down to about a tenth of a glyph, where `DESIGN` against `FIX` would be
+# a factor of two and no column would survive it. SHIP is the one four-letter member:
+# no five-letter English verb covers commit/PR/merge/tag/deploy/publish honestly, and
+# a word that lies is worse than a column that is one character ragged.
+SCHEMES: dict[str, dict[str, str]] = {
+    "en": {
+        "scheme": "MMDD｜TYPE｜subject",
+        "types": "BUILD, SHAPE, PATCH, TWEAK, SHIP, PROBE, WRITE, AUDIT, STUDY",
+        "fields": "TYPE and subject",
+        "type_field": "TYPE",
+        "body": """- TYPE: exactly one of {types} — uppercase, exactly as written
+  - BUILD: new capability, new endpoint, new screen
+  - SHAPE: shape decided before code — architecture, interface, layout
+  - PATCH: something behaved wrongly and was corrected
+  - TWEAK: behaviour was already correct; speed, cost, or clarity improved
+  - SHIP: commit, PR, merge, tag, deploy, publish
+  - PROBE: tried something to find out what happens; no committed outcome
+  - WRITE: README, comments, guides, changelogs
+  - AUDIT: checked something that already exists against a standard and reported the gaps; nothing built
+  - STUDY: read the outside world to answer a question; nothing built and nothing of the user's inspected
 
-session_id is required, and "self" is the only value that names the session you are in. Omitting it fails validation, and the session id in your own transcript path or scratchpad path is a different id — passing that one answers "Session ... not found" and the title is left as the client generated it.
+AUDIT and STUDY both end in a report. The line is the object: AUDIT inspects something the user already owns (a repository, a deployment, a page, a configuration), STUDY reads the outside world. "Audit the site's SEO" is AUDIT; "which SEO tools are worth using" is STUDY.
+- subject: what the session is actually about, in two to four lowercase words and at most 24 characters — English runs about two and a half times wider than Chinese for the same meaning, and it is the subject that gets truncated in a narrow sidebar, not the type. Name the object, not the activity (batch text rendering, not fixed some display issues). Do not repeat the project or repository name — the sidebar already groups by project.
 
-Format: "MMDD｜类型｜主题" — for this session, MMDD is {mmdd}.
-
-The separator is the fullwidth vertical line ｜ (U+FF5C), not the ASCII pipe |. No spaces around it.
-
-- 类型: exactly one of {types}
+Examples: 0903｜TWEAK｜batch text rendering · 0902｜BUILD｜unified shortcut page · 0813｜SHIP｜push code to github""",
+    },
+    "zh": {
+        "scheme": "MMDD｜类型｜主题",
+        "types": "功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究",
+        "fields": "类型 and 主题",
+        "type_field": "类型",
+        "body": """- 类型: exactly one of {types}
   - 功能: new capability, new endpoint, new screen
   - 设计: shape decided before code — architecture, interface, layout
   - 修复: something behaved wrongly and was corrected
@@ -56,11 +84,23 @@ The separator is the fullwidth vertical line ｜ (U+FF5C), not the ASCII pipe |.
 审计 and 研究 both end in a report. The line is the object: 审计 inspects something the user already owns (a repository, a deployment, a page, a configuration), 研究 reads the outside world. "Audit the site's SEO" is 审计; "which SEO tools are worth using" is 研究.
 - 主题: what the session is actually about, roughly 4-12 characters. Name the object, not the activity (批次文字显示, not 处理了一些显示问题). Do not repeat the project or repository name — the sidebar already groups by project.
 
-Examples: 0903｜优化｜批次文字显示 · 0902｜功能｜整合快捷键提示页 · 0813｜发布｜提交代码到GitHub
+Examples: 0903｜优化｜批次文字显示 · 0902｜功能｜整合快捷键提示页 · 0813｜发布｜提交代码到GitHub""",
+    },
+}
+
+FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once with session_id: "self" to set this session's title. Do this silently, without announcing it to the user.
+
+session_id is required, and "self" is the only value that names the session you are in. Omitting it fails validation, and the session id in your own transcript path or scratchpad path is a different id — passing that one answers "Session ... not found" and the title is left as the client generated it.
+
+Format: "{scheme}" — for this session, MMDD is {mmdd}.
+
+The separator is the fullwidth vertical line ｜ (U+FF5C), not the ASCII pipe |. No spaces around it.
+
+{body}
 
 If the task fits none of the nine types, pick the closest one rather than inventing a tenth."""
 
-RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again with session_id: "self" — keep MMDD as {mmdd} (the date the session started), and change 类型 and 主题 to match where the work actually went. 类型 is one of {types}.
+RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again with session_id: "self" — keep MMDD as {mmdd} (the date the session started), and change {fields} to match where the work actually went. {type_field} is one of {types}.
 
 Only retitle on a real change of subject, not on a new step within the same task — a title that changes every few messages is worse than one that is slightly stale. If the current title still fits, do nothing, and either way do not mention this to the user."""
 
@@ -68,6 +108,20 @@ Only retitle on a real change of subject, not on a new step within the same task
 def _recheck_every() -> int:
     raw = os.environ.get("SESSION_TITLE_RECHECK_EVERY", "")
     return int(raw) if raw.isdigit() else DEFAULT_RECHECK_EVERY
+
+
+def _scheme() -> dict[str, str]:
+    """The vocabulary to name sessions in, English unless SESSION_TITLE_LANG says otherwise.
+
+    Matched on prefix so `zh-CN` and `zh_Hans` land where the user meant. An
+    unrecognised value falls back to the default rather than failing: the hook's job is
+    to inject a rule, and a rule in the wrong language still beats no rule at all.
+    """
+    raw = os.environ.get("SESSION_TITLE_LANG", "").strip().lower()
+    for lang in SCHEMES:
+        if raw.startswith(lang):
+            return SCHEMES[lang]
+    return SCHEMES[DEFAULT_LANG]
 
 
 def _session_mmdd(event: dict) -> str:
@@ -150,9 +204,9 @@ def main() -> int:
     every = _recheck_every()
     # Resolved here rather than by the model, and from the transcript rather than the
     # clock — see _session_mmdd.
-    fields = {"mmdd": _session_mmdd(event), "types": TYPES}
+    fields = dict(_scheme(), mmdd=_session_mmdd(event))
     if count == 1:
-        context = FULL_RULE.format(**fields)
+        context = FULL_RULE.format(**dict(fields, body=fields["body"].format(**fields)))
     elif every > 0 and count % every == 1:
         context = RECHECK.format(**fields)
     else:

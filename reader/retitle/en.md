@@ -3,28 +3,40 @@ A conversation list gets hard to use not because the names are ugly but because 
 ## The scheme
 
 ```
-MMDD｜类型｜主题
+MMDD｜TYPE｜subject
 ```
 
-The date is the conversation's **creation** time rather than its last-updated time, so the sidebar's chronology does not scramble because you reopened something old. The type is one of nine; a conversation that fits none of them is not given a tenth. The subject is what the conversation was actually about, in four to twelve characters, naming the object rather than the activity.
+The date is the conversation's **creation** time rather than its last-updated time, so the sidebar's chronology does not scramble because you reopened something old. The type is one of nine; a conversation that fits none of them is not given a tenth. The subject is what the conversation was actually about, in two to four lowercase words, naming the object rather than the activity.
 
 The separator is the fullwidth vertical line `｜` (U+FF5C), not an ASCII pipe, which would break the Markdown table this skill previews its renames in.
 
 | Type | Covers |
 |---|---|
-| 功能 | New capability, endpoint, or screen |
-| 设计 | Shape decided before code — architecture, interface, layout |
-| 修复 | Something behaved wrongly and was corrected |
-| 优化 | Behaviour was already correct; speed, cost or clarity improved |
-| 发布 | Commit, pull request, merge, tag, deploy |
-| 探索 | Tried something to find out what happens; no committed outcome |
-| 文档 | README, comments, guides, changelogs |
-| 审计 | Checked something you already own against a standard |
-| 研究 | Read the outside world to answer a question |
+| BUILD | New capability, endpoint, or screen |
+| SHAPE | Shape decided before code — architecture, interface, layout |
+| PATCH | Something behaved wrongly and was corrected |
+| TWEAK | Behaviour was already correct; speed, cost or clarity improved |
+| SHIP | Commit, pull request, merge, tag, deploy |
+| PROBE | Tried something to find out what happens; no committed outcome |
+| WRITE | README, comments, guides, changelogs |
+| AUDIT | Checked something you already own against a standard |
+| STUDY | Read the outside world to answer a question |
 
-The last two both end in a report and build nothing, so the line between them is drawn on whose thing is being looked at: 审计 inspects a repository, deployment, page or configuration you already own, and 研究 goes outside to answer a question. "Audit the site's SEO" is 审计; "which SEO tools are worth using" is 研究.
+The last two both end in a report and build nothing, so the line between them is drawn on whose thing is being looked at: AUDIT inspects a repository, deployment, page or configuration you already own, and STUDY goes outside to answer a question. "Audit the site's SEO" is AUDIT; "which SEO tools are worth using" is STUDY.
 
-That split was counted rather than felt. Across 181 conversations under the earlier eight types, 研究 held 50% of them — half a sidebar reading the same word, which is a field carrying no information. Separating out the audits moved 25 of them.
+That split was counted rather than felt. Across 181 conversations under the earlier eight types, the research type held 50% of them — half a sidebar reading the same word, which is a field carrying no information. Separating out the audits moved 25 of them.
+
+## Why the types are five uppercase letters
+
+The type field holds a column, so the subject starts at the same place on every row and you read down the list instead of across it. Two Chinese characters do that for free — every han glyph is one em wide — and this scheme was Chinese first, so it had the property before anyone noticed it was a property. English in a proportional font does not: `FIX` beside `DESIGN` is a factor of two, and at that spread the column is gone.
+
+So the letter count is fixed instead. These nine span about 3px across roughly 38px at a normal sidebar size, where the natural English words span 26px to 55px. Uppercase does the rest: capitals have neither ascenders nor descenders, and the field reads as a tag rather than as a word competing with the subject next to it. `SHIP` is the single four-letter member, because no honest five-letter verb covers commit, pull request, merge, tag, deploy and publish at once, and a type that lies costs more than one ragged character.
+
+## Chinese, if you want it
+
+`--lang=zh` names in the vocabulary this scheme started as — `MMDD｜类型｜主题`, with 功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究 in the same order as the table above. Nothing else changes, and Chinese needs no width argument because two han glyphs are two ems whatever they say. For new sessions the same choice is one environment variable on the hook's command, `SESSION_TITLE_LANG=zh`.
+
+A title that already conforms in either language is left alone, so switching the default to English does not rewrite a sidebar you have spent months naming in Chinese.
 
 ## Naming new sessions as they start
 

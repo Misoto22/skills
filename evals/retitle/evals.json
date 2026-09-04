@@ -52,7 +52,7 @@
       "id": "preview-before-write",
       "prompt": "Retitle my Codex conversations. There are 317 of them. Apply it.",
       "expectations": [
-        "States that it previews before writing despite being told to apply, and names the table it will print, with the header `| 原名称 | 新名称 |`.",
+        "States that it previews before writing despite being told to apply, and names the table it will print, with the header `| OLD | NEW |`.",
         "Keeps unchanged conversations out of the table rows and accounts for them as a count with reasons.",
         "States the resolved timezone and that dates come from creation time."
       ]
@@ -72,23 +72,23 @@
       "expectations": [
         "Keeps the original title verbatim rather than inventing a subject.",
         "Reports it as kept, with the reason.",
-        "Does not fall back to a ninth 类型 or a generic subject."
+        "Does not fall back to a tenth type or a generic subject."
       ]
     },
     {
       "id": "audit-is-not-research",
       "prompt": "Retitle this session. The work was auditing my own website's SEO and reporting what was weak; nothing was changed.",
       "expectations": [
-        "Classifies it 审计, not 研究 — the object inspected is the user's own site, not the outside world.",
-        "Does not classify it 优化, since nothing was changed.",
-        "Produces a title shaped MMDD｜审计｜<subject> with the fullwidth separator."
+        "Classifies it AUDIT, not STUDY — the object inspected is the user's own site, not the outside world.",
+        "Does not classify it TWEAK, since nothing was changed.",
+        "Produces a title shaped MMDD｜AUDIT｜<subject> with the fullwidth separator."
       ]
     },
     {
       "id": "research-stays-research",
       "prompt": "Retitle this session. The work was comparing which SEO tools are worth paying for; nothing of mine was inspected.",
       "expectations": [
-        "Classifies it 研究, not 审计 — it reads the outside world rather than inspecting something the user owns.",
+        "Classifies it STUDY, not AUDIT — it reads the outside world rather than inspecting something the user owns.",
         "Does not invent a tenth type for it."
       ],
       "holdout": true
@@ -117,16 +117,52 @@
       "expectations": [
         "Lists sessions with include_archived true, because the request included the archived ones.",
         "Takes each session's date from get_session's createdAt rather than from lastActivityAt.",
-        "Leaves sessions already shaped MMDD｜类型｜主题 alone instead of re-deriving them."
+        "Leaves sessions that already conform, in either language, alone instead of re-deriving them."
       ]
     },
     {
       "id": "recheck-keeps-the-session-date",
       "prompt": "This session started on the 3rd and it is now the 4th. Its subject has changed — retitle it.",
       "expectations": [
-        "Keeps MMDD at the date the session started and changes only 类型 and 主题.",
+        "Keeps MMDD at the date the session started and changes only the type and the subject.",
         "Does not move the date to today, which would break the chronological order the scheme exists for."
       ]
+    },
+    {
+      "id": "english-is-the-default-vocabulary",
+      "prompt": "Retitle this session. I refactored the batch renderer so it draws text in one pass instead of three; it looked the same afterwards, just faster.",
+      "expectations": [
+        "Names it in English without being asked, because English is the default vocabulary.",
+        "Uses TWEAK — behaviour was already correct and only speed changed — spelled uppercase, from the closed set of nine.",
+        "Keeps the subject to a few lowercase words rather than a sentence, since it is the subject that truncates in a narrow sidebar."
+      ]
+    },
+    {
+      "id": "chinese-on-request",
+      "prompt": "Retitle my Claude Code sessions with --lang=zh.",
+      "expectations": [
+        "Switches the vocabulary to 功能/设计/修复/优化/发布/探索/文档/审计/研究 rather than translating the English words case by case.",
+        "Writes the preview table's header and the summary under it in Chinese as well, rather than putting Chinese titles under English headings.",
+        "Keeps the fullwidth separator and the creation-date rule unchanged — only the language moves."
+      ]
+    },
+    {
+      "id": "a-conforming-chinese-title-survives-an-english-run",
+      "prompt": "Retitle my Codex conversations. Most of them are already named like 0903｜优化｜批次文字显示.",
+      "expectations": [
+        "Keeps titles that already conform in Chinese instead of rewriting them into English, and counts them as kept rather than listing them as rows.",
+        "Does not treat the English default as a reason to relabel a store already named in the other language.",
+        "Renames only the conversations that conform in neither language."
+      ]
+    },
+    {
+      "id": "the-closed-set-beats-the-natural-word",
+      "prompt": "Retitle this session. The work was deciding what the new sidebar layout should be; no code was written yet.",
+      "expectations": [
+        "Uses SHAPE, the member of the closed set that covers shape decided before code.",
+        "Does not invent DESIGN, which is the natural English word and is not in the set."
+      ],
+      "holdout": true
     }
   ]
 }

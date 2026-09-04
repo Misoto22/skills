@@ -1,6 +1,6 @@
 interface:
   display_name: "Retitle"
-  short_description: "Rename conversations to MMDD｜type｜subject"
-  default_prompt: "Use $retitle to normalize my agent conversation titles onto the MMDD｜类型｜主题 scheme; show the two-column table before writing anything."
+  short_description: "Rename conversations to MMDD｜TYPE｜subject"
+  default_prompt: "Use $retitle to normalize my agent conversation titles onto the MMDD｜TYPE｜subject scheme; show the two-column table before writing anything."
 policy:
   allow_implicit_invocation: true
