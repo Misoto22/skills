@@ -2710,6 +2710,80 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("skill 'retired' is translated but not published", result.stderr)
 
+    def test_registry_publishes_every_reader_document_on_disk(self) -> None:
+        """The site reads these instead of SKILL.md, so one left behind is a page that never updates.
+
+        Derived from the tree rather than from a list here: a written list is a
+        registry of its own, and the one nothing reads is the one that goes stale.
+        """
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        published = {
+            skill["name"]: skill.get("reader", {})
+            for group in registry["groups"]
+            for skill in group["skills"]
+        }
+
+        on_disk: dict[str, dict[str, str]] = {}
+        for path in sorted(ROOT.glob("reader/*/*.md")):
+            on_disk.setdefault(path.parent.name, {})[path.stem] = path.read_text(encoding="utf-8").strip()
+
+        self.assertTrue(on_disk, "no reader document to hold the registry to")
+        for name, documents in on_disk.items():
+            self.assertIn(name, published, f"{name} has a reader document but is not published")
+            self.assertEqual(
+                published[name],
+                documents,
+                f"registry.json and {name}'s reader/ disagree",
+            )
+
+    def test_every_published_skill_carries_a_reader_document_per_locale(self) -> None:
+        """One skill falling back to the agent's instructions is the oversight nobody notices."""
+
+        registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
+        for group in registry["groups"]:
+            for skill in group["skills"]:
+                for locale in ("en", "zh"):
+                    self.assertTrue(
+                        skill.get("reader", {}).get(locale, "").strip(),
+                        f"skill {skill['name']} has no {locale} reader document",
+                    )
+
+    def test_registry_refuses_a_skill_with_no_reader_document(self) -> None:
+        """Required like the translations, now that every published skill carries one."""
+
+        with repository_copy() as copied:
+            (copied / "reader" / "ship" / "zh.md").unlink()
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reader/ship/zh.md does not exist", result.stderr)
+
+    def test_registry_refuses_an_emptied_reader_document(self) -> None:
+        """A blank file is a blank page, and it is the failure a build can catch for free."""
+
+        with repository_copy() as copied:
+            path = copied / "reader" / "retitle" / "zh.md"
+            path.write_text("\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/build-registry.py", "--stdout"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reader/retitle/zh.md is empty", result.stderr)
+
     def test_registry_publishes_the_bookmarks_without_claiming_them(self) -> None:
         """Other people's plugins install from this marketplace; the pin is what makes that safe."""
 

@@ -43,15 +43,37 @@ jobs:
             echo "::notice::no site configured — set SITE_REVALIDATE_URL and SITE_REVALIDATE_TOKEN to enable"
             exit 0
           fi
-          # --fail-with-body so a 401 or a 400 fails the run. A purge that never
-          # landed looks exactly like one that did, and the symptom surfaces an
-          # hour later as a page still showing last week's catalogue.
-          status=$(curl --silent --show-error --fail-with-body \
+          # A purge that never landed looks exactly like one that did, and the
+          # symptom surfaces an hour later as a page still showing last week's
+          # catalogue. So a refusal from the site still fails the run.
+          #
+          # A refusal from in front of the site is a different thing. The zone is
+          # on Cloudflare's free plan with Bot Fight Mode on, which challenges
+          # datacenter IPs and cannot be scoped to a path — a WAF skip rule was
+          # tried and does not apply below Pro. So this request is challenged
+          # from a runner and answers normally from a laptop, and no change on
+          # this side reaches the app. Failing on it would paint every merge red
+          # for a condition the repository cannot fix, which is how a red check
+          # stops being read at all.
+          #
+          # Falling back to the ISR window is the accepted outcome: the site
+          # revalidates the tag within the hour on its own.
+          body=$(mktemp)
+          status=$(curl --silent --show-error \
             --request POST \
             --header "Authorization: Bearer $TOKEN" \
             --write-out '%{http_code}' \
-            --output /dev/stderr \
+            --output "$body" \
             --max-time 30 \
             --retry 3 --retry-delay 5 --retry-connrefused \
-            "$URL?tag=agent-skills")
+            "$URL?tag=agent-skills") || status=000
+          if grep -qi 'cf-chl\|Just a moment' "$body" 2>/dev/null; then
+            echo "::warning::revalidate blocked by a Cloudflare challenge (HTTP $status) — the site will revalidate on its own within the ISR hour"
+            exit 0
+          fi
+          cat "$body" >&2
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::revalidate returned $status"
+            exit 1
+          fi
           echo "::notice::revalidate returned $status"
