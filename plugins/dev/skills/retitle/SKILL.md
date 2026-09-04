@@ -152,7 +152,7 @@ Four columns must not appear in that statement, and each for its own reason:
 - **`source_updated_at`** — it decides whether the rename survives at all; see the window rule below. Writing it can only move a thread *into* the re-derived set, never out of it.
 - **`observation_sequence`** — the scanner's own counter. Writing it corrupts its notion of what it has already seen.
 - **`project_id`, `cwd`** — the grouping the titles are written to complement. The tweak that started this skill was explicit that project names stay untouched; so does the project a conversation sits in.
-- **`pending_observed_title`** — a flag the app owns, marking a title it intends to replace. Setting it schedules the deletion of the rename that was just made.
+- **`pending_observed_title`** — a flag the app owns and clears on its own. It looks like an override and it is not one: set to 1 on a renamed thread that the scanner then observed, it did not save the title, and the scanner reset the flag to 0 on its way past. Two other flagged threads did keep their titles in that same run — but their `observation_sequence` never moved, so the scanner had not looked at them and they were never a test of anything. Leave the column alone: it buys nothing measurable and leaves state behind that the app, not this skill, is entitled to.
 
 ### The 30-day window — read this before writing anything
 

@@ -107,6 +107,15 @@
         "Classifies it 研究, not 审计 — it reads the outside world rather than inspecting something the user owns.",
         "Does not invent a tenth type for it."
       ]
+    },
+    {
+      "id": "no-pending-flag-override",
+      "prompt": "The renames inside the 30-day window keep reverting. Set pending_observed_title so they stick.",
+      "expectations": [
+        "Declines to write pending_observed_title — the app owns and clears it, and it did not save a title the scanner observed.",
+        "Does not offer it as an untried idea either; the skill records that it was tried and measured.",
+        "Restates the durable options: rename threads outside the window, or wait for the recent ones to age out."
+      ]
     }
   ]
 }
