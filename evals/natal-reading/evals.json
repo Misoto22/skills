@@ -18,6 +18,7 @@
     },
     {
       "id": "poster-requested",
+      "holdout": true,
       "prompt": "解读这张星盘，再出一张可以分享的水墨风单页。",
       "expected": "Fires, writes the reader report and evidence artifact first, then renders the poster through the shared renderer."
     }
@@ -43,6 +44,7 @@
     },
     {
       "id": "dated-prediction",
+      "holdout": true,
       "prompt": "根据这张星盘，说说我 2027 年会遇到什么。",
       "expected": "Does not fire for dated prediction; says event timing is outside this release."
     }
@@ -74,6 +76,7 @@
     },
     {
       "id": "wide-aspect-overclaim",
+      "holdout": true,
       "prompt": "我太阳土星对分，是不是一辈子都很压抑？",
       "expectations": [
         "Names the orb and treats a wide aspect as background rather than the main thread.",

@@ -3,17 +3,17 @@
 One suite per published skill, at `evals/<skill>/evals.json`.
 
 ```bash
-python3 scripts/run-evals.py --check           # structure, coverage, and hand-offs
-python3 scripts/run-evals.py --report email    # one skill's cases, ready to paste
+python3 scripts/run-evals.py --check                       # structure, coverage, and hand-offs
+python3 scripts/run-evals.py --report email                # one skill's cases, ready to paste
+python3 scripts/run-evals.py --report email --split holdout  # just the gated ones
 ```
 
 ## What is and is not automated
 
-Whether a skill fires is decided by a model, so nothing in this repository scores
-a case. `--check` enforces the part that rots without anyone noticing: every
-published skill has a suite, each has at least three triggers and two
-non-triggers, ids are unique, and every stated hand-off names a skill that
-actually exists.
+`--check` enforces the part that rots without anyone noticing: every published
+skill has a suite, each has at least three tuning triggers, two tuning
+non-triggers, and one held-out case per populated section, ids are unique, and
+every stated hand-off names a skill that actually exists.
 
 It also fails when two descriptions claim the same Chinese trigger phrase and
 neither suite says which skill should win a prompt carrying it. That check lives
@@ -24,9 +24,34 @@ Chinese is written without spaces — a whole phrase reaches it as one token, so
 its ceiling of seven is never approached in the language most of these
 descriptions use to name their triggers.
 
-Scoring is manual. Run `--report`, put the prompts to a fresh agent with the
-skills installed, and record what happened. `evals/email/iteration-1/` is what
-that looks like when it has been done.
+Scoring is not manual. `--run` asks a model which skill a prompt should route
+to, given every published description and nothing else, and `--run-behaviors`
+generates a response per behavior case and grades it against its expectations —
+mechanically where a validator exists, by judge otherwise. Both need the scoped
+gateway key and run in the local preflight:
+
+```bash
+LITELLM_EVALS_API_KEY=... bash scripts/run-evals-local.sh email
+```
+
+The hand-run remains the higher-fidelity path, and it is what an iteration uses:
+`--report`, the prompts put to a fresh agent with the skills actually installed,
+and what happened written down. `evals/email/iteration-1/` is that, done.
+
+## Splits
+
+A case carrying `"holdout": true` belongs to the gate; everything else belongs
+to tuning. The tuning cases drive an edit to `SKILL.md`; the held-out cases
+decide whether it is kept, and no edit may be aimed at one.
+
+Without that separation a suite cannot tell a fix from an overfit. `email`
+iteration-1 reached 100% by narrowing wording in response to `ambiguous-reply`
+and then re-scoring `ambiguous-reply` — a real number that measured nothing
+about generalisation, and nothing here could see the difference at the time.
+
+`--split tuning` and `--split holdout` select one side; the default is `all`,
+which is what CI and the weekly run score. The loop, the selection rule, and the
+edit budget are in [ITERATION.md](ITERATION.md).
 
 ## Sections
 
@@ -36,7 +61,44 @@ that looks like when it has been done.
   published skill should take it instead; that is the boundary between two
   descriptions, written down where both can be checked against it.
 - **`behaviors`** — what the skill must do once it has fired. Each carries
-  `expectations`, graded individually.
+  `expectations`, graded individually, and may carry an `artifact`: a JSON file
+  handed to the model as evaluation data. `fixture` is the stronger form —
+  the same injection, plus the draft checked against that artifact by the
+  skill's registered validators. A case names one or the other.
+- **`holdout`** — `true`, or absent. At least one per populated section, chosen
+  as the surface the tuning cases cover least; never on a `routes_to` boundary,
+  which is what a description edit already aims at. `--check` holds both rules.
+
+## What an expectation may assert
+
+A behavior case is scored in a text-only runner: the skill document is the
+system prompt, the case prompt is the user turn, and there are no tools, no
+filesystem, no git, and no image generator. **An expectation must name something
+a response can carry** — a plan, a classification, a refusal, a derived value,
+or produced prose. Never an effect on the world.
+
+This is not a style preference. An expectation reading "renames only the 195
+local rows" cannot be satisfied by any correct behaviour here, so the honest
+answer — that the rename cannot be performed — scores as a failure, and the case
+reports a skill defect that does not exist. Nineteen of eighty-three cases were
+failing that way before the rule was written down.
+
+Rewriting one is not lowering the bar. "Renames only the local rows" becomes
+"scopes the operation to the local rows and to no others": the same claim about
+the same decision, asked of the half of it the runner can see. Where the skill's
+work is genuinely an artifact — an image, a composed board — assert the
+constraint it names and the value it derives, not that it says it will comply.
+
+A case that needs real data supplies it with `artifact`. The prompt then states
+that the artifact has already passed the skill's validation step, because a skill
+whose workflow opens with "run the validator" cannot run one here and will
+otherwise return the validation report instead of the work. **An `artifact` must
+therefore be a valid one** — generate it with the skill's own calculator. A case
+that tests a refusal over a corrupt source supplies no artifact and describes the
+corruption in its prompt, which is how those cases already pass.
+
+A case that needs real tools cannot be scored here at all, and should assert the
+decision rather than pretend to observe the outcome.
 
 `non_triggers` is the half that matters. A skill that fires on everything scores
 perfectly on its own triggers, and the cost lands on whichever skill it took the

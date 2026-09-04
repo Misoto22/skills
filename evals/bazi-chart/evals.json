@@ -8,6 +8,7 @@
     },
     {
       "id": "four-pillars-english",
+      "holdout": true,
       "prompt": "Make my Four Pillars chart. Name A, born 1988-11-02 at 21:05 in New York City.",
       "expected": "Fires for a single exact birth record and uses the historical New York offset."
     },
@@ -37,6 +38,7 @@
     },
     {
       "id": "annual-forecast",
+      "holdout": true,
       "prompt": "按八字预测我明年什么时候升职。",
       "expected": "Does not fire; annual event forecasting is outside the natal calculator."
     }
@@ -60,6 +62,7 @@
     },
     {
       "id": "boundary-alternate",
+      "holdout": true,
       "prompt": "排盘：A，1990-03-14 23:30，上海。",
       "expectations": [
         "Uses true solar time before deciding whether the Zi-hour alternate applies.",

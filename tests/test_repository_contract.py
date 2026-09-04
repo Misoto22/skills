@@ -154,6 +154,30 @@ def repository_copy() -> Iterator[Path]:
         yield copy_repository_fixture(Path(temporary))
 
 
+def _stub_completion(text: str, *, stream: bool):
+    """Return whichever response shape the caller asked for.
+
+    The behavior draft is streamed — the gateway sits behind a proxy that closes
+    a connection idle for 120 seconds — while the judge call still returns a
+    whole message. A stub that answers only one of those is no longer standing
+    in for the client.
+    """
+
+    if stream:
+        delta = type("Delta", (), {"content": text, "refusal": None})()
+        chunk_choice = type("Choice", (), {"finish_reason": "stop", "delta": delta})()
+        return [type("Chunk", (), {"choices": [chunk_choice]})()]
+    message = type("Message", (), {"content": text, "refusal": None})()
+    choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
+    return type("Response", (), {"choices": [choice]})()
+
+
+def _tuning_prompts(suite: dict, section: str) -> list[str]:
+    """The prompts registry.json publishes: everything except the held-out cases."""
+
+    return [case["prompt"] for case in suite[section] if case.get("holdout") is not True]
+
+
 class RepositoryContractTests(unittest.TestCase):
     def test_only_published_tree_is_in_plugin_manifest(self) -> None:
         plugin = json.loads(PLUGIN_PATH.read_text(encoding="utf-8"))
@@ -1093,10 +1117,7 @@ class RepositoryContractTests(unittest.TestCase):
             @staticmethod
             def create(**kwargs):
                 requests.append(kwargs)
-                text = responses.pop(0)
-                message = type("Message", (), {"content": text})()
-                choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
-                return type("Response", (), {"choices": [choice]})()
+                return _stub_completion(responses.pop(0), stream=bool(kwargs.get("stream")))
 
         class Client:
             class chat:
@@ -1145,10 +1166,7 @@ class RepositoryContractTests(unittest.TestCase):
         class Completions:
             @staticmethod
             def create(**kwargs):
-                del kwargs
-                message = type("Message", (), {"content": responses.pop(0)})()
-                choice = type("Choice", (), {"finish_reason": "stop", "message": message})()
-                return type("Response", (), {"choices": [choice]})()
+                return _stub_completion(responses.pop(0), stream=bool(kwargs.get("stream")))
 
         class Client:
             class chat:
@@ -2781,7 +2799,13 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertTrue(entry["url"].startswith("https://"), entry["name"])
 
     def test_registry_examples_are_the_prompts_ci_scores(self) -> None:
-        """A hand-written example drifts; these are the ones the evaluation run uses."""
+        """A hand-written example drifts; these are the ones the evaluation run uses.
+
+        Held-out cases are excluded. They are the gate in `evals/ITERATION.md`,
+        which holds only while no edit is aimed at one, and the catalogue is the
+        most-read list of what fires a skill — publishing them there is how they
+        would quietly become the examples people tune against.
+        """
 
         registry = json.loads((ROOT / "registry.json").read_text(encoding="utf-8"))
         for group in registry["groups"]:
@@ -2791,12 +2815,12 @@ class RepositoryContractTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     skill["examples"]["triggers"],
-                    [case["prompt"] for case in suite["triggers"]],
+                    _tuning_prompts(suite, "triggers"),
                     skill["name"],
                 )
                 self.assertEqual(
                     skill["examples"]["nonTriggers"],
-                    [case["prompt"] for case in suite["non_triggers"]],
+                    _tuning_prompts(suite, "non_triggers"),
                     skill["name"],
                 )
                 # The boundary is the half a reader most needs and the half a

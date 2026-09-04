@@ -1,0 +1,304 @@
+{
+  "checksum": "52be9444b6ef4bd0b0c951d8b8bc71dae6c04306f89b77f128c931ef6b12c9e7",
+  "confidence": {
+    "level": "medium",
+    "sensitivity_spread": 0.0,
+    "source_levels": [
+      "high",
+      "medium"
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "element_complementarity",
+      "ledger": [
+        {
+          "combined_percent": 33.215,
+          "deviation": 13.215000000000003,
+          "element": "木",
+          "id": "combined.木",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 31.465,
+          "deviation": 11.465,
+          "element": "火",
+          "id": "combined.火",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 18.425,
+          "deviation": 1.5749999999999993,
+          "element": "土",
+          "id": "combined.土",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 6.33,
+          "deviation": 13.67,
+          "element": "金",
+          "id": "combined.金",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 10.565,
+          "deviation": 9.435,
+          "element": "水",
+          "id": "combined.水",
+          "target_percent": 20.0
+        }
+      ],
+      "name": "element complementarity",
+      "score": 69.15,
+      "weight": 25
+    },
+    {
+      "id": "directional_day_master_support",
+      "ledger": [
+        {
+          "day_element": "土",
+          "id": "support.received.left",
+          "owner": "A",
+          "peer_percent": 13.72,
+          "provider": "B",
+          "resource_element": "火",
+          "resource_percent": 37.33,
+          "score": 100.0
+        },
+        {
+          "day_element": "木",
+          "id": "support.received.right",
+          "owner": "B",
+          "peer_percent": 40.43,
+          "provider": "A",
+          "resource_element": "水",
+          "resource_percent": 1.41,
+          "score": 100.0
+        }
+      ],
+      "name": "directional day master support",
+      "score": 100.0,
+      "weight": 20
+    },
+    {
+      "id": "stem_branch_interactions",
+      "ledger": [
+        {
+          "amount": 50.0,
+          "id": "interactions.base",
+          "kind": "base"
+        },
+        {
+          "amount": 4.0,
+          "id": "cross.stem_combination.year.day",
+          "kind": "stem_combination",
+          "members": [
+            "乙",
+            "庚"
+          ],
+          "positions": [
+            "left.year",
+            "right.day"
+          ]
+        },
+        {
+          "amount": 4.0,
+          "id": "cross.stem_combination.day.hour",
+          "kind": "stem_combination",
+          "members": [
+            "戊",
+            "癸"
+          ],
+          "positions": [
+            "left.day",
+            "right.hour"
+          ]
+        },
+        {
+          "amount": 7.0,
+          "id": "cross.branch_combination.year.hour",
+          "kind": "branch_combination",
+          "members": [
+            "午",
+            "未"
+          ],
+          "positions": [
+            "left.year",
+            "right.hour"
+          ]
+        },
+        {
+          "amount": -9.0,
+          "id": "cross.branch_clash.day.year",
+          "kind": "branch_clash",
+          "members": [
+            "寅",
+            "申"
+          ],
+          "positions": [
+            "left.day",
+            "right.year"
+          ]
+        },
+        {
+          "amount": -6.0,
+          "id": "cross.branch_harm.hour.day",
+          "kind": "branch_harm",
+          "members": [
+            "卯",
+            "辰"
+          ],
+          "positions": [
+            "left.hour",
+            "right.day"
+          ]
+        },
+        {
+          "amount": -3.0,
+          "id": "cross.branch_break.year.day",
+          "kind": "branch_break",
+          "members": [
+            "午",
+            "卯"
+          ],
+          "positions": [
+            "left.year",
+            "right.day"
+          ]
+        },
+        {
+          "amount": -3.0,
+          "id": "cross.branch_break.month.month",
+          "kind": "branch_break",
+          "members": [
+            "午",
+            "卯"
+          ],
+          "positions": [
+            "left.month",
+            "right.month"
+          ]
+        }
+      ],
+      "name": "stem branch interactions",
+      "score": 44.0,
+      "weight": 20
+    },
+    {
+      "id": "day_pillar_core",
+      "ledger": [
+        {
+          "amount": 40.0,
+          "id": "day_core.stems",
+          "kind": "control_relation",
+          "members": [
+            "戊",
+            "乙"
+          ]
+        }
+      ],
+      "name": "day pillar core",
+      "score": 40.0,
+      "weight": 20
+    },
+    {
+      "id": "structural_stability",
+      "ledger": [
+        {
+          "amount": 100.0,
+          "id": "stability.base",
+          "kind": "base"
+        },
+        {
+          "amount": -0.0,
+          "count": 0,
+          "id": "stability.candidate.left",
+          "kind": "candidate",
+          "owner": "A"
+        },
+        {
+          "amount": -8.0,
+          "count": 2,
+          "id": "stability.negative_interaction.left",
+          "kind": "negative_interaction",
+          "owner": "A"
+        },
+        {
+          "amount": 0.0,
+          "id": "stability.confidence.left",
+          "kind": "source_confidence",
+          "level": "high",
+          "owner": "A"
+        },
+        {
+          "amount": -2.5,
+          "count": 1,
+          "id": "stability.candidate.right",
+          "kind": "candidate",
+          "owner": "B"
+        },
+        {
+          "amount": -4.0,
+          "count": 1,
+          "id": "stability.negative_interaction.right",
+          "kind": "negative_interaction",
+          "owner": "B"
+        },
+        {
+          "amount": -3.5,
+          "id": "stability.confidence.right",
+          "kind": "source_confidence",
+          "level": "medium",
+          "owner": "B"
+        }
+      ],
+      "name": "structural stability",
+      "score": 82.0,
+      "weight": 15
+    }
+  ],
+  "methodology": {
+    "general_weights": {
+      "day_pillar_core": 20,
+      "directional_day_master_support": 20,
+      "element_complementarity": 25,
+      "stem_branch_interactions": 20,
+      "structural_stability": 15
+    },
+    "secondary_evidence_excluded": [
+      "shen_sha"
+    ]
+  },
+  "model_version": "bazi-compatibility-v1",
+  "people": {
+    "left": {
+      "chart_checksum": "80a95712d46ce55c0a67fb366f3c9a4c92bb265cacae7a22005a429bc5541fa9",
+      "name": "A"
+    },
+    "right": {
+      "chart_checksum": "71a721b014fc6c8968322c1265794f4814008c7dd5d09191ac39e3a059c30aff",
+      "name": "B"
+    }
+  },
+  "relationship_type": null,
+  "schema": "chinese-metaphysics.bazi-compatibility",
+  "schema_version": 1,
+  "score_semantics": "versioned heuristic scores; not probabilities or relationship outcomes",
+  "scores": {
+    "contextual": null,
+    "contextual_profile": null,
+    "general": 66.39
+  },
+  "sensitivity": {
+    "maximum": 66.39,
+    "minimum": 66.39,
+    "spread": 0.0,
+    "variants": [
+      {
+        "general": 66.39,
+        "left": "primary",
+        "right": "primary"
+      }
+    ]
+  }
+}

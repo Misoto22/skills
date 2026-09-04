@@ -13,8 +13,14 @@
     },
     {
       "id": "photos-original-export",
+      "holdout": true,
       "prompt": "Use the original from my Photos library and this lower artwork to make an upper-original lower-abstract poster without changing the photo.",
       "expected": "Fires, exports or uses an authorized unmodified original when available, records provenance, and composes one board."
+    },
+    {
+      "id": "provenance-question",
+      "prompt": "Rebuild this comparison board and tell me exactly which file each half came from.",
+      "expected": "Fires, recomposes both panels without distortion, and reports the per-panel source in the manifest."
     }
   ],
   "non_triggers": [
@@ -25,8 +31,14 @@
     },
     {
       "id": "ordinary-photo-retouch",
+      "holdout": true,
       "prompt": "Remove glare and make this portrait look sharper.",
       "expected": "Does not fire; ordinary retouching is outside the comparison-board workflow."
+    },
+    {
+      "id": "contact-sheet",
+      "prompt": "Make a contact sheet of these twenty photos.",
+      "expected": "Does not fire; a grid of many frames is not a two-panel original-versus-abstract board."
     }
   ],
   "behaviors": [
@@ -34,12 +46,13 @@
       "id": "portrait-lower-space",
       "prompt": "Compose a board from a tall portrait source and a wide lower panel.",
       "expectations": [
-        "Keeps the portrait source at its original aspect ratio and does not force the lower panel into portrait proportions.",
-        "Uses the portrait lower-canvas rule and records that neither panel was upscaled."
+        "Names the source's portrait aspect ratio as the binding constraint and refuses to force the lower panel into portrait proportions to fit it.",
+        "Derives the lower canvas from the portrait rule and states that neither panel is upscaled, both recorded in the manifest."
       ]
     },
     {
       "id": "derivative-fallback",
+      "holdout": true,
       "prompt": "The original is unavailable; compose this Photos preview and lower panel anyway.",
       "expectations": [
         "Marks the top source as a derivative fallback in the sidecar manifest.",

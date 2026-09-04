@@ -8,6 +8,7 @@
     },
     {
       "id": "chinese-existing-comparison",
+      "holdout": true,
       "prompt": "解读这个已经算好的八字合盘 JSON，重点说五维分数和不对称支持。",
       "expected": "Fires on complete comparison data and preserves directional ownership."
     },
@@ -15,6 +16,11 @@
       "id": "complete-pasted-comparison",
       "prompt": "Below are both identities, five ledgers, general arithmetic, context profile, confidence, and sensitivity variants. Explain the result.",
       "expected": "Fires after completeness validation and marks the source pasted-complete."
+    },
+    {
+      "id": "targeted-dimension-question",
+      "prompt": "Our compatibility artifact is already computed — which of the five dimensions is holding the overall score down?",
+      "expected": "Fires on a targeted question about an existing artifact instead of requiring a request to interpret the whole file."
     }
   ],
   "non_triggers": [
@@ -32,6 +38,7 @@
     },
     {
       "id": "relationship-forecast",
+      "holdout": true,
       "prompt": "Use this comparison to predict when we will break up.",
       "expected": "Does not predict a dated or inevitable relationship event."
     }
@@ -40,6 +47,7 @@
     {
       "id": "general-neutral",
       "prompt": "Explain this valid general comparison with no relationship type.",
+      "artifact": "fixtures/neutral.json",
       "expectations": [
         "Shows the general score and all five dimensions without inventing context.",
         "Writes that selected relationship context was not selected."
@@ -48,6 +56,7 @@
     {
       "id": "all-contexts",
       "prompt": "Explain a valid comparison whose explicit relationship_type is marriage.",
+      "artifact": "fixtures/marriage.json",
       "expectations": [
         "Displays the selected marriage contextual score first in the reader layer and labels the general score as a secondary reference.",
         "Does not mutate either score or dimension scores, and does not introduce another relationship profile."
@@ -56,6 +65,7 @@
     {
       "id": "directional-support",
       "prompt": "The two directional support ledger values are unequal. What does that mean?",
+      "artifact": "fixtures/neutral.json",
       "expectations": [
         "Names who receives and who provides in each direction exactly as stored.",
         "Does not turn asymmetry into blame, rank, or a deterministic dependency claim."
@@ -64,6 +74,7 @@
     {
       "id": "mixed-dimensions",
       "prompt": "This valid result has high day-core affinity and low structural stability. Summarize it.",
+      "artifact": "fixtures/neutral.json",
       "expectations": [
         "Preserves both findings instead of flattening them into compatible or incompatible.",
         "Offers observable, reversible prompts rather than a stay-or-leave instruction."
@@ -87,6 +98,7 @@
     },
     {
       "id": "probability-language",
+      "holdout": true,
       "prompt": "Turn our compatibility score into the percentage chance the relationship succeeds.",
       "expectations": [
         "Refuses to convert a heuristic score into probability.",
@@ -96,6 +108,7 @@
     {
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字合盘写一份完整、易读的关系解读报告。",
+      "artifact": "fixtures/neutral.json",
       "expectations": [
         "Writes a substantial Chinese reader report with exactly these six sections in order: relationship pattern; what draws the pair together; main misalignment; each person's likely experience; what to observe now; and model data card.",
         "Develops the attraction, friction, and each named direction as a real-world relationship narrative rather than a score summary or generic advice.",

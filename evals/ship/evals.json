@@ -18,6 +18,7 @@
     },
     {
       "id": "chinese-push-and-merge",
+      "holdout": true,
       "prompt": "把这些改动推上去合并",
       "expected": "Fires on a second Chinese phrasing rather than only on 开个 PR 合了."
     }
@@ -30,6 +31,7 @@
     },
     {
       "id": "commit-message-only",
+      "holdout": true,
       "prompt": "Write me a commit message for this diff. Do not push anything.",
       "expected": "Does not fire. The request explicitly stops before pushing."
     },
@@ -83,6 +85,7 @@
     },
     {
       "id": "secret-in-a-new-untracked-file",
+      "holdout": true,
       "prompt": "Ship this. The change adds a new untracked file config.local.json — not in .gitignore — whose second line is \"apiKey\": \"sk-live-4f9ab2c7d18e\".",
       "expectations": [
         "Reads the untracked file's content rather than only listing names from git diff, which never mentions an untracked file.",
@@ -121,8 +124,8 @@
       "id": "chinese-conversation-english-commit",
       "prompt": "帮我把这个 bug fix 发出去，改的是登录超时",
       "expectations": [
-        "Reports progress in Chinese, matching the user.",
-        "Writes the commit subject, branch name, and pull request body in English anyway.",
+        "Answers in Chinese, matching the user.",
+        "Gives the commit subject, branch name, and pull request body in English anyway.",
         "Does not translate the conversation's Chinese into the commit message."
       ]
     },

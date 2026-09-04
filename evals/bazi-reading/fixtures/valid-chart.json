@@ -1,0 +1,551 @@
+{
+  "calendar": {
+    "input_calendar": "gregorian",
+    "input_date": "1990-03-14",
+    "input_leap_month": null,
+    "resolved_gregorian_date": "1990-03-14",
+    "rules": "GB/T 33661-2017"
+  },
+  "checksum": "80a95712d46ce55c0a67fb366f3c9a4c92bb265cacae7a22005a429bc5541fa9",
+  "facts": {
+    "alternate": null,
+    "primary": {
+      "interactions": [
+        {
+          "id": "interaction-001",
+          "members": [
+            "卯",
+            "午"
+          ],
+          "positions": [
+            "year",
+            "month"
+          ],
+          "type": "branch_break"
+        },
+        {
+          "id": "interaction-002",
+          "members": [
+            "卯",
+            "辰"
+          ],
+          "positions": [
+            "month",
+            "hour"
+          ],
+          "type": "branch_harm"
+        },
+        {
+          "element": "木",
+          "id": "interaction-003",
+          "members": [
+            "寅",
+            "卯",
+            "辰"
+          ],
+          "positions": [
+            "day",
+            "month",
+            "hour"
+          ],
+          "transformation": {
+            "element": "木",
+            "prerequisites": {
+              "all_members": true,
+              "month_support": true,
+              "undisrupted": true
+            },
+            "status": "formed"
+          },
+          "type": "branch_three_meeting"
+        }
+      ],
+      "model_version": "bazi-chart-rules-v1",
+      "pillars": {
+        "day": {
+          "branch": "寅",
+          "hidden_stems": [
+            {
+              "stem": "甲",
+              "ten_god": "七杀"
+            },
+            {
+              "stem": "丙",
+              "ten_god": "偏印"
+            },
+            {
+              "stem": "戊",
+              "ten_god": "比肩"
+            }
+          ],
+          "nayin": "城头土",
+          "position": "day",
+          "stem": "戊",
+          "stem_element": "土",
+          "stem_polarity": "阳",
+          "text": "戊寅",
+          "twelve_stage": "长生",
+          "visible_ten_god": "日主"
+        },
+        "hour": {
+          "branch": "辰",
+          "hidden_stems": [
+            {
+              "stem": "戊",
+              "ten_god": "比肩"
+            },
+            {
+              "stem": "乙",
+              "ten_god": "正官"
+            },
+            {
+              "stem": "癸",
+              "ten_god": "正财"
+            }
+          ],
+          "nayin": "沙中土",
+          "position": "hour",
+          "stem": "丙",
+          "stem_element": "火",
+          "stem_polarity": "阳",
+          "text": "丙辰",
+          "twelve_stage": "冠带",
+          "visible_ten_god": "偏印"
+        },
+        "month": {
+          "branch": "卯",
+          "hidden_stems": [
+            {
+              "stem": "乙",
+              "ten_god": "正官"
+            }
+          ],
+          "nayin": "城头土",
+          "position": "month",
+          "stem": "己",
+          "stem_element": "土",
+          "stem_polarity": "阴",
+          "text": "己卯",
+          "twelve_stage": "沐浴",
+          "visible_ten_god": "劫财"
+        },
+        "year": {
+          "branch": "午",
+          "hidden_stems": [
+            {
+              "stem": "丁",
+              "ten_god": "正印"
+            },
+            {
+              "stem": "己",
+              "ten_god": "劫财"
+            }
+          ],
+          "nayin": "路旁土",
+          "position": "year",
+          "stem": "庚",
+          "stem_element": "金",
+          "stem_polarity": "阳",
+          "text": "庚午",
+          "twelve_stage": "帝旺",
+          "visible_ten_god": "食神"
+        }
+      },
+      "shen_sha": [
+        {
+          "basis": "day:寅",
+          "evidence_level": "secondary",
+          "name": "桃花",
+          "target": "卯"
+        }
+      ],
+      "xun_kong": [
+        "申",
+        "酉"
+      ]
+    }
+  },
+  "input": {
+    "birth_date": "1990-03-14",
+    "birth_place": "Shanghai, China",
+    "birth_time": "07:42",
+    "calendar": "gregorian",
+    "fold": null,
+    "gender": null,
+    "latitude": 31.2304,
+    "leap_month": null,
+    "longitude": 121.4737,
+    "name": "A",
+    "timezone": "Asia/Shanghai",
+    "utc_offset_minutes": null
+  },
+  "methodology": {
+    "calendar_model": "bazi-chart-rules-v1",
+    "ephemeris": "SwissEphemeris",
+    "limits": [
+      "static natal chart",
+      "no Da Yun",
+      "no annual forecast",
+      "no event timing"
+    ],
+    "score_semantics": "versioned heuristics, not probabilities",
+    "scoring_model": "bazi-score-v1"
+  },
+  "pillars": {
+    "alternate": null,
+    "primary": {
+      "boundaries": {
+        "day_boundary": "23:00",
+        "month_boundary_name": "惊蛰",
+        "month_boundary_utc": "1990-03-05T20:19:18.233643+00:00",
+        "year_boundary_utc": "1990-02-04T02:14:00.509033+00:00"
+      },
+      "day": {
+        "branch": "寅",
+        "branch_index": 2,
+        "cycle_index": 14,
+        "stem": "戊",
+        "stem_index": 4,
+        "text": "戊寅"
+      },
+      "hour": {
+        "branch": "辰",
+        "branch_index": 4,
+        "cycle_index": 52,
+        "stem": "丙",
+        "stem_index": 2,
+        "text": "丙辰"
+      },
+      "month": {
+        "branch": "卯",
+        "branch_index": 3,
+        "cycle_index": 15,
+        "stem": "己",
+        "stem_index": 5,
+        "text": "己卯"
+      },
+      "year": {
+        "branch": "午",
+        "branch_index": 6,
+        "cycle_index": 6,
+        "stem": "庚",
+        "stem_index": 6,
+        "text": "庚午"
+      }
+    }
+  },
+  "schema": "chinese-metaphysics.bazi-chart",
+  "schema_version": 1,
+  "scores": {
+    "alternate": null,
+    "primary": {
+      "adjusted_distribution": {
+        "土": 23.13,
+        "木": 40.43,
+        "水": 1.41,
+        "火": 25.6,
+        "金": 9.43
+      },
+      "base_distribution": {
+        "土": 38.93,
+        "木": 26.19,
+        "水": 1.43,
+        "火": 21.55,
+        "金": 11.9
+      },
+      "confidence": {
+        "level": "high",
+        "unresolved_transformations": 0
+      },
+      "day_master_strength": {
+        "clamped": false,
+        "classification": "balanced",
+        "details": [
+          {
+            "amount": -18.0,
+            "basis": "死",
+            "component": "seasonal",
+            "id": "strength.seasonal"
+          },
+          {
+            "amount": 0.8999999999999999,
+            "basis": "0.3 day-element hidden share",
+            "component": "root",
+            "id": "strength.root.year"
+          },
+          {
+            "amount": 0.0,
+            "basis": "0 day-element hidden share",
+            "component": "root",
+            "id": "strength.root.month"
+          },
+          {
+            "amount": 1.2,
+            "basis": "0.15 day-element hidden share",
+            "component": "root",
+            "id": "strength.root.day"
+          },
+          {
+            "amount": 3.0,
+            "basis": "0.6 day-element hidden share",
+            "component": "root",
+            "id": "strength.root.hour"
+          },
+          {
+            "amount": -4.0,
+            "basis": "visible 金 relative to day element 土",
+            "component": "production",
+            "id": "strength.visible.year"
+          },
+          {
+            "amount": 4.0,
+            "basis": "visible 土 relative to day element 土",
+            "component": "visible_support",
+            "id": "strength.visible.month"
+          },
+          {
+            "amount": 5.0,
+            "basis": "visible 火 relative to day element 土",
+            "component": "visible_support",
+            "id": "strength.visible.hour"
+          },
+          {
+            "amount": -5.0,
+            "basis": "木",
+            "component": "structural",
+            "id": "strength.structural.interaction-003"
+          }
+        ],
+        "ledger": [
+          {
+            "amount": 50.0,
+            "component": "base"
+          },
+          {
+            "amount": -18.0,
+            "component": "seasonal"
+          },
+          {
+            "amount": 5.1,
+            "component": "root"
+          },
+          {
+            "amount": 9.0,
+            "component": "visible_support"
+          },
+          {
+            "amount": 0.0,
+            "component": "control"
+          },
+          {
+            "amount": -4.0,
+            "component": "production"
+          },
+          {
+            "amount": 0.0,
+            "component": "drainage"
+          },
+          {
+            "amount": -5.0,
+            "component": "structural"
+          }
+        ],
+        "raw_score": 37.1,
+        "score": 37.1
+      },
+      "ledger": [
+        {
+          "amount": 1.0,
+          "applied": true,
+          "basis": "year visible stem",
+          "element": "金",
+          "id": "base.visible.year",
+          "phase": "base"
+        },
+        {
+          "amount": 0.5599999999999999,
+          "applied": true,
+          "basis": "year hidden stem 丁 share 0.7",
+          "element": "火",
+          "id": "base.hidden.year.0",
+          "phase": "base"
+        },
+        {
+          "amount": 0.24,
+          "applied": true,
+          "basis": "year hidden stem 己 share 0.3",
+          "element": "土",
+          "id": "base.hidden.year.1",
+          "phase": "base"
+        },
+        {
+          "amount": 1.2,
+          "applied": true,
+          "basis": "month visible stem",
+          "element": "土",
+          "id": "base.visible.month",
+          "phase": "base"
+        },
+        {
+          "amount": 1.4,
+          "applied": true,
+          "basis": "month hidden stem 乙 share 1",
+          "element": "木",
+          "id": "base.hidden.month.0",
+          "phase": "base"
+        },
+        {
+          "amount": 1.2,
+          "applied": true,
+          "basis": "day visible stem",
+          "element": "土",
+          "id": "base.visible.day",
+          "phase": "base"
+        },
+        {
+          "amount": 0.6,
+          "applied": true,
+          "basis": "day hidden stem 甲 share 0.6",
+          "element": "木",
+          "id": "base.hidden.day.0",
+          "phase": "base"
+        },
+        {
+          "amount": 0.25,
+          "applied": true,
+          "basis": "day hidden stem 丙 share 0.25",
+          "element": "火",
+          "id": "base.hidden.day.1",
+          "phase": "base"
+        },
+        {
+          "amount": 0.15,
+          "applied": true,
+          "basis": "day hidden stem 戊 share 0.15",
+          "element": "土",
+          "id": "base.hidden.day.2",
+          "phase": "base"
+        },
+        {
+          "amount": 1.0,
+          "applied": true,
+          "basis": "hour visible stem",
+          "element": "火",
+          "id": "base.visible.hour",
+          "phase": "base"
+        },
+        {
+          "amount": 0.48,
+          "applied": true,
+          "basis": "hour hidden stem 戊 share 0.6",
+          "element": "土",
+          "id": "base.hidden.hour.0",
+          "phase": "base"
+        },
+        {
+          "amount": 0.2,
+          "applied": true,
+          "basis": "hour hidden stem 乙 share 0.25",
+          "element": "木",
+          "id": "base.hidden.hour.1",
+          "phase": "base"
+        },
+        {
+          "amount": 0.12,
+          "applied": true,
+          "basis": "hour hidden stem 癸 share 0.15",
+          "element": "水",
+          "id": "base.hidden.hour.2",
+          "phase": "base"
+        },
+        {
+          "amount": 0.8799999999999999,
+          "applied": true,
+          "basis": "month command 木: 旺 x 1.4",
+          "element": "木",
+          "id": "adjust.seasonal.木",
+          "phase": "adjustment"
+        },
+        {
+          "amount": 0.3620000000000001,
+          "applied": true,
+          "basis": "month command 木: 相 x 1.2",
+          "element": "火",
+          "id": "adjust.seasonal.火",
+          "phase": "adjustment"
+        },
+        {
+          "amount": -1.3079999999999998,
+          "applied": true,
+          "basis": "month command 木: 死 x 0.6",
+          "element": "土",
+          "id": "adjust.seasonal.土",
+          "phase": "adjustment"
+        },
+        {
+          "amount": -0.19999999999999996,
+          "applied": true,
+          "basis": "month command 木: 囚 x 0.8",
+          "element": "金",
+          "id": "adjust.seasonal.金",
+          "phase": "adjustment"
+        },
+        {
+          "amount": 0.0,
+          "applied": true,
+          "basis": "month command 木: 休 x 1",
+          "element": "水",
+          "id": "adjust.seasonal.水",
+          "phase": "adjustment"
+        },
+        {
+          "amount": 0.35,
+          "applied": true,
+          "basis": "branch_three_meeting formed",
+          "element": "木",
+          "id": "adjust.transform.interaction-003",
+          "phase": "adjustment"
+        }
+      ],
+      "model_version": "bazi-score-v1",
+      "pillars": {
+        "day": {
+          "branch": "寅",
+          "stem": "戊"
+        },
+        "hour": {
+          "branch": "辰",
+          "stem": "丙"
+        },
+        "month": {
+          "branch": "卯",
+          "stem": "己"
+        },
+        "year": {
+          "branch": "午",
+          "stem": "庚"
+        }
+      },
+      "score_semantics": "versioned heuristic scores; not probabilities or official measurements",
+      "special_structure": {
+        "reason": "no special structure is declared without a separate rule and every prerequisite",
+        "status": "not_established"
+      }
+    }
+  },
+  "sensitivity": {
+    "alternate_day_boundary": false,
+    "alternate_day_boundary_rule": null,
+    "primary_day_boundary": "23:00"
+  },
+  "time": {
+    "civil_local": "1990-03-14T07:42:00+08:00",
+    "equation_of_time_minutes": -9.414825462079534,
+    "fold": 0,
+    "longitude_correction_minutes": 5.894799999999975,
+    "offset_source": "iana",
+    "true_solar": "1990-03-14T07:38:28.798472",
+    "utc": "1990-03-13T23:42:00+00:00",
+    "utc_offset_minutes": 480.0
+  }
+}

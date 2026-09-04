@@ -8,6 +8,7 @@
     },
     {
       "id": "chinese-brand-request",
+      "holdout": true,
       "prompt": "帮我给这个项目设计一套日系极简 logo、favicon 和 README banner。",
       "expected": "Fires on the Chinese request, asks the user to select or confirm a direction, and uses ChatGPT Image for the raster assets."
     },
@@ -15,6 +16,11 @@
       "id": "dark-mode-banner",
       "prompt": "The light Hero exists. Please make a matching dark-mode brand banner and put it in the README.",
       "expected": "Fires, treats the light banner as the edit target, preserves composition and copy, and asks for a separate post-generation approval before integration."
+    },
+    {
+      "id": "icon-and-favicon",
+      "prompt": "I need an app icon and a favicon generated from the mark we settled on.",
+      "expected": "Fires, and produces the raster icon and favicon sizes from the approved mark rather than opening a new direction."
     }
   ],
   "non_triggers": [
@@ -25,8 +31,14 @@
     },
     {
       "id": "svg-conversion",
+      "holdout": true,
       "prompt": "Convert this existing SVG icon to inline HTML so I can animate it.",
       "expected": "Does not fire. The skill deliberately does not create code-drawn or inline SVG graphics."
+    },
+    {
+      "id": "design-tokens",
+      "prompt": "Pick the accent colour for our design-system tokens.",
+      "expected": "Does not fire; choosing system tokens is not generating raster identity assets."
     }
   ],
   "behaviors": [
@@ -62,13 +74,14 @@
       "id": "asset-approval-before-integration",
       "prompt": "I picked the natural direction, and I want the final banner added to the README. Generate it now.",
       "expectations": [
-        "Generates and presents the banner without editing project files.",
+        "Puts generating and presenting the banner before touching any project file, and does not report the README as updated.",
         "Asks for explicit approval of the selected generated asset after it is shown.",
         "Does not treat the earlier style choice or integration request as approval to modify the README."
       ]
     },
     {
       "id": "explicit-multiple-repositories",
+      "holdout": true,
       "prompt": "Refresh the README banner in /work/alpha and /work/beta. They are unrelated repositories; create both in parallel and give me one combined final answer.",
       "expectations": [
         "Creates a separate identity brief and approval path for each named repository.",

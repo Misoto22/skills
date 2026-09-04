@@ -3,6 +3,7 @@
   "triggers": [
     {
       "id": "chinese-decorate",
+      "holdout": true,
       "prompt": "帮我把这个仓库装修一下",
       "expected": "Fires, plans all seven passes, and prints the plan before writing."
     },
@@ -35,6 +36,7 @@
     },
     {
       "id": "changelog",
+      "holdout": true,
       "prompt": "Update the CHANGELOG for this release.",
       "expected": "Does not fire."
     },
@@ -77,6 +79,7 @@
     },
     {
       "id": "no-licence-declared-anywhere",
+      "holdout": true,
       "prompt": "Set this repository up properly for open source. Nothing in it declares a licence.",
       "expectations": [
         "Asks which licence rather than defaulting to MIT.",
@@ -88,8 +91,8 @@
       "id": "forge-write-confirmation",
       "prompt": "装修一下这个仓库，全套",
       "expectations": [
-        "Prints the plan table before writing anything.",
-        "Prints the exact description and topic values and asks before sending them to the forge.",
+        "Puts the plan table before any write.",
+        "Shows the exact description and topic values and asks before sending them to the forge.",
         "Reports the forge passes as blocked, with the commands to run, when the host cannot reach the forge.",
         "Never reports a forge field as set on the strength of having composed a value for it."
       ]

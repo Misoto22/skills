@@ -18,6 +18,7 @@
     },
     {
       "id": "chinese-pull-latest",
+      "holdout": true,
       "prompt": "同步一下，拉最新的",
       "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
     }
@@ -31,6 +32,7 @@
     },
     {
       "id": "resolve-conflict",
+      "holdout": true,
       "prompt": "Resolve this merge conflict for me.",
       "expected": "Does not fire. It never resolves a conflict."
     },
@@ -50,6 +52,7 @@
   "behaviors": [
     {
       "id": "diverged-branch-not-rebased",
+      "holdout": true,
       "prompt": "Sync this repo. The current branch feat/parser is 3 commits ahead of its upstream and 7 behind, and main is 12 behind origin/main.",
       "expectations": [
         "Fast-forwards main and reports it.",
@@ -88,8 +91,8 @@
       "id": "ahead-behind-not-transposed",
       "prompt": "同步一下，看看现在跟远端差多少",
       "expectations": [
-        "Reports in Chinese, because that is the language of the question.",
-        "Reports ahead and behind the right way round — commits only on the local branch are ahead, commits only on the upstream are behind.",
+        "Answers in Chinese, because that is the language of the question.",
+        "Puts ahead and behind the right way round — commits only on the local branch are ahead, commits only on the upstream are behind.",
         "Fast-forwards only, and reports a diverged branch instead of rebasing it."
       ]
     }

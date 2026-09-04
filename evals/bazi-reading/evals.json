@@ -8,6 +8,7 @@
     },
     {
       "id": "chinese-existing-chart",
+      "holdout": true,
       "prompt": "这是我的八字 JSON，帮我解读日主强弱和命局结构。",
       "expected": "Fires on a complete existing chart and explains score semantics."
     },
@@ -15,6 +16,11 @@
       "id": "complete-pasted-data",
       "prompt": "I pasted all four pillars, fact ledger, score ledger, models, and boundary metadata below. Read the chart.",
       "expected": "Fires after completeness validation and marks the source as pasted-complete."
+    },
+    {
+      "id": "targeted-element-question",
+      "prompt": "My BaZi artifact is already computed — which element is the chart short of, and what does the score ledger base that on?",
+      "expected": "Fires on a targeted question against an existing verified artifact and answers from its ledgers rather than recomputing."
     }
   ],
   "non_triggers": [
@@ -32,6 +38,7 @@
     },
     {
       "id": "dated-forecast",
+      "holdout": true,
       "prompt": "Use this chart to tell me the exact date I will get married.",
       "expected": "Does not produce a forecast; dated event prediction is outside scope."
     }
@@ -55,6 +62,7 @@
     },
     {
       "id": "alternate-sensitivity",
+      "holdout": true,
       "prompt": "Interpret this verified chart; it contains a different 00:00-boundary alternate.",
       "expectations": [
         "Interprets the primary and alternate independently.",
@@ -64,6 +72,7 @@
     {
       "id": "evidence-linked-output",
       "prompt": "Give me a complete reading of this valid chart artifact.",
+      "artifact": "fixtures/valid-chart.json",
       "expectations": [
         "Writes a substantive human-first reader report plus a separate evidence artifact, with no numbered citations or raw identifiers in reader prose.",
         "Uses the five reader sections: main pattern; chart tendencies; strengths and tensions; relationships, work, and reflection; and model data card.",
@@ -74,6 +83,7 @@
     {
       "id": "reader-first-chinese-report",
       "prompt": "请用中文为这份有效八字命盘写一份完整、易读的解读报告。",
+      "artifact": "fixtures/valid-chart.json",
       "expectations": [
         "Uses Chinese only in a substantial reader report that starts with a lived pattern rather than source confidence or calculation method, and develops its main pattern and tension beyond a bare summary.",
         "Includes a compact model data card with rounded figures and one link to a separate Chinese evidence artifact.",

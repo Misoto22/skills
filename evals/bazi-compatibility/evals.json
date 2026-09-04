@@ -8,6 +8,7 @@
     },
     {
       "id": "two-existing-charts",
+      "holdout": true,
       "prompt": "Compare bazi_A.json and bazi_B.json for compatibility.",
       "expected": "Fires and reuses both verified charts without recalculating them."
     },
@@ -37,6 +38,7 @@
     },
     {
       "id": "future-event",
+      "holdout": true,
       "prompt": "算我们明年哪天结婚最吉利。",
       "expected": "Does not fire; dated forecasting and date selection are outside scope."
     }
@@ -61,6 +63,7 @@
     },
     {
       "id": "alternate-range",
+      "holdout": true,
       "prompt": "One chart has a midnight-boundary alternate; compare them.",
       "expectations": [
         "Compares every applicable primary/alternate combination.",

@@ -13,6 +13,7 @@
     },
     {
       "id": "bounded-time-window",
+      "holdout": true,
       "prompt": "合盘：其中一人的出生时间只知道在 09:00 到 11:00 之间，请把这个时间范围保留下来。",
       "expected": "Fires and uses window mode, producing sampled ranges and no houses or overlays for the uncertain chart."
     },
@@ -30,6 +31,7 @@
     },
     {
       "id": "forecast-request",
+      "holdout": true,
       "prompt": "Use astrology to predict whether I will begin a relationship next month.",
       "expected": "Does not fire. Forecasts and predictions are outside this calculator."
     },
@@ -57,6 +59,7 @@
     },
     {
       "id": "strict-backend-refusal",
+      "holdout": true,
       "prompt": "The Swiss files are unavailable and the request sets ephemeris_policy to swiss-only. Continue the calculation.",
       "expectations": [
         "Refuses fallback output rather than accepting Moshier silently.",

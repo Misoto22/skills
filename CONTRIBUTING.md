@@ -32,7 +32,7 @@ That writes the skill and registers it in all five places the validator checks, 
 1. **The description.** It is the only field that decides whether the skill ever fires. Say in concrete terms when to use it, name the phrasings and artefacts that should trigger it, and end with what it is not for. Keep it one line — the frontmatter parser reads plain key/value pairs and does not fold. `scripts/check-descriptions.py` holds you to all of that: it fails on a scaffold placeholder, on a description under 120 or over 1024 characters, on one that never says what the skill is not for, and on two skills sharing more than seven consecutive words. The last rule is the one no single skill's tests can catch — two descriptions competing for the same prompt means one of them misfires.
 2. **The body.** Concrete and executable: specific rules, banned constructions, worked before-and-after pairs. An abstract exhortation is noise wherever it sits, so drop it rather than promote it.
 3. **The placeholders** left in `README.md` and the plugin's `skills/README.md`.
-4. **The evaluation cases**, at `evals/<skill>/evals.json` — at least three prompts it must fire on and two it must stay out of. `scripts/run-evals.py --check` fails until they exist, and `--report` prints them for a manual run. The non-triggers are the ones worth thinking about: a skill that fires on everything looks perfect in its own trigger cases, and the damage lands on whichever skill it took the prompt from. See [evals/README.md](evals/README.md).
+4. **The evaluation cases**, at `evals/<skill>/evals.json` — at least three prompts it must fire on and two it must stay out of, plus one held-out case per section. `scripts/run-evals.py --check` fails until they exist, and `--report` prints them for a manual run. The non-triggers are the ones worth thinking about: a skill that fires on everything looks perfect in its own trigger cases, and the damage lands on whichever skill it took the prompt from. See [evals/README.md](evals/README.md).
 
 Which plugin a skill belongs to is a judgement about subject, not convenience. `writing` is prose aimed at a person; `docs` is prose aimed at whoever opens the repository next. Two skills that would not sensibly share one `shared/` directory belong in different plugins — users install plugins independently, so a plugin spanning unrelated subjects makes them take skills they did not want.
 
@@ -45,6 +45,12 @@ python3 scripts/remove-skill.py <plugin> <skill>
 The inverse of `new-skill.py`, unwinding the same registrations plus the evaluation suite, and clearing any `routes_to` in another skill's cases that named it. The material moves to `deprecated/<plugin>/<skill>/` with its cases beside it; `--delete` removes it instead. Emptying a plugin retires the plugin — manifest, marketplace entry, and directory group.
 
 Nothing published looks into `deprecated/` or `drafts/`. They are outside `plugins/`, so no installer, packager, or registry sees them, and the version audit and pin scan skip them; a test asserts all of that against a real retirement.
+
+## Changing a skill's wording
+
+An edit to a published `SKILL.md` goes through [evals/ITERATION.md](evals/ITERATION.md): measure the tuning split, write down both what failed *and* what passed that the edit could break, make **at most three edits**, then keep the edit only if the tuning score rose and the held-out score did not fall.
+
+Two of those are not habits, they are load-bearing. The held-out cases exist because a skill re-measured on the cases that produced its wording scores that wording back — `email` iteration-1 reached 100% by narrowing wording in response to `ambiguous-reply` and then re-scoring `ambiguous-reply`. And the three-edit budget exists because an iteration grades ten to twenty expectations: past three simultaneous edits a moved score cannot be attributed, and the cheap response — revert all three — discards the one that worked. Anything tried and dropped goes in that iteration's `rejected.md`, or the next person re-proposes it.
 
 ## The constraint that governs skill content
 
