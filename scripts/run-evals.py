@@ -825,6 +825,50 @@ def behavior_system_prompt(skill: str) -> str:
     return "\n\n".join(parts)
 
 
+def _stream_behavior_draft(client: object, skill: str, case: dict) -> str | None:
+    """Generate one behavior draft, streamed, and return its Markdown.
+
+    Streamed because the gateway sits behind Cloudflare, which closes a
+    connection whose origin has sent nothing complete for 120 seconds and
+    returns a 524. A behavior draft is the longest generation in this
+    repository — a full reader report against a supplied artifact — and it
+    routinely exceeds that. Unstreamed, the whole class of cases carrying an
+    artifact is unscoreable: three separate runs spent between thirty and
+    forty-five minutes and scored nothing, and they were exactly the
+    mechanically-validated cases, the only ones here whose failures need no
+    argument. Streaming keeps bytes moving, so the proxy has no idle window to
+    close.
+
+    A refusal or a content filter arrives as an empty stream, which the caller
+    reports the same way it reported an empty message.
+    """
+
+    stream = client.chat.completions.create(  # type: ignore[attr-defined]
+        model=BEHAVIOR_MODEL,
+        max_tokens=BEHAVIOR_MAX_TOKENS,
+        messages=[
+            {"role": "system", "content": behavior_system_prompt(skill)},
+            {"role": "user", "content": _behavior_user_message(skill, case)},
+        ],
+        stream=True,
+    )
+    parts: list[str] = []
+    for chunk in stream:
+        choices = getattr(chunk, "choices", None)
+        if not choices:
+            continue
+        choice = choices[0]
+        if getattr(choice, "finish_reason", None) == "content_filter":
+            return None
+        delta = getattr(choice, "delta", None)
+        if getattr(delta, "refusal", None):
+            return None
+        content = getattr(delta, "content", None)
+        if isinstance(content, str):
+            parts.append(content)
+    return "".join(parts)
+
+
 def _response_text(response: object) -> str | None:
     choices = getattr(response, "choices", None)
     if not choices:
@@ -1036,15 +1080,7 @@ def _semantic_failures(client: object, case: dict, markdown: str) -> list[str]:
 def run_behavior_case(client: object, skill: str, case: dict) -> list[str]:
     """Generate and validate one behavior response, returning one line per violation."""
 
-    response = client.chat.completions.create(  # type: ignore[attr-defined]
-        model=BEHAVIOR_MODEL,
-        max_tokens=BEHAVIOR_MAX_TOKENS,
-        messages=[
-            {"role": "system", "content": behavior_system_prompt(skill)},
-            {"role": "user", "content": _behavior_user_message(skill, case)},
-        ],
-    )
-    markdown = _response_text(response)
+    markdown = _stream_behavior_draft(client, skill, case)
     if markdown is None:
         return ["behavior generation was refused"]
     if not markdown.strip():
