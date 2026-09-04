@@ -1,10 +1,10 @@
 ---
 name: retitle
-description: Normalize agent conversation titles onto a dated `MMDD｜类型｜主题` scheme across Codex, Claude Code, and any client that exposes its session list — the date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
+description: Normalize agent conversation titles onto a dated `MMDD｜TYPE｜subject` scheme — English by default, Chinese with `--lang=zh` — across Codex, Claude Code, and any client that exposes its session list. The date comes from creation time, the middle field from a closed set of nine types, and every rename is proposed as a two-column table before a single title is written. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
-  version: "0.11.1"
-argument-hint: "[--client=codex|claude-code] [--tz=<zone>] [--apply]"
+  version: "0.12.0"
+argument-hint: "[--client=codex|claude-code] [--lang=en|zh] [--tz=<zone>] [--apply]"
 ---
 
 # Retitle
@@ -16,49 +16,75 @@ This skill renames. It never touches what a conversation contains, which project
 ## 1. The scheme
 
 ```
-MMDD｜类型｜主题
+MMDD｜TYPE｜subject
 ```
 
 The separator is the fullwidth vertical line `｜` (U+FF5C), not the ASCII pipe `|`. This is not cosmetic: an ASCII pipe inside a title breaks the very markdown table this skill proposes its renames in, and a title that renders as three broken cells is worse than the name it replaced. Copy the character; do not retype it.
 
-No spaces around the separator. `0903｜优化｜批次文字显示`, never `0903 ｜ 优化 ｜ 批次文字显示`.
+No spaces around the separator. `0903｜TWEAK｜batch text rendering`, never `0903 ｜ TWEAK ｜ batch text rendering`.
 
-`类型` is a closed set of nine. A conversation that fits none of them is not given a tenth — it keeps its original name:
+`TYPE` is a closed set of nine, written uppercase. A conversation that fits none of them is not given a tenth — it keeps its original name:
 
-| 类型 | Covers |
+| TYPE | Covers |
 |---|---|
-| 功能 | New capability, new endpoint, new screen |
-| 设计 | Shape decided before code — architecture, interface, layout |
-| 修复 | Something behaved wrongly and was corrected |
-| 优化 | Behaviour was already correct; speed, cost, or clarity improved |
-| 发布 | Commit, PR, merge, tag, deploy, publish |
-| 探索 | Tried something to find out what happens; no committed outcome |
-| 文档 | README, comments, guides, changelogs |
-| 审计 | Checked something that already exists against a standard and reported the gaps; nothing built |
-| 研究 | Read sources and reported findings; nothing built and nothing of the user's inspected |
+| BUILD | New capability, new endpoint, new screen |
+| SHAPE | Shape decided before code — architecture, interface, layout |
+| PATCH | Something behaved wrongly and was corrected |
+| TWEAK | Behaviour was already correct; speed, cost, or clarity improved |
+| SHIP | Commit, PR, merge, tag, deploy, publish |
+| PROBE | Tried something to find out what happens; no committed outcome |
+| WRITE | README, comments, guides, changelogs |
+| AUDIT | Checked something that already exists against a standard and reported the gaps; nothing built |
+| STUDY | Read sources and reported findings; nothing built and nothing of the user's inspected |
 
-审计 and 研究 both end in a report and build nothing, which is why one collapses into the other unless the line is drawn on the **object**. 审计 inspects something the user already owns — a repository, a deployment, a page, a configuration — against a standard. 研究 reads the outside world to answer a question. "Audit the site's SEO" is 审计; "which SEO tools are worth using" is 研究.
+AUDIT and STUDY both end in a report and build nothing, which is why one collapses into the other unless the line is drawn on the **object**. AUDIT inspects something the user already owns — a repository, a deployment, a page, a configuration — against a standard. STUDY reads the outside world to answer a question. "Audit the site's SEO" is AUDIT; "which SEO tools are worth using" is STUDY.
 
-The distinction earns its place empirically. Measured over 181 conversations before 审计 existed, 研究 held 50% of them — half a sidebar reading the same word, which is a field carrying no information. Splitting the audits out moved 25 of those 90 and dropped the largest type to 36%.
+The distinction earns its place empirically. Measured over 181 conversations before the audit type existed, the research type held 50% of them — half a sidebar reading the same word, which is a field carrying no information. Splitting the audits out moved 25 of those 90 and dropped the largest type to 36%.
 
-`主题` is what the conversation was actually about, in roughly four to twelve characters. Three rules govern it:
+### Why five uppercase letters
 
-- **Do not repeat the project name.** The sidebar already groups by project, so `0903｜修复｜dealer-portal 登录失败` wastes the third of the title that is visible.
-- **Name the object, not the activity.** `批次文字显示` beats `处理了一些显示问题`.
+The type field has a job beyond meaning: hold a column, so the subject starts at the same place on every row and the eye reads down the list instead of hunting across it. Two CJK characters do this for free — every han glyph is one em, so 优化 and 研究 are the same width by construction, and the scheme got the property without anyone choosing it. English in a proportional UI font has no such property, and the natural words are its worst case: `FIX` against `DESIGN` is a factor of two, and at that spread there is no column left to read.
+
+Fixing the letter count recovers most of it. At 13px in a system UI font these nine span about 3px across roughly 38px — under a tenth of a glyph — where the natural-word set spans 26px to 55px. Uppercase is the second half of the same decision: capitals have neither ascenders nor descenders and vary less in width than lowercase, and the field reads as a tag rather than as a word competing with the subject beside it.
+
+`SHIP` is the one four-letter member, and it is chosen rather than settled for. No honest five-letter English verb covers commit, PR, merge, tag, deploy and publish at once; `MERGE` holds the column by describing one member of that set as though it were all of them. One character of raggedness on one of nine types costs less than a type that lies about what it covers.
+
+### The subject
+
+`subject` is what the conversation was actually about, in two to four lowercase words and at most 24 characters. English runs about two and a half times wider than Chinese for the same meaning — `批次文字显示` is six glyphs where `batch text rendering` is twenty — so in a narrow sidebar it is this field that gets truncated, not the type, and the cap is what keeps the type visible at all. Three rules govern it:
+
+- **Do not repeat the project name.** The sidebar already groups by project, so `0903｜PATCH｜dealer-portal login fails` wastes the third of the title that is visible.
+- **Name the object, not the activity.** `batch text rendering` beats `fixed some display issues`.
 - **When the subject cannot be told from the conversation, do not invent one.** Keep the original title, verbatim, and report it as skipped. A confidently wrong title is worse than a messy honest one, because it is the version the user will trust.
 
 Worked pairs:
 
 | Original | New |
 |---|---|
-| 优化批次文字显示 | `0903｜优化｜批次文字显示` |
-| 整合快捷键提示页面 | `0902｜功能｜整合快捷键提示页` |
-| 提交代码到 GitHub | `0813｜发布｜提交代码到GitHub` |
-| Clarify Sales Order pricing rules | `0901｜研究｜销售订单定价规则` |
-| 对网站的 SEO 进行审查 | `0904｜审计｜网站SEO审查` |
+| 优化批次文字显示 | `0903｜TWEAK｜batch text rendering` |
+| 整合快捷键提示页面 | `0902｜BUILD｜unified shortcut page` |
+| 提交代码到 GitHub | `0813｜SHIP｜push code to github` |
+| Clarify Sales Order pricing rules | `0901｜STUDY｜sales order pricing` |
+| 对网站的 SEO 进行审查 | `0904｜AUDIT｜site seo review` |
 | 新功能讨论 | *kept — the subject cannot be recovered from the title alone* |
 
-The fourth pair is the one worth reading twice. The title alone said "clarify pricing rules", which sounds like 文档; the conversation was reading the existing rules and reporting what they were, which is 研究. Classify from the conversation, not from its current name — the current name is the thing being replaced precisely because it is unreliable.
+The fourth pair is the one worth reading twice. The title alone said "clarify pricing rules", which sounds like WRITE; the conversation was reading the existing rules and reporting what they were, which is STUDY. Classify from the conversation, not from its current name — the current name is the thing being replaced precisely because it is unreliable.
+
+### Chinese, by request
+
+`--lang=zh` swaps the vocabulary for the one this scheme started as:
+
+```
+MMDD｜类型｜主题
+```
+
+功能, 设计, 修复, 优化, 发布, 探索, 文档, 审计, 研究 — in that order against the table above — with 主题 at roughly four to twelve characters rather than a character cap. Nothing else moves: the separator, the creation-date rule, and the closed set of nine are the same. Chinese needs no width argument, because two han glyphs are two ems whatever they say.
+
+**The choice reaches the whole run, not just the titles.** The preview table's header and the summary under it are written in the run's language too — section 5 gives both forms. A scheme whose point is that a sidebar should not be half one language and half another cannot hand back a report that is exactly that.
+
+A run that does not pass `--lang` names in English.
+
+**A title already conforming in either language is kept.** This is the rule that stops a default run from rewriting a sidebar someone has spent months naming in Chinese: `0903｜优化｜批次文字显示` conforms, so it is not a row in the proposal table and not a rename. Moving an existing store from one language to the other is a deliberate request, not something a default does on its way past — when it is asked for, every conforming title becomes a row like any other and the preview table shows all of them.
 
 ## 2. Which date, and in which timezone
 
@@ -113,8 +139,10 @@ When the title alone is too thin to classify, read the conversation. The rollout
 Print exactly one table, with exactly this header:
 
 ```
-| 原名称 | 新名称 |
+| OLD | NEW |
 ```
+
+Under `--lang=zh` it is `| 原名称 | 新名称 |`, and so is everything else below. One run speaks one language: Chinese titles under English headings is the mixture this scheme exists to remove from a sidebar, and reproducing it in the skill's own output would be the same failure one screen further out.
 
 One row per conversation that would change. Conversations that keep their name are not rows — they are a count under the table, with their reasons. A table padded with unchanged rows hides the changes inside it.
 
@@ -127,6 +155,17 @@ proposed   <N> renames across <M> conversations
 kept       <N> — subject not recoverable (<count>), already conforming (<count>)
 excluded   <N> cloud-hosted, <N> missing from the catalogue
 timezone   <zone>, dates from creation time
+language   en
+```
+
+Under `--lang=zh`:
+
+```
+提案   <N> 处改名，共 <M> 条对话
+保留   <N> —— 主题无法还原（<count>）、已合规范（<count>）
+排除   <N> 条云端来源、<N> 条已不在目录中
+时区   <zone>，日期取创建时间
+语言   zh
 ```
 
 ## 6. Apply — Codex
@@ -143,7 +182,7 @@ The authoritative name lives in `~/.codex/session_index.jsonl`, an append-only l
 
 ```json
 {"id":0,"method":"initialize","params":{"clientInfo":{"name":"retitle","version":"1.0"}}}
-{"id":1,"method":"thread/name/set","params":{"threadId":"<thread_id>","name":"<MMDD｜类型｜主题>"}}
+{"id":1,"method":"thread/name/set","params":{"threadId":"<thread_id>","name":"<MMDD｜TYPE｜subject>"}}
 ```
 
 A successful rename answers `{"id":1,"result":{}}`. Read the replies rather than counting the requests sent — the server answers out of order, and it rejects under load (see below).
@@ -185,7 +224,7 @@ Claude Code's session API addresses **any** session by id, so this half is a bat
 | `get_session` | one session's `createdAt`, which is the field section 2 requires. The listing carries only `lastActivityAt`, and naming a session for the day it was last touched puts it under the wrong date |
 | `set_session_title` | the rename, by `sessionId` or the literal `"self"`. `session_id` is required — a call that omits it fails validation, and the id in a session's own transcript or scratchpad path is a different id that answers "not found" |
 
-The client auto-titles a new session before the model has done anything, so `list_sessions` mixes generated titles with any the scheme has already set. Skip the ones that already match `MMDD｜类型｜主题` rather than re-deriving them — a session renamed twice is a session whose 主题 drifts for no reason.
+The client auto-titles a new session before the model has done anything, so `list_sessions` mixes generated titles with any the scheme has already set. Skip the ones that already conform, in either language, rather than re-deriving them — a session renamed twice is a session whose subject drifts for no reason, and a default English run must not sweep up sessions already named in Chinese.
 
 Renaming one session by hand is not the point, though. A client that keeps opening new sessions re-generates its own titles faster than anyone renames them, so the scheme has to be enforced where sessions are born. That is what `assets/session-naming-hook.py` is for, and installing it is part of applying this skill — not an optional extra.
 
@@ -203,13 +242,21 @@ chmod +x "$HOME/.claude/scripts/session-naming-hook.py"
 
 Then add it to `settings.json` in that directory, under `hooks.UserPromptSubmit`, as a `command` entry running that path. Read the existing file and merge — a settings file rewritten from scratch loses whatever else the user had configured, which is the one failure here that costs more than a bad title.
 
+The hook names in English unless told otherwise. To keep a machine naming in Chinese, set `SESSION_TITLE_LANG` on the hook's own command rather than in a shell profile — it is the same shape as `SESSION_TITLE_RECHECK_EVERY`, and a setting that lives in the settings entry is one the next reader of that file can see:
+
+```bash
+SESSION_TITLE_LANG=zh python3 "$HOME/.claude/scripts/session-naming-hook.py"
+```
+
+A locale tag works as well (`zh-CN`, `zh_Hans`), and an unrecognised value falls back to English rather than failing — a rule in the wrong language still names the session, and a hook that refuses to emit one does not.
+
 Verify it before trusting it, because a hook that throws is a hook that breaks every prompt:
 
 ```bash
 printf '{"session_id":"verify-install"}' | python3 "$HOME/.claude/scripts/session-naming-hook.py"
 ```
 
-That must print one JSON object containing `MMDD｜类型｜主题`. Remove the marker it just created (`.session-naming-markers/verify-install` under the config directory) so a real session is not counted as already reminded.
+That must print one JSON object containing the scheme — `MMDD｜TYPE｜subject`, or `MMDD｜类型｜主题` when the entry sets `SESSION_TITLE_LANG=zh`. Remove the marker it just created (`.session-naming-markers/verify-install` under the config directory) so a real session is not counted as already reminded.
 
 ### What the hook does, and why it is shaped that way
 
@@ -217,6 +264,7 @@ That must print one JSON object containing `MMDD｜类型｜主题`. Remove the 
 - **The re-check tells the model to retitle only on a real change of subject.** Without that bar a title changes every few messages, which is worse than one that is slightly stale, and the user watches it thrash.
 - **It names `session_id: "self"` in the call it asks for.** Left to infer the argument, a model calls `set_session_title` with a title alone, is told `session_id` is required, then supplies the session id it can see — the one in its transcript or scratchpad path. That is the CLI's id, not the client's, so the second call answers "not found" and the session keeps the title the client generated. Two failed calls and a silently unrenamed session is what one missing sentence cost.
 - **It resolves `MMDD` itself** rather than asking the model, so a session running past midnight keeps the date it opened on.
+- **It carries one language's vocabulary, not both.** Injecting the nine types twice would double the longest part of the rule to let the model pick a language it has no basis for picking — the machine's owner has already decided, so `SESSION_TITLE_LANG` decides once and the rule that reaches the model names one set.
 - **Every failure path exits 0 with no output.** Unreadable event, unwritable marker, missing directory: the hook stays silent. A broken hook blocks the user's prompt, and no titling scheme is worth that.
 - **It is Python with no imports beyond the standard library.** The obvious shell version needs `jq` to read the event, and a hook lands on whatever machine the skill was installed on.
 
@@ -230,12 +278,24 @@ For any other client, the table from section 5 is the deliverable. Do not reach 
 
 ```
 Retitled <client>.
-  scheme     MMDD｜类型｜主题, timezone <zone>
+  scheme     MMDD｜TYPE｜subject, timezone <zone>
   renamed    <N> of <M> proposed
   kept       <N> — <reasons>
   excluded   <N> — <cloud-hosted | missing>
   backup     <path, or none for a client without one>
   attention  <threads that did not take, or none>
+```
+
+Under `--lang=zh`:
+
+```
+已重命名 <client>。
+  规范     MMDD｜类型｜主题，时区 <zone>
+  已改名   <N> / 提案 <M>
+  保留     <N> —— <原因>
+  排除     <N> —— <云端来源 | 已不在目录中>
+  备份     <路径，没有备份的客户端写 none>
+  注意     <没有落地的会话，或 none>
 ```
 
 Every number comes from a read-back, not from the count of statements issued. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.

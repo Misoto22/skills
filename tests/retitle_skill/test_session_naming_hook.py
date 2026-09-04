@@ -8,6 +8,10 @@ Two failures this prevents, both found by hand before the hook was published:
 - A crash on a marker it did not write. The earlier shell version left empty marker
   files behind; under `set -euo pipefail` reading one aborted the hook, which blocks
   the user's prompt. Every failure path here has to stay silent and exit 0.
+- A widened type. The English types are five uppercase letters so that the subject
+  starts at nearly the same place on every row; a natural-word set is twice as ragged
+  (DESIGN against FIX) and the column stops reading as a column. Nothing in the rule
+  text says so out loud, which is exactly why it needs asserting.
 """
 
 from __future__ import annotations
@@ -32,10 +36,19 @@ class SessionNamingHookTests(unittest.TestCase):
         self.config = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
 
-    def run_hook(self, session_id: str, *, every: str | None = None, transcript: str | None = None) -> str:
+    def run_hook(
+        self,
+        session_id: str,
+        *,
+        every: str | None = None,
+        transcript: str | None = None,
+        lang: str | None = None,
+    ) -> str:
         env = {"HOME": str(self.config), "CLAUDE_CONFIG_DIR": str(self.config), "PATH": "/usr/bin:/bin"}
         if every is not None:
             env["SESSION_TITLE_RECHECK_EVERY"] = every
+        if lang is not None:
+            env["SESSION_TITLE_LANG"] = lang
         event = {"session_id": session_id}
         if transcript is not None:
             event["transcript_path"] = transcript
@@ -59,6 +72,13 @@ class SessionNamingHookTests(unittest.TestCase):
             return "full"
         return "recheck" if "Title re-check" in context else "unknown"
 
+    @staticmethod
+    def types(context: str, label: str) -> list[str]:
+        """The type vocabulary as the shipped hook actually spells it, not as a test repeats it."""
+        prefix = f"- {label}: exactly one of "
+        line = next(line for line in context.splitlines() if line.startswith(prefix))
+        return line.removeprefix(prefix).split(" — ")[0].split(", ")
+
     def markers(self) -> Path:
         return self.config / ".session-naming-markers"
 
@@ -73,16 +93,69 @@ class SessionNamingHookTests(unittest.TestCase):
         got = [self.kind(self.run_hook("once", every="0")) for _ in range(7)]
         self.assertEqual(got, ["full"] + ["silent"] * 6)
 
-    def test_the_reminder_carries_the_scheme_and_todays_date(self) -> None:
+    def test_the_reminder_carries_the_english_scheme_by_default(self) -> None:
         context = json.loads(self.run_hook("scheme"))["hookSpecificOutput"]["additionalContext"]
         # Written as the codepoint: the assertion is that the fullwidth separator
         # survives, and an ASCII pipe here would pass against a broken hook.
-        self.assertIn("MMDD\uff5c类型\uff5c主题", context)
+        self.assertIn("MMDD\uff5cTYPE\uff5csubject", context)
         self.assertIn("U+FF5C", context)
-        for kind in ("功能", "设计", "修复", "优化", "发布", "探索", "文档", "审计", "研究"):
+        for kind in ("BUILD", "SHAPE", "PATCH", "TWEAK", "SHIP", "PROBE", "WRITE", "AUDIT", "STUDY"):
             self.assertIn(kind, context)
-        # 审计 collapses into 研究 unless the reminder carries what separates them.
+        # AUDIT collapses into STUDY unless the reminder carries what separates them.
         self.assertIn("The line is the object", context)
+
+    def test_every_english_type_holds_the_column_width(self) -> None:
+        # Two CJK characters are a fixed em each, so the Chinese type field never moves
+        # the subject. English in a proportional font cannot match that, so the scheme
+        # fixes the letter count instead — and SHIP is the single member allowed to be
+        # short, because no honest five-letter verb covers commit/PR/tag/deploy/publish.
+        context = json.loads(self.run_hook("width"))["hookSpecificOutput"]["additionalContext"]
+        kinds = self.types(context, "TYPE")
+        self.assertEqual(len(kinds), 9, kinds)
+        for kind in kinds:
+            with self.subTest(kind=kind):
+                self.assertTrue(kind.isupper(), kind)
+                self.assertEqual(len(kind), 4 if kind == "SHIP" else 5, kind)
+
+    def test_the_chinese_scheme_is_opt_in(self) -> None:
+        context = json.loads(self.run_hook("chinese", lang="zh"))["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("MMDD\uff5c类型\uff5c主题", context)
+        self.assertNotIn("MMDD\uff5cTYPE\uff5csubject", context)
+        self.assertEqual(
+            self.types(context, "类型"),
+            ["功能", "设计", "修复", "优化", "发布", "探索", "文档", "审计", "研究"],
+        )
+
+    def test_a_locale_tag_still_selects_chinese(self) -> None:
+        # Someone reaching for a language setting writes the locale they know, and
+        # `zh-CN` silently falling back to English is a setting that looks applied.
+        for tag in ("zh-CN", "zh_Hans", "ZH"):
+            with self.subTest(tag=tag):
+                context = json.loads(self.run_hook(f"locale-{tag}", lang=tag))["hookSpecificOutput"][
+                    "additionalContext"
+                ]
+                self.assertIn("MMDD\uff5c类型\uff5c主题", context)
+
+    def test_an_unknown_language_falls_back_to_english(self) -> None:
+        # A rule in the wrong language still names the session; refusing to emit one
+        # trades a misspelled locale for the whole feature.
+        context = json.loads(self.run_hook("unknown", lang="klingon"))["hookSpecificOutput"][
+            "additionalContext"
+        ]
+        self.assertIn("MMDD\uff5cTYPE\uff5csubject", context)
+
+    def test_the_recheck_follows_the_chosen_language(self) -> None:
+        # The re-check names the fields it wants changed. In Chinese those fields are
+        # 类型 and 主题; leaving that half English is how a session drifts back to the
+        # default vocabulary five prompts in.
+        for _ in range(5):
+            self.run_hook("chinese-recheck", lang="zh")
+        context = json.loads(self.run_hook("chinese-recheck", lang="zh"))["hookSpecificOutput"][
+            "additionalContext"
+        ]
+        self.assertIn("Title re-check", context)
+        self.assertIn("change 类型 and 主题", context)
+        self.assertNotIn("TYPE and subject", context)
 
     def test_both_reminders_name_the_session_argument(self) -> None:
         # `set_session_title` requires `session_id`, and only the literal "self" reaches

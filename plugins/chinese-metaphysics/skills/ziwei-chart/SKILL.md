@@ -3,7 +3,7 @@ name: ziwei-chart
 description: Place one twelve-palace Zi Wei Dou Shu 命盘 from someone's stated birth moment, birthplace, and gender, recording palaces, stars, 生年四化, and 大限 windows as reusable placement data. Use for 紫微斗数, 紫微排盘, 排紫微, 紫微命盘, 十二宫, or purple star astrology. Not for 八字 four pillars, matching two people, comparing two systems against each other, 流年 or monthly transformations, or a 命盘 that has already been placed.
 license: MIT
 metadata:
-  version: "0.11.1"
+  version: "0.12.0"
 ---
 
 # Zi Wei Chart
