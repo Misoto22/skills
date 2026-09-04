@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "chinese-metaphysics",
-  "version": "0.12.0",
-  "description": "BaZi charts and relationship compatibility built from auditable calendar data, transparent scores, and separate evidence-linked readings.",
+  "version": "0.13.0",
+  "description": "BaZi and Zi Wei Dou Shu charts, relationship compatibility, and the cross-system reading, built from auditable calendar data, transparent scores, and separate evidence-linked readings.",
   "author": {
     "name": "skills contributors"
   },
@@ -12,7 +12,9 @@
     "four-pillars",
     "chinese-calendar",
     "compatibility",
-    "ten-gods"
+    "ten-gods",
+    "ziwei",
+    "purple-star"
   ],
   "homepage": "https://github.com/Misoto22/skills",
   "repository": "https://github.com/Misoto22/skills"

@@ -3,7 +3,7 @@ name: bazi-ziwei-cross
 description: Read one person's finished 八字 artifact and finished 紫微 artifact against each other, recording every place the two systems agree, complement, or flatly contradict, without merging them into a single number. Use for 八字紫微综合, 双系统印证, 两盘合参, or asking whether the two systems say the same thing about one person. Not for placing either 命盘, reading one system by itself, matching two people, or forecasting.
 license: MIT
 metadata:
-  version: "0.12.0"
+  version: "0.13.0"
 ---
 
 # BaZi and Zi Wei Cross-Reading

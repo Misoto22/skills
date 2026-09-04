@@ -34,6 +34,8 @@ That writes the skill and registers it in all five places the validator checks, 
 3. **The placeholders** left in `README.md` and the plugin's `skills/README.md`.
 4. **The evaluation cases**, at `evals/<skill>/evals.json` — at least three prompts it must fire on and two it must stay out of, plus one held-out case per section. `scripts/run-evals.py --check` fails until they exist, and `--report` prints them for a manual run. The non-triggers are the ones worth thinking about: a skill that fires on everything looks perfect in its own trigger cases, and the damage lands on whichever skill it took the prompt from. See [evals/README.md](evals/README.md).
 
+Where a rule belongs is decided before which skill it goes in. Deterministic work — a calculation, a validation, a layout — is a script the skill runs, with tests, not a paragraph the model re-derives. A rule the model must never break is a hook in `plugins/<plugin>/hooks/`, which refuses the command before it runs; the prose then says what to do, not what to avoid. A long private session whose transcript the caller never needs is a fork (`context: fork` in the skill's frontmatter) rather than an inline run. What is left — judgement, sequence, and the reasons behind them — is the skill.
+
 Which plugin a skill belongs to is a judgement about subject, not convenience. `writing` is prose aimed at a person; `docs` is prose aimed at whoever opens the repository next. Two skills that would not sensibly share one `shared/` directory belong in different plugins — users install plugins independently, so a plugin spanning unrelated subjects makes them take skills they did not want.
 
 ## Retiring a skill
@@ -57,6 +59,8 @@ Two of those are not habits, they are load-bearing. The held-out cases exist bec
 Every installer copies a plugin — or, on most agents, a single skill directory — and nothing above it. A path that climbs out with `../` resolves in this repository and dangles everywhere else, and only Claude Code expands `${CLAUDE_*}`. Both are rejected in published skill content, and `scripts/verify-install.py` checks it against real installed trees rather than against this repository.
 
 Shared material therefore lives in `plugins/<plugin>/shared/`, and `scripts/sync-shared.py` vendors a copy into each skill. Edit the plugin-level copy only; the validator, the packager, and CI all fail on drift.
+
+The one place `${CLAUDE_PLUGIN_ROOT}` is allowed is a plugin's `hooks/hooks.json`: a hook only ever runs where the plugin was installed, so the plugin root is guaranteed there and nowhere a skill is copied alone.
 
 ## Before opening a pull request
 

@@ -40,7 +40,7 @@ A title that already conforms in either language is left alone, so switching the
 
 ## Naming new sessions as they start
 
-Renaming by hand does not keep up with how fast a client opens new sessions, so the scheme is applied where sessions begin: a `UserPromptSubmit` hook that the skill installs into `~/.claude/scripts/`.
+Renaming by hand does not keep up with how fast a client opens new sessions, so the scheme is applied where sessions begin: a `UserPromptSubmit` hook the `dev` plugin registers the moment it is enabled. Its language is the plugin's `session_title_lang` option, `en` unless you set `zh`; a skill copied on its own, without the plugin, installs the hook by hand from the reference the skill points at.
 
 It fires the full rule on the first prompt and a short re-check every fifth prompt after. A session's direction drifts, but the full rule is long enough that injecting it every turn costs more than the title is worth; the re-check renames only on a real change of subject, because a title that moves every few messages is harder to use than one that is slightly stale.
 

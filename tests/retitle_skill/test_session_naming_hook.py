@@ -43,13 +43,16 @@ class SessionNamingHookTests(unittest.TestCase):
         every: str | None = None,
         transcript: str | None = None,
         lang: str | None = None,
+        env_extra: dict[str, str] | None = None,
+        event_extra: dict[str, str] | None = None,
     ) -> str:
         env = {"HOME": str(self.config), "CLAUDE_CONFIG_DIR": str(self.config), "PATH": "/usr/bin:/bin"}
         if every is not None:
             env["SESSION_TITLE_RECHECK_EVERY"] = every
         if lang is not None:
             env["SESSION_TITLE_LANG"] = lang
-        event = {"session_id": session_id}
+        env.update(env_extra or {})
+        event = {"session_id": session_id, **(event_extra or {})}
         if transcript is not None:
             event["transcript_path"] = transcript
         result = subprocess.run(
@@ -237,6 +240,44 @@ class SessionNamingHookTests(unittest.TestCase):
         written = list(self.markers().iterdir())
         self.assertEqual(len(written), 1)
         self.assertNotIn("/", written[0].name)
+
+    def test_the_plugin_option_selects_chinese(self) -> None:
+        """Claude Code hands a plugin hook its `session_title_lang` option as an environment variable."""
+        out = self.run_hook("s1", env_extra={"CLAUDE_PLUGIN_OPTION_SESSION_TITLE_LANG": "zh"})
+        context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("MMDD｜类型｜主题", context)  # noqa: RUF001
+
+    def test_an_explicit_variable_beats_the_plugin_option(self) -> None:
+        """A machine that set SESSION_TITLE_LANG before the option existed keeps naming as it did."""
+        out = self.run_hook("s1", lang="en", env_extra={"CLAUDE_PLUGIN_OPTION_SESSION_TITLE_LANG": "zh"})
+        context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("MMDD｜TYPE｜subject", context)  # noqa: RUF001
+
+    def test_a_codex_plugin_hook_stays_silent(self) -> None:
+        """Codex runs the same plugin hook but has no tool the rule could name."""
+        out = self.run_hook("s1", env_extra={"PLUGIN_ROOT": "/plugins/dev"}, event_extra={"turn_id": "t1"})
+        self.assertEqual(self.kind(out), "silent")
+        self.assertFalse(self.markers().exists())
+
+    def test_a_codex_shaped_event_stays_silent_without_plugin_variables(self) -> None:
+        out = self.run_hook("s1", event_extra={"turn_id": "t1"})
+        self.assertEqual(self.kind(out), "silent")
+
+    def test_claude_code_fires_even_when_codex_variables_leak_in(self) -> None:
+        """A Claude Code session started from a shell that exports PLUGIN_ROOT is still Claude Code."""
+        out = self.run_hook(
+            "s1",
+            env_extra={"CLAUDECODE": "1", "PLUGIN_ROOT": "/plugins/dev"},
+            event_extra={"prompt_id": "p1"},
+        )
+        self.assertEqual(self.kind(out), "full")
+
+    def test_markers_live_in_the_plugin_data_directory_when_there_is_one(self) -> None:
+        """CLAUDE_PLUGIN_DATA survives plugin updates; the config directory is the hand-installed home."""
+        data = self.config / "data"
+        self.run_hook("s1", env_extra={"CLAUDE_PLUGIN_DATA": str(data)})
+        self.assertEqual([p.name for p in (data / "session-naming-markers").iterdir()], ["s1"])
+        self.assertFalse(self.markers().exists())
 
 
 if __name__ == "__main__":
