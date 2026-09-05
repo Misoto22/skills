@@ -3,7 +3,7 @@ name: handoff
 description: Mirror a live conversation into the other agent's history as it happens, so Claude Code sessions show up in Codex and Codex threads show up in Claude Code. Hooks on both sides watch their own transcript and write each exchange into the other side's format. Use when asked to share sessions between Claude and Codex, see my Codex conversations in Claude, continue this in Codex without re-explaining, keep the two agents' history in sync, 让 Codex 看到 Claude 的会话, 两个 agent 的历史同步, 把这段对话搬到 Codex, 在 Codex 里接着聊. Not for one agent's own per-account sidebar, which reunite covers; not for naming conversations; not for carrying history to a different computer.
 license: MIT
 metadata:
-  version: "0.15.0"
+  version: "0.16.0"
 argument-hint: "[install|status|uninstall]"
 ---
 
