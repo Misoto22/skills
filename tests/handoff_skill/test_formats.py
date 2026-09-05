@@ -12,6 +12,7 @@ than dropped.
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import json
 import sys
 import tempfile
@@ -43,7 +44,12 @@ CLAUDE_TURN = [
             "content": [
                 {"type": "thinking", "thinking": "check for a test command", "signature": "sig"},
                 {"type": "text", "text": "Running them."},
-                {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "pytest -q"}},
+                {
+                    "type": "tool_use",
+                    "id": "toolu_1",
+                    "name": "Bash",
+                    "input": {"command": "pytest -q"},
+                },
             ],
         },
     },
@@ -52,7 +58,11 @@ CLAUDE_TURN = [
         "message": {
             "role": "user",
             "content": [
-                {"type": "tool_result", "tool_use_id": "toolu_1", "content": [{"type": "text", "text": "3 passed"}]}
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_1",
+                    "content": [{"type": "text", "text": "3 passed"}],
+                }
             ],
         },
     },
@@ -63,9 +73,7 @@ class ClaudeToCodexTests(unittest.TestCase):
     def test_every_block_maps_to_its_codex_counterpart(self):
         """The failure this prevents, asserted on real output."""
         items = [line["payload"]["type"] for line in formats.claude_to_codex(CLAUDE_TURN, "t1")]
-        self.assertEqual(
-            items, ["message", "reasoning", "message", "function_call", "function_call_output"]
-        )
+        self.assertEqual(items, ["message", "reasoning", "message", "function_call", "function_call_output"])
 
     def test_tool_arguments_travel_as_the_json_string_codex_reads(self):
         call = next(
@@ -100,7 +108,7 @@ class CodexToClaudeTests(unittest.TestCase):
         second, _ = formats.codex_to_claude(rollout[2:], session_id="s", cwd="/tmp", parent=tail)
         chain = first + second
         self.assertIsNone(chain[0]["parentUuid"])
-        for earlier, later in zip(chain, chain[1:]):
+        for earlier, later in itertools.pairwise(chain):
             self.assertEqual(later["parentUuid"], earlier["uuid"])
 
     def test_codex_own_prompt_is_not_mistaken_for_the_conversation(self):
@@ -116,7 +124,10 @@ class CodexToClaudeTests(unittest.TestCase):
 
     def test_unreadable_reasoning_is_dropped_rather_than_forged(self):
         encrypted = [
-            {"type": "response_item", "payload": {"type": "reasoning", "summary": [], "encrypted_content": "x"}}
+            {
+                "type": "response_item",
+                "payload": {"type": "reasoning", "summary": [], "encrypted_content": "x"},
+            }
         ]
         lines, _ = formats.codex_to_claude(encrypted, session_id="s", cwd="/tmp", parent=None)
         self.assertEqual(lines, [])
