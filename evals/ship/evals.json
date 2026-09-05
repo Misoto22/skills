@@ -57,7 +57,7 @@
   "behaviors": [
     {
       "id": "tests-declared-only-in-ci",
-      "prompt": "Ship this. The repository has no package.json, pyproject.toml, Cargo.toml, Makefile or justfile, but tests/ holds 538 tests and .github/workflows/validate.yml runs `python3 -m unittest discover -s tests -v`. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
+      "prompt": "Ship this. The repository has no package.json, pyproject.toml, Cargo.toml, Makefile or justfile, but tests/ holds 538 tests and .github/workflows/validate.yml runs `python3 -m unittest discover -s tests -v`. I am on main with uncommitted changes and there is no open PR. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Marks step 2 RUN and names a test command, rather than reporting that none was detected.",
         "Derives that command from the CI workflow and states it without the CI-only -v flag.",
@@ -66,7 +66,7 @@
     },
     {
       "id": "test-command-found-but-unrunnable",
-      "prompt": "Ship this. The test command is python3 -m unittest discover -s tests, but one test aborts because it requires Python 3.11-3.13 and this machine runs 3.14. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
+      "prompt": "Ship this. The test command is python3 -m unittest discover -s tests, but one test aborts because it requires Python 3.11-3.13 and this machine runs 3.14. I am on main with uncommitted changes and there is no open PR. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Names the command it found and why it could not complete, rather than reporting no test command.",
         "Does not claim a passing run it did not get.",
@@ -76,7 +76,7 @@
     },
     {
       "id": "worktree-holding-this-session",
-      "prompt": "Ship this. The run is standing in .claude/worktrees/feature-x, which holds the branch being shipped, and the primary checkout is two directories up. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
+      "prompt": "Ship this. The run is standing in .claude/worktrees/feature-x, which holds the branch being shipped, and the primary checkout is two directories up. The branch carries one commit, its PR is open and green, and the tree is clean. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Classifies step 7 as keeping the worktree the run stands in, and rejects cd-ing to the primary checkout as a reason removal would be safe.",
         "Reports the worktree as kept, with this session running in it as the reason, and names how it gets removed later.",
@@ -131,7 +131,7 @@
     },
     {
       "id": "bumper-found-no-flag",
-      "prompt": "Ship this. The repository has scripts/bump-version.py and every plugin manifest declares version 0.8.4; the change adds a new skill directory. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
+      "prompt": "Ship this. The repository has scripts/bump-version.py and every plugin manifest declares version 0.8.4; the change adds a new skill directory. I am on main with uncommitted changes and there is no open PR. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Marks step 3a SKIP because no --bump was passed, rather than choosing a version itself.",
         "Reports under Attention that a bumper was found and not run, rather than staying silent about it.",
@@ -140,7 +140,7 @@
     },
     {
       "id": "bump-lands-in-the-same-commit",
-      "prompt": "Ship this with --bump=minor. The repository has scripts/bump-version.py and the manifests declare 0.8.4. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
+      "prompt": "Ship this with --bump=minor. The repository has scripts/bump-version.py and the manifests declare 0.8.4. I am on main with uncommitted changes and there is no open PR. Environment prerequisites already passed and the state described is what preflight read; work from it rather than re-running the checks.",
       "expectations": [
         "Resolves minor against the declared 0.8.4 to 0.9.0 rather than inventing a number, and names the project's bumper as what moves it instead of editing version strings by hand.",
         "Orders the bump before the secrets gate, so the rewritten files land in the same commit as the change rather than a second one.",
