@@ -31,7 +31,7 @@
 
 ### Skills
 
-七个 plugin，二十三个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+七个 plugin，二十四个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -50,6 +50,7 @@
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都拿 GitHub 上的状态核对过，而不是听 git 的。
 - **[retitle](plugins/dev/skills/retitle/SKILL.md)**（`/dev:retitle`）—— 把 agent 的对话名称统一成带日期的 `MMDD｜TYPE｜subject`，默认英文，`--lang=zh` 换回中文词表。每一批改名都先出一张两列表格给你确认；主题实在推不出来的对话，保留原名不猜。
 - **[reunite](plugins/dev/skills/reunite/SKILL.md)**（`/dev:reunite`）—— 让每个登录过的账号都看得到全部对话。桌面端按账号各存一份侧边栏索引，所以换账号只是把历史藏起来，从来没删过 —— 对话正文里根本没有账号字段。这个技能把几份索引取并集，并把同一条对话分叉的标题拉回同一个名字，只增不删，写过什么、改过什么名都记在清单里，`--undo` 原样撤回。
+- **[handoff](plugins/dev/skills/handoff/SKILL.md)**（`/dev:handoff`）—— 把正进行的对话实时镜像到另一个 agent 的历史里，让 Claude Code 的会话出现在 Codex、Codex 的对话出现在 Claude Code。两边触发同样的 hook、用同样的方式追加历史，所以这座桥只是一张字段名对照表；它给的是一份可读的记录，不是可续跑的回放。
 - **[steward](plugins/dev/skills/steward/SKILL.md)**（`/dev:steward`）—— 大内总管：把你最近开过会话的每个仓库巡一遍，逐个快进基准分支、清掉已合并的东西、把对话标题理齐，然后汇报哪些分支可以合并、哪些 worktree 还有会话在用。它 forked 运行、为无人值守而设计：子技能本来要停下来问的问题，全部写进报告，而不是卡住一次没人看着的运行。
 
 #### `brand` —— 视觉识别资产
