@@ -114,7 +114,9 @@ class RegisterTests(unittest.TestCase):
                 {
                     "hooks": {
                         "Stop": [{"hooks": [{"type": "command", "command": "afplay Glass.aiff"}]}],
-                        "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}],
+                        "PreToolUse": [
+                            {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}
+                        ],
                     }
                 }
             )
