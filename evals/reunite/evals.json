@@ -93,6 +93,15 @@
         "Runs reunite, which reconciles the diverged titles as part of its normal pass, rather than proposing a fresh renaming run under the second account.",
         "Notes that the reconciled titles are recorded and that --undo puts them back."
       ]
+    },
+    {
+      "id": "desktop-login-is-not-the-cli-login",
+      "prompt": "I renamed a conversation and the file under my account's index still shows the old title. Did the rename fail?",
+      "expectations": [
+        "Checks which account the desktop app is signed in as via lastKnownAccountUuid in the app's config.json, rather than assuming ~/.claude.json names it.",
+        "Explains that the desktop app and the CLI hold separate logins, so a rename lands in the app's index and not necessarily the one the CLI reports.",
+        "Does not conclude the rename failed without looking in the other account's index first."
+      ]
     }
   ]
 }

@@ -36,6 +36,8 @@ Report first, always. The report names each account index, its conversation coun
 
 `--into` narrows what receives the union — `all` (default), `current` for just the signed-in account, or a specific `accountUuid`. Narrow it when one of the accounts is long dead and does not deserve a copy of everything.
 
+**"Signed in" means the desktop app, not the CLI.** They hold separate logins and are routinely on different accounts, so `~/.claude.json` answers a different question — it names the account `claude` authenticates as, not the one whose sidebar is on screen. The app records its own as `lastKnownAccountUuid` in `config.json` beside the index, and that is the index a rename actually lands in. Check it before concluding a rename did not work; it may have worked in the other account.
+
 ## Titles drift after a union, and a second run is where that shows
 
 A rename writes one index file. So once a conversation exists in three indexes, renaming it under one account leaves the other two holding the old name, and copying cannot fix it — the entry is already there, so a plain union skips it.

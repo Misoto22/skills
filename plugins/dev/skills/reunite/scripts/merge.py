@@ -32,6 +32,7 @@ from pathlib import Path
 
 SESSIONS_ROOT_ENV = "CLAUDE_DESKTOP_SESSIONS_DIR"
 DEFAULT_ROOT = "~/Library/Application Support/Claude/claude-code-sessions"
+DESKTOP_CONFIG = "~/Library/Application Support/Claude/config.json"
 MANIFEST_NAME = ".session-merge-manifest.json"
 
 
@@ -123,12 +124,25 @@ def landing_org(orgs: dict[str, list[Entry]]) -> str | None:
 
 
 def signed_in_account() -> str | None:
-    """The accountUuid Claude Code currently holds, or None if it cannot be read."""
-    try:
-        data = json.loads(Path("~/.claude.json").expanduser().read_text())
-    except (OSError, ValueError):
-        return None
-    return (data.get("oauthAccount") or {}).get("accountUuid")
+    """The account whose index the desktop app is writing, or None if it cannot be read.
+
+    The desktop app and the `claude` CLI hold their own logins and are routinely on
+    different accounts, so `~/.claude.json` answers a different question: it names the
+    account the CLI authenticates as, not the one whose sidebar is on screen. The app
+    records its own in `config.json` as `lastKnownAccountUuid`, and that is the index a
+    rename lands in. Fall back to the CLI's only when the app has recorded nothing.
+    """
+    for path, read in (
+        (DESKTOP_CONFIG, lambda d: d.get("lastKnownAccountUuid")),
+        ("~/.claude.json", lambda d: (d.get("oauthAccount") or {}).get("accountUuid")),
+    ):
+        try:
+            account = read(json.loads(Path(path).expanduser().read_text()))
+        except (OSError, ValueError):
+            continue
+        if isinstance(account, str) and account:
+            return account
+    return None
 
 
 def plan_copies(
