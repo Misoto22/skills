@@ -121,25 +121,29 @@ class RegisterTests(unittest.TestCase):
                 }
             )
         )
+        self.runner = Path(self._tmp.name) / "handoff" / "handoff.py"
         self.addCleanup(self._tmp.cleanup)
 
     def _hooks(self):
         return json.loads(self.config.read_text())["hooks"]
 
+    def _install(self):
+        return handoff.register(self.config, "claude", remove=False, runner=self.runner)
+
     def test_installing_leaves_other_peoples_hooks_alone(self):
-        handoff.register(self.config, "claude", remove=False)
+        self._install()
         hooks = self._hooks()
         self.assertIn("Glass.aiff", json.dumps(hooks["Stop"]))
         self.assertEqual(hooks["PreToolUse"][0]["hooks"][0]["command"], "echo hi")
         self.assertEqual(len(hooks["Stop"]), 2)
 
     def test_installing_twice_replaces_rather_than_stacks(self):
-        handoff.register(self.config, "claude", remove=False)
-        handoff.register(self.config, "claude", remove=False)
+        self._install()
+        self._install()
         self.assertEqual(len(self._hooks()["Stop"]), 2)
 
     def test_uninstall_removes_only_this_skills_entries(self):
-        handoff.register(self.config, "claude", remove=False)
+        self._install()
         handoff.register(self.config, "claude", remove=True)
         hooks = self._hooks()
         self.assertEqual(len(hooks["Stop"]), 1)
@@ -147,9 +151,26 @@ class RegisterTests(unittest.TestCase):
         self.assertNotIn("PostToolUse", hooks)
         self.assertIn("PreToolUse", hooks)
 
+    def test_uninstall_claims_an_entry_left_by_an_older_plugin_version(self):
+        """A path-based match would strand one stale hook per plugin release."""
+        stale = {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "python3 /cache/dev/0.15.0/skills/handoff/scripts/handoff.py "
+                    "mirror --from=claude >/dev/null 2>&1 || true",
+                }
+            ]
+        }
+        data = json.loads(self.config.read_text())
+        data["hooks"]["PostToolUse"] = [stale]
+        self.config.write_text(json.dumps(data))
+        handoff.register(self.config, "claude", remove=True)
+        self.assertNotIn("PostToolUse", self._hooks())
+
     def test_a_config_that_is_not_json_is_left_untouched(self):
         self.config.write_text("{not json")
-        note = handoff.register(self.config, "claude", remove=False)
+        note = self._install()
         self.assertIn("left alone", note)
         self.assertEqual(self.config.read_text(), "{not json")
 
