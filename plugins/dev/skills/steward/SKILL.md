@@ -4,7 +4,7 @@ description: Sweep every repository your agent sessions have touched, found from
 license: MIT
 context: fork
 metadata:
-  version: "0.15.2"
+  version: "0.16.0"
 argument-hint: "[--roots=<dir,…>] [--since=<days>] [--only=<sync|cleanup|retitle|report>] [--dry-run] [--unattended]"
 ---
 

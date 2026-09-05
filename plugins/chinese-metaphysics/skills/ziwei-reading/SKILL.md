@@ -3,7 +3,7 @@ name: ziwei-reading
 description: Interpret an already-placed Zi Wei 命盘 artifact, or equivalent verified twelve-palace data, writing a reader report plus a separate audit artifact and, when asked, an ink-wash HTML poster. Use for 解读紫微, 看命盘, 看十二宫, or explaining the stars sitting in 命宫, the 生年四化, and what each 大限 window emphasizes. Not for unplaced birth records, 八字 four pillars, comparing two systems against each other, matching two people, 流年, or dated predictions.
 license: MIT
 metadata:
-  version: "0.15.2"
+  version: "0.16.0"
 ---
 
 # Zi Wei Reading

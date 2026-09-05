@@ -3,7 +3,7 @@ name: sync
 description: Fetch, prune, and fast-forward the base branch to match its remote. It only fast-forwards; anything diverged is reported for the user to decide. Use when asked to sync, pull latest, get up to date with the remote, 同步一下, 拉一下最新的, 跟 main 对齐. Not for shipping changes, deleting merged branches, or resolving a merge conflict.
 license: MIT
 metadata:
-  version: "0.15.2"
+  version: "0.16.0"
 argument-hint: "[--base=<branch>] [--all]"
 ---
 
