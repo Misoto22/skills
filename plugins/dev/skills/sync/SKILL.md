@@ -1,9 +1,9 @@
 ---
 name: sync
-description: Bring the local repository in line with its remote — fetch, prune, fast-forward the base branch, and report what diverged. It never rebases a feature branch, never resolves a conflict, and never discards a local commit. Use when asked to sync, pull latest, update from main, get up to date, catch up with remote, 同步一下, 拉一下最新的, 更新到最新, 跟 main 对齐, 更新一下代码. Not for shipping changes, deleting merged branches, or resolving a merge conflict.
+description: Fetch, prune, and fast-forward the base branch to match its remote. It only fast-forwards; anything diverged is reported for the user to decide. Use when asked to sync, pull latest, get up to date with the remote, 同步一下, 拉一下最新的, 跟 main 对齐. Not for shipping changes, deleting merged branches, or resolving a merge conflict.
 license: MIT
 metadata:
-  version: "0.15.0"
+  version: "0.15.2"
 argument-hint: "[--base=<branch>] [--all]"
 ---
 

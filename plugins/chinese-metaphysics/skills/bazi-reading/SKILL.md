@@ -3,7 +3,7 @@ name: bazi-reading
 description: Interpret a completed single-person BaZi JSON chart or equivalent verified four-pillar data as an evidence-linked static natal report. Use when a calculator hands off its artifact or someone asks to 解读八字, 看命局, explain day-master strength, structure, or favorable elements from an existing chart. Not for raw birth details, relationship matching, luck cycles, dated predictions, or incomplete source data.
 license: MIT
 metadata:
-  version: "0.15.0"
+  version: "0.15.2"
 ---
 
 # BaZi Reading
