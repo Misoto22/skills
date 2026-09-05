@@ -2090,6 +2090,48 @@ class RepositoryContractTests(unittest.TestCase):
 
             self.assertNotEqual(run("bad-version").returncode, 0)
 
+    def test_version_bump_refuses_a_declared_file_that_drifted(self) -> None:
+        """A declared file not carrying the current version is reported, not skipped.
+
+        `bump()` rewrites by replacing the current version string, so a file that
+        holds a different one is left alone and says nothing. That is how a merge
+        resolution can strand one SKILL.md a release behind while every other
+        manifest moves, and only `validate-repository.py` notices — after the bump
+        has already been committed.
+        """
+
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            config = json.loads((copied / ".version-bump.json").read_text(encoding="utf-8"))
+            stranded = config["text"][0]
+            others = [entry["path"] for entry in config["json"]] + config["text"][1:]
+            current = declared_version()
+
+            drifted = copied / stranded
+            drifted.write_text(
+                drifted.read_text(encoding="utf-8").replace(current, "0.0.1", 1), encoding="utf-8"
+            )
+            before = {path: (copied / path).read_bytes() for path in others}
+
+            def run(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [sys.executable, "scripts/bump-version.py", *args],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+            bumped = run("9.9.9")
+            self.assertNotEqual(bumped.returncode, 0, bumped.stdout)
+            self.assertIn(stranded, bumped.stdout + bumped.stderr)
+            for path in others:
+                self.assertEqual((copied / path).read_bytes(), before[path], path)
+
+            checked = run("--check")
+            self.assertNotEqual(checked.returncode, 0, checked.stdout)
+            self.assertIn(stranded, checked.stdout + checked.stderr)
+
     def test_new_skill_scaffold_leaves_only_the_description_to_write(self) -> None:
         """The scaffold owes the registries nothing, and owes the description everything."""
 

@@ -3,7 +3,7 @@ name: reunite
 description: Make every signed-in account see every conversation in the desktop app's sidebar. The app keeps one conversation index per account, so signing in as a second account hides the first account's history — this unions the indexes and brings a shared conversation's diverged titles back onto one name, adding entries and never removing one. Use when asked why sessions disappeared after switching accounts, where my old conversations went, share sessions between two accounts, merge the session lists, 换账号以后 session 都不见了, 会话历史没了, 两个账号共享会话, 把 session 列表合起来, 找回以前的对话. Not for deleting conversations, renaming them (that is retitle), or moving history between machines.
 license: MIT
 metadata:
-  version: "0.16.0"
+  version: "0.16.1"
 argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--no-titles] [--undo]"
 ---
 
