@@ -2,6 +2,11 @@
 
 All notable changes to this repository are documented here.
 
+## 0.16.1 — 2026-09-05
+
+- `bump-version.py` reports a declared file that stopped carrying the current version, instead of walking past it. The bumper moves a version by replacing the string it finds, so a file holding a different one is skipped and says nothing — which is what a merge does when it resolves one manifest to the older side. `resolve_current` compared the JSON manifests to each other and nothing compared the text entries, where every `SKILL.md` version lives, so the drift surfaced only when `validate-repository.py` ran, by which point it was committed. `--check` and a bump both name the stranded file now, and the bump refuses **before** writing anything: a half-applied bump leaves the repository in the state the check exists to catch, one commit closer to a tag describing artefacts that disagree with it.
+- Twice in one afternoon, which is why it is worth a guard rather than a habit. A rebase resolution left `reunite`'s `SKILL.md` at `0.15.0` while everything around it moved, and two consecutive bumps walked past it in silence. Independently, `handoff`'s `SKILL.md` was declaring `0.15.0` on `main` at `22e526d` and turned `main`'s CI red — `validate-repository.py` said `metadata.version must be 0.15.2` while `bump-version.py --check` reported no drift at all. The `0.16.0` release repaired that one; this is the check that would have caught both a step earlier, where the preflight is cheap.
+
 ## 0.16.0 — 2026-09-05
 
 - Added `reunite` to `dev`. Claude's desktop app keeps one sidebar index per signed-in account under `claude-code-sessions/<account>/<org>/`, so signing in as a second account empties the sidebar. Nothing was ever deleted: the transcripts under `~/.claude/projects/` carry no account field at all, which is why `claude --resume` had been listing every one of them the whole time. Only the index is partitioned. `reunite` unions those indexes so whichever account is signed in sees the whole history — reporting the plan, the accounts and the bytes before writing, only ever adding files, and recording each one so `--undo` takes back exactly those. On the machine it was built on that was 720 entries and 114MB across three accounts.

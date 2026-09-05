@@ -12,6 +12,12 @@ how a tag ends up describing artefacts that disagree with it.
 `--audit` is the half that matters: declaring a file is easy to forget, so the
 grep runs over everything not explicitly excluded and reports what the declared
 list missed.
+
+The other way a version goes stale is a declared file that stopped carrying it.
+A bump moves a version by replacing the string it finds, so such a file is left
+alone and says nothing — which is what a merge resolution does when it takes the
+older side of one manifest. Both halves of that are reported here, before
+anything is written.
 """
 
 from __future__ import annotations
@@ -57,6 +63,29 @@ def resolve_current(config: dict) -> tuple[str | None, list[str]]:
     if len(distinct) == 1:
         return distinct.pop(), []
     return None, drift
+
+
+def declared_paths(config: dict) -> list[str]:
+    """Return every path the bumper is responsible for, JSON and text alike."""
+
+    return [entry["path"] for entry in config["json"]] + list(config["text"])
+
+
+def stranded(config: dict, current: str) -> list[str]:
+    """Return every declared file that no longer carries the current version.
+
+    `bump` rewrites by replacing the string it finds, so a file holding a
+    different version is skipped without a word. A merge that resolves one
+    manifest to the older side strands it exactly that way, and every later bump
+    walks past it — the drift surfaces only when `validate-repository.py` runs,
+    by which time it is committed.
+    """
+
+    return [
+        relative
+        for relative in declared_paths(config)
+        if current not in (ROOT / relative).read_text(encoding="utf-8")
+    ]
 
 
 def bump(config: dict, current: str, new: str) -> list[str]:
@@ -127,6 +156,18 @@ def _nested_checkouts() -> tuple[str, ...]:
     return tuple(sorted(roots))
 
 
+def report_stranded(current: str, behind: list[str]) -> None:
+    """Name the declared files a bump would silently walk past."""
+
+    print(f"error: declared files no longer carry {current}:", file=sys.stderr)
+    for relative in behind:
+        print(f"  {relative}", file=sys.stderr)
+    print(
+        "Set each back to the version the rest of the repository declares, then bump.",
+        file=sys.stderr,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
@@ -143,8 +184,13 @@ def main() -> int:
             print(f"  {line}", file=sys.stderr)
         return 1
 
+    behind = stranded(config, current)
+
     if args.check or args.audit:
         print(f"current version: {current}")
+        if behind:
+            report_stranded(current, behind)
+            return 1
         if args.audit:
             stragglers = audit(config, current)
             if stragglers:
@@ -160,6 +206,11 @@ def main() -> int:
         return 1
     if args.version == current:
         print(f"error: already at {current}", file=sys.stderr)
+        return 1
+    # Before anything is written: a bump that half-applies leaves the repository
+    # in the state this check exists to catch, and one already committed.
+    if behind:
+        report_stranded(current, behind)
         return 1
 
     changed = bump(config, current, args.version)
