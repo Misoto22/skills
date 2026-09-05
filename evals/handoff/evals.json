@@ -1,0 +1,85 @@
+{
+  "skill": "handoff",
+  "triggers": [
+    {
+      "id": "see-codex-in-claude",
+      "prompt": "I want my Codex conversations to show up in Claude Code's sidebar, and the other way round.",
+      "expected": "Fires, explains the hook-based mirror, and says what install will edit before running it."
+    },
+    {
+      "id": "chinese-share-with-codex",
+      "prompt": "让 Codex 能看到 Claude 里的会话，反过来也要",
+      "expected": "Fires on the Chinese phrasing."
+    },
+    {
+      "id": "continue-in-codex",
+      "prompt": "Can I pick this conversation up in Codex without re-explaining everything?",
+      "expected": "Fires, and says a mirror is a readable record rather than a resumable replay."
+    },
+    {
+      "id": "chinese-history-sync",
+      "holdout": true,
+      "prompt": "两个 agent 的历史能不能同步起来",
+      "expected": "Fires on a second Chinese phrasing, not only the one the description spells out first."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "merge-claude-accounts",
+      "prompt": "My other Claude account's conversations are missing from the sidebar.",
+      "expected": "Does not fire; unioning one agent's own per-account indexes is a different skill.",
+      "routes_to": "reunite"
+    },
+    {
+      "id": "rename-conversations",
+      "prompt": "Put these conversation titles onto the dated scheme.",
+      "expected": "Does not fire; naming is a different skill.",
+      "routes_to": "retitle"
+    },
+    {
+      "id": "move-machines",
+      "holdout": true,
+      "prompt": "Copy my agent history over to my new laptop.",
+      "expected": "Does not fire. It bridges two agents on one machine and does not transfer history between machines."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "names-what-install-edits",
+      "holdout": true,
+      "prompt": "Set up the Claude/Codex mirror for me.",
+      "expectations": [
+        "States that install edits ~/.claude/settings.json and ~/.codex/hooks.json before running it.",
+        "Says other hooks in those files are left untouched and that installing twice replaces rather than stacks.",
+        "Mentions that Codex trusts a hook by hash, so the next Codex session asks to approve it."
+      ]
+    },
+    {
+      "id": "mirror-is-not-a-replay",
+      "prompt": "Once this is on, can I resume the exact same session in Codex?",
+      "expectations": [
+        "Says no: a mirror is a readable record, not a resumable replay.",
+        "Explains that Codex encrypts its reasoning and Claude signs its thinking blocks, so neither signature survives translation.",
+        "Notes that after mirroring the two conversations are separate and continuing one does not reach the other."
+      ]
+    },
+    {
+      "id": "index-entry-not-just-transcript",
+      "prompt": "I converted a Codex session into ~/.claude/projects but it does not show in the sidebar. Why?",
+      "expectations": [
+        "Explains the desktop app lists conversations from its own index under claude-code-sessions, not from ~/.claude/projects.",
+        "Says the index entry must go in the account the app is signed in as, read from lastKnownAccountUuid rather than ~/.claude.json.",
+        "Does not suggest writing into Codex's SQLite catalogue, which a scanner regenerates from the rollout files."
+      ]
+    },
+    {
+      "id": "hook-stays-silent",
+      "prompt": "The mirror does not seem to be running. How do I debug it?",
+      "expectations": [
+        "Points at handoff.py status rather than expecting hook output, because the hook writes nothing and always exits 0.",
+        "Explains that a hook's stdout is read as feedback by the agent and a non-zero exit can stop a turn.",
+        "Checks whether both sides are registered, since one-sided registration is a one-way mirror."
+      ]
+    }
+  ]
+}

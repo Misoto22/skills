@@ -1,0 +1,6 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Mirror a live conversation into the other agent's history"
+  default_prompt: "Use $handoff to mirror conversations between Claude Code and Codex; say what install will edit before running it, and that a mirror is a readable record rather than a resumable replay."
+policy:
+  allow_implicit_invocation: true

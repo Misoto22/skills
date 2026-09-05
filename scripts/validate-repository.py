@@ -37,7 +37,7 @@ PUBLISHED = {
         "ziwei-reading",
     ],
     "astrology": ["natal-chart", "natal-reading", "synastry", "synastry-reading"],
-    "dev": ["cleanup", "retitle", "reunite", "ship", "steward", "sync"],
+    "dev": ["cleanup", "handoff", "retitle", "reunite", "ship", "steward", "sync"],
     "docs": ["repo-polish"],
     "writing": ["email", "personal-blog", "tempering"],
 }
