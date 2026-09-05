@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 import uuid
 from datetime import datetime
@@ -35,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import formats
 
 STATE_PATH = Path("~/.claude/handoff-state.json").expanduser()
+RUNNER_HOME = Path("~/.claude/handoff").expanduser()
 CODEX_SESSIONS = Path("~/.codex/sessions").expanduser()
 CLAUDE_PROJECTS = Path("~/.claude/projects").expanduser()
 CLAUDE_HOOKS = Path("~/.claude/settings.json").expanduser()
@@ -227,11 +229,37 @@ def desktop_account() -> Path | None:
     return max(orgs, key=lambda d: d.stat().st_mtime)
 
 
-def hook_command(direction: str) -> str:
-    return f"{sys.executable} {Path(__file__).resolve()} mirror --from={direction} >/dev/null 2>&1 || true"
+def _is_ours(entry: dict[str, Any]) -> bool:
+    """Whether a hook entry is one this skill wrote, wherever it points.
+
+    Matching the command rather than a path is what lets uninstall clean up after an
+    older install that pointed into a version-pinned plugin cache. Matching a path
+    would leave those behind, silently, one per plugin release.
+    """
+    return "handoff.py mirror --from=" in json.dumps(entry)
 
 
-def register(config: Path, direction: str, remove: bool) -> str:
+def install_runner() -> Path:
+    """Copy the two modules somewhere a plugin update cannot move, and return the entrypoint.
+
+    A plugin lives in a version-pinned cache directory, so a hook pointing straight at
+    it stops resolving the moment the plugin updates — and the hook ends in `|| true`,
+    which is what keeps a mirror from failing a turn and also what hides the breakage.
+    The copy is refreshed on every install, so updating the plugin and re-running
+    install is what moves the hook to a new version.
+    """
+    RUNNER_HOME.mkdir(parents=True, exist_ok=True)
+    source = Path(__file__).resolve().parent
+    for module in ("formats.py", "handoff.py"):
+        shutil.copyfile(source / module, RUNNER_HOME / module)
+    return RUNNER_HOME / "handoff.py"
+
+
+def hook_command(direction: str, runner: Path) -> str:
+    return f"{sys.executable} {runner} mirror --from={direction} >/dev/null 2>&1 || true"
+
+
+def register(config: Path, direction: str, remove: bool, runner: Path | None = None) -> str:
     """Add or drop this skill's hook entries in one tool's hook configuration.
 
     Both tools read the same shape, so one writer serves both. Only entries whose
@@ -243,14 +271,14 @@ def register(config: Path, direction: str, remove: bool) -> str:
     except ValueError:
         return f"{config} is not valid JSON — left alone"
     hooks = data.setdefault("hooks", {})
-    marker = str(Path(__file__).resolve())
     dropped = added = 0
     for event in HOOK_EVENTS:
         entries = [e for e in hooks.get(event, []) if isinstance(e, dict)]
-        kept = [e for e in entries if marker not in json.dumps(e)]
+        kept = [e for e in entries if not _is_ours(e)]
         dropped += len(entries) - len(kept)
         if not remove:
-            kept.append({"hooks": [{"type": "command", "command": hook_command(direction)}]})
+            assert runner is not None
+            kept.append({"hooks": [{"type": "command", "command": hook_command(direction, runner)}]})
             added += 1
         if kept:
             hooks[event] = kept
@@ -291,9 +319,13 @@ def cmd_mirror(args: argparse.Namespace) -> int:
 
 
 def cmd_install(args: argparse.Namespace) -> int:
-    print(register(CLAUDE_HOOKS, "claude", remove=args.remove))
-    print(register(CODEX_HOOKS, "codex", remove=args.remove))
+    runner = None if args.remove else install_runner()
+    if runner is not None:
+        print(f"runner: {runner}")
+    print(register(CLAUDE_HOOKS, "claude", remove=args.remove, runner=runner))
+    print(register(CODEX_HOOKS, "codex", remove=args.remove, runner=runner))
     if args.remove:
+        shutil.rmtree(RUNNER_HOME, ignore_errors=True)
         print("Mirrors already written are left in place; delete them yourself if you want them gone.")
     else:
         print("Codex trusts a hook by hash — the first Codex session after this asks you to approve it.")
@@ -313,8 +345,13 @@ def cmd_status(_: argparse.Namespace) -> int:
     if last:
         print(f"  last run {last.get('at')}: {last.get('note') or last.get('error')}")
     for config, direction in ((CLAUDE_HOOKS, "claude"), (CODEX_HOOKS, "codex")):
-        installed = config.is_file() and str(Path(__file__).resolve()) in config.read_text()
-        print(f"  hooks in {config.name}: {'installed' if installed else 'not installed'} ({direction})")
+        text = config.read_text() if config.is_file() else ""
+        state_word = "not installed"
+        if "handoff.py mirror --from=" in text:
+            state_word = (
+                "installed" if str(RUNNER_HOME) in text else "installed, but pointing at a plugin cache"
+            )
+        print(f"  hooks in {config.name}: {state_word} ({direction})")
     return 0
 
 

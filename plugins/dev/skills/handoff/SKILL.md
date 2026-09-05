@@ -48,7 +48,9 @@ python3 scripts/handoff.py status      # what is paired, how far each has read
 python3 scripts/handoff.py uninstall   # drop this skill's entries, keep the mirrors
 ```
 
-`install` edits `~/.claude/settings.json` and `~/.codex/hooks.json`, touching only entries whose command names this script; every other hook in those files is left as it was, and installing twice replaces rather than stacks. Codex trusts a hook by hash, so the first Codex session afterwards asks to approve it.
+`install` copies both modules to `~/.claude/handoff/` and points the hooks there. A plugin lives in a version-pinned cache directory, so a hook pointing straight at it stops resolving the moment the plugin updates — and the hook ends in `|| true`, which is what keeps a mirror from failing a turn and also what hides that breakage. **Re-run `install` after every plugin update**; that is what moves the runner to the new version.
+
+It edits `~/.claude/settings.json` and `~/.codex/hooks.json`, touching only entries whose command is this skill's — matched on the command, not on a path, so uninstall also claims entries an older install left pointing into a plugin cache. Every other hook in those files is left as it was, and installing twice replaces rather than stacks. Codex trusts a hook by hash, so the first Codex session afterwards asks to approve it.
 
 Say what `install` will edit before running it. These are the user's own hook configurations, and a hook appearing in them unannounced is indistinguishable from one they did not ask for.
 
@@ -79,7 +81,7 @@ Handoff state <path>
       read <N> bytes of source
   last run <time>: <what it did, or the error it swallowed>
   hooks in settings.json: installed (claude)
-  hooks in hooks.json: not installed (codex)
+  hooks in hooks.json: installed, but pointing at a plugin cache (codex)
 ```
 
-Both hook lines matter: installed on one side only is a one-way mirror, which looks like a working sync until the day it is needed in the other direction.
+Both hook lines matter. Installed on one side only is a one-way mirror, which looks like a working sync until the day it is needed in the other direction. And `pointing at a plugin cache` means an install predating this runner, or one that has not been re-run since a plugin update: that hook resolves until the cache directory goes, then silently stops.
