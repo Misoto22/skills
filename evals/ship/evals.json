@@ -125,7 +125,7 @@
       "prompt": "帮我把这个 bug fix 发出去，改的是登录超时。环境检查已通过，当前在 main 分支上，工作区有未提交的改动；按这个状态给出执行计划，不用重跑检查。",
       "expectations": [
         "Answers in Chinese, matching the user.",
-        "Gives the commit subject, branch name, and pull request body in English anyway.",
+        "Writes every git artifact it names — branch name, commit subject, pull request title or body — in English anyway.",
         "Does not translate the conversation's Chinese into the commit message."
       ]
     },
