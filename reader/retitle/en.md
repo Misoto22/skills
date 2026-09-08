@@ -42,6 +42,8 @@ A title that already conforms in either language is left alone, so switching the
 
 Renaming by hand does not keep up with how fast a client opens new sessions, so the scheme is applied where sessions begin: a `UserPromptSubmit` hook the `dev` plugin registers the moment it is enabled. Its language is the plugin's `session_title_lang` option, `en` unless you set `zh`; a skill copied on its own, without the plugin, installs the hook by hand from the reference the skill points at.
 
+The hook uses the title control native to the client that ran it. In Codex it tells the agent to call `mcp__codex_app__set_thread_title` with no `threadId`, which addresses the current task; in Claude Code it uses `set_session_title` with `session_id: "self"`. Neither route writes a derived sidebar database field.
+
 It fires the full rule on the first prompt and a short re-check every fifth prompt after. A session's direction drifts, but the full rule is long enough that injecting it every turn costs more than the title is worth; the re-check renames only on a real change of subject, because a title that moves every few messages is harder to use than one that is slightly stale.
 
 The hook resolves the date itself, from the transcript's first timestamp rather than the clock, so a session running past midnight keeps the day it opened on. Every failure path exits 0 silently: a hook that throws blocks your prompt.

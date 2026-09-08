@@ -88,9 +88,18 @@ Examples: 0903｜优化｜批次文字显示 · 0902｜功能｜整合快捷键�
     },
 }
 
-FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call mcp__ccd_session_mgmt__set_session_title once with session_id: "self" to set this session's title. Do this silently, without announcing it to the user.
+TITLE_CALLS: dict[str, dict[str, str]] = {
+    "claude": {
+        "title_tool": "mcp__ccd_session_mgmt__set_session_title",
+        "title_target": 'Pass session_id: "self". It is the only value that names the session you are in; omitting it fails validation, and the session id in your own transcript path or scratchpad path is a different id that answers "Session ... not found".',
+    },
+    "codex": {
+        "title_tool": "mcp__codex_app__set_thread_title",
+        "title_target": "Pass title and omit `threadId` to target the current task. A hook does not receive Codex's thread ID, and supplying any inferred transcript or turn ID would rename nothing.",
+    },
+}
 
-session_id is required, and "self" is the only value that names the session you are in. Omitting it fails validation, and the session id in your own transcript path or scratchpad path is a different id — passing that one answers "Session ... not found" and the title is left as the client generated it.
+FULL_RULE = """Session naming rule: once you understand this session's primary task (usually after your first substantive response, sooner if obvious), call {title_tool} once to set this session's title. {title_target} Do this silently, without announcing it to the user.
 
 Format: "{scheme}" — for this session, MMDD is {mmdd}.
 
@@ -100,7 +109,7 @@ The separator is the fullwidth vertical line ｜ (U+FF5C), not the ASCII pipe |.
 
 If the task fits none of the nine types, pick the closest one rather than inventing a tenth."""
 
-RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call mcp__ccd_session_mgmt__set_session_title again with session_id: "self" — keep MMDD as {mmdd} (the date the session started), and change {fields} to match where the work actually went. {type_field} is one of {types}.
+RECHECK = """Title re-check: if this session's work has moved away from what its current title says, call {title_tool} again. {title_target} It must keep MMDD as {mmdd} (the date the session started), and change {fields} to match where the work actually went. {type_field} is one of {types}.
 
 Only retitle on a real change of subject, not on a new step within the same task — a title that changes every few messages is worse than one that is slightly stale. If the current title still fits, do nothing, and either way do not mention this to the user."""
 
@@ -160,22 +169,21 @@ def _session_mmdd(event: dict) -> str:
     return time.strftime("%m%d")
 
 
-def _host_can_retitle(event: dict) -> bool:
-    """Whether the client running this hook exposes the tool the rule asks for.
+def _title_client(event: dict) -> str:
+    """Return the client whose current-session title tool the reminder must name.
 
-    The rule names `set_session_title`, which Claude Code's client has and Codex does
-    not. Codex loads the same plugin `hooks/hooks.json` and runs this script on every
-    prompt, so without this check each Codex turn would carry an instruction nothing
-    there can act on. Claude Code marks its subprocesses with `CLAUDECODE`; Codex marks
-    a plugin hook with its own `PLUGIN_ROOT` extension and sends `turn_id` where Claude
-    Code sends `prompt_id`. Anything unrecognised counts as Claude Code, which is the
-    hand-installed case this hook first shipped for.
+    Claude Code marks its subprocesses with `CLAUDECODE`; Codex marks a plugin hook
+    with `PLUGIN_ROOT` and sends `turn_id` where Claude Code sends `prompt_id`. Both
+    clients now expose a title tool, but their current-session addressing differs:
+    Claude needs the literal `session_id: "self"`, while Codex targets the current task
+    by omitting `threadId`. Anything unrecognised counts as Claude Code, which keeps the
+    original hand-installed-hook behavior.
     """
     if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_SESSION_ID"):
-        return True
+        return "claude"
     if os.environ.get("PLUGIN_ROOT"):
-        return False
-    return not ("turn_id" in event and "prompt_id" not in event)
+        return "codex"
+    return "codex" if "turn_id" in event and "prompt_id" not in event else "claude"
 
 
 def _marker_dir() -> Path:
@@ -229,9 +237,6 @@ def main() -> int:
     session_id = event.get("session_id") or event.get("transcript_path") or ""
     if not isinstance(session_id, str) or not session_id:
         return 0
-    if not _host_can_retitle(event):
-        return 0
-
     directory = _marker_dir()
     try:
         directory.mkdir(parents=True, exist_ok=True)
@@ -244,7 +249,7 @@ def main() -> int:
     every = _recheck_every()
     # Resolved here rather than by the model, and from the transcript rather than the
     # clock — see _session_mmdd.
-    fields = dict(_scheme(), mmdd=_session_mmdd(event))
+    fields = dict(_scheme(), **TITLE_CALLS[_title_client(event)], mmdd=_session_mmdd(event))
     if count == 1:
         context = FULL_RULE.format(**dict(fields, body=fields["body"].format(**fields)))
     elif every > 0 and count % every == 1:
