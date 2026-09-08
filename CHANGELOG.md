@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+## 0.16.3 — 2026-09-08
+
+- Publish the Codex hook registration and safety-guardrail fixes from 0.16.2 under a new plugin cache key. Codex keys installed plugin artifacts by their declared version, so keeping the previous version after adding the native hook manifest could leave an enabled local installation running its pre-fix cache. A patch version makes the installed `dev` plugin discoverable again, so its `UserPromptSubmit` hook can be reviewed and trusted through `/hooks` before it names new tasks.
+
 ## 0.16.2 — 2026-09-08
 
 - The `retitle` hook now names new Codex tasks as well as Claude Code sessions. It identifies Codex hook events and tells the agent to use `mcp__codex_app__set_thread_title` with `threadId` omitted, the current-task form of the title call; Claude Code retains its `session_id: "self"` route. The title is therefore written through the authoritative client interface instead of leaving new Codex tasks on their generated names or guessing at a transcript ID.
