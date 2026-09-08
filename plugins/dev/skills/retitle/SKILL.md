@@ -230,7 +230,9 @@ Renaming one session by hand is not the point, though. A client that keeps openi
 
 ### The hook ships with the plugin
 
-Installed as the `dev` plugin, the hook is already registered: the plugin's `hooks/hooks.json` runs it on every `UserPromptSubmit`, and disabling the plugin unregisters it. Nothing is copied and no settings file is edited. Codex receives the instruction to call `mcp__codex_app__set_thread_title` with `threadId` omitted, which targets the current task; Claude Code receives the equivalent `set_session_title` instruction with `session_id: "self"`. `claude plugin details dev@<marketplace>` lists it among the plugin's components.
+Installed as the `dev` plugin, the hook is already registered: the plugin's `hooks/hooks.json` runs it on every `UserPromptSubmit`, and disabling the plugin unregisters it. Codex discovers that file through `dev/.codex-plugin/plugin.json`; Claude Code reads the matching plugin directory directly. Nothing is copied and no settings file is edited. Codex receives the instruction to call `mcp__codex_app__set_thread_title` with `threadId` omitted, which targets the current task; Claude Code receives the equivalent `set_session_title` instruction with `session_id: "self"`. `claude plugin details dev@<marketplace>` lists it among the plugin's components.
+
+Codex does not run a newly installed or changed plugin hook until its exact hash has been reviewed in `/hooks`. Inspect the displayed command and source, then trust this hook; repeat the review after every hook change. A plugin marked installed or enabled is not evidence that its hook is active.
 
 The hook names in English unless the plugin's `session_title_lang` option says otherwise:
 
@@ -243,6 +245,18 @@ claude plugin install dev@<marketplace> --config session_title_lang=zh
 A machine that installed the hook by hand before the plugin carried it now runs two copies. Remove the `UserPromptSubmit` entry from `settings.json` and the script from `~/.claude/scripts/`; the plugin's copy takes over on the next prompt.
 
 Where the skill was copied on its own — `npx skills add`, skills.sh, or any client that installs a skill directory rather than a plugin — there is no plugin to register it. [references/hook-install.md](references/hook-install.md) installs it by hand.
+
+### Release verification for Codex
+
+The install workflow invokes the hook from Codex's installed `dev` plugin cache and
+checks that its first-prompt context names `mcp__codex_app__set_thread_title` while
+omitting `threadId`. That prevents the source hook and the shipped artifact from
+drifting apart, but it cannot prove a desktop task's model lifecycle.
+
+For every release that changes the hook, review and trust its new hash in `/hooks`, then
+create a fresh Codex task, submit one neutral prompt, and confirm the task title changes
+through the current-task tool. Record that manual probe with the release or pull request;
+do not infer it from the generated sidebar title or a direct SQLite edit.
 
 ### What the hook does, and why it is shaped that way
 

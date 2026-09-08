@@ -105,6 +105,12 @@ jobs:
             "$HOME/.codex/plugins/cache/$MARKETPLACE" \
             $(bash scripts/list-skills.sh | awk -F/ '{print "--expect " $(NF-1)}')
 
+      - name: Codex hook targets the current task
+        run: |
+          for verifier in scripts/verify-codex-*.py; do
+            python3 "$verifier" "$HOME/.codex/plugins/cache/$MARKETPLACE"
+          done
+
   agent-skills-cli:
     name: npx skills add (all agents)
     runs-on: ubuntu-latest

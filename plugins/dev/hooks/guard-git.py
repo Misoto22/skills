@@ -20,6 +20,9 @@ import sys
 
 SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
 NO_VERIFY_COMMANDS = ("commit", "push", "merge", "rebase")
+ENV_COMMANDS = ("env", "/usr/bin/env", "/bin/env")
+WRAPPER_COMMANDS = ("command", "exec")
+ENV_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
 
 REFUSALS = {
     "force": (
@@ -41,6 +44,27 @@ def _words(segment: str) -> list[str]:
         return segment.split()
 
 
+def _unwrap(words: list[str]) -> list[str]:
+    """Remove shell wrappers that run, rather than merely describe, their command.
+
+    The hook sees shell source, so ``command git`` and ``env KEY=value git`` would
+    otherwise hide the executable from the checks below. Keep this deliberately small:
+    recognising an arbitrary word as a wrapper would turn harmless prose or inspection
+    commands into false refusals.
+    """
+    words = list(words)
+    while words:
+        if words[0] in WRAPPER_COMMANDS:
+            words.pop(0)
+            continue
+        if words[0] not in ENV_COMMANDS:
+            break
+        words.pop(0)
+        while words and ENV_ASSIGNMENT.fullmatch(words[0]):
+            words.pop(0)
+    return words
+
+
 def _is_force(word: str) -> bool:
     """`--force` or a short cluster carrying `f`; `--force-with-lease` is the sanctioned form."""
     if word == "--force":
@@ -55,7 +79,7 @@ def _has_short(words: list[str], letter: str) -> bool:
 def offence(command: str) -> str | None:
     """The refusal a command earns, or None when it may run."""
     for segment in SEGMENT.split(command):
-        words = _words(segment)
+        words = _unwrap(_words(segment))
         if not words:
             continue
         if words[0] == "git":

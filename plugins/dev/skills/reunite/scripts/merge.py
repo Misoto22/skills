@@ -258,23 +258,66 @@ def apply_titles(updates: list[tuple[Path, Entry]]) -> list[dict[str, object]]:
     return replaced
 
 
+def index_path(root: Path, raw_path: object) -> Path | None:
+    """Resolve a manifest entry only when it names a session index below ``root``.
+
+    ``--undo`` reads a local manifest that can survive app updates, manual edits and
+    interrupted runs. Treat it as untrusted input: it is allowed to name only an actual
+    ``<account>/<organisation>/local_*.json`` entry in the selected session tree. Older
+    manifests stored absolute paths, so accept those only after resolving them back into
+    the same root.
+    """
+    if not isinstance(raw_path, str) or not raw_path:
+        return None
+    resolved_root = root.resolve()
+    candidate = Path(raw_path)
+    resolved = candidate.resolve() if candidate.is_absolute() else (resolved_root / candidate).resolve()
+    try:
+        relative = resolved.relative_to(resolved_root)
+    except ValueError:
+        return None
+    if len(relative.parts) != 3 or not relative.name.startswith("local_") or relative.suffix != ".json":
+        return None
+    return resolved
+
+
+def manifest_path(root: Path, raw_path: object) -> str | None:
+    """The portable root-relative form for one validated index path."""
+    resolved = index_path(root, raw_path)
+    if resolved is None:
+        return None
+    return resolved.relative_to(root.resolve()).as_posix()
+
+
+def title_record(root: Path, record: object) -> dict[str, object] | None:
+    """Keep a title recovery record only when its path belongs to this session tree."""
+    if not isinstance(record, dict):
+        return None
+    path = manifest_path(root, record.get("path"))
+    if path is None:
+        return None
+    return {**record, "path": path}
+
+
 def write_manifest(root: Path, copied: list[str], titles: list[dict[str, object]]) -> Path:
     """Merge this run's record into the manifest --undo reads."""
     manifest = root / MANIFEST_NAME
-    held_copied, held_titles = read_manifest(manifest)
+    held_copied, held_titles = read_manifest(root, manifest)
+    copied_paths = [path for raw_path in copied if (path := manifest_path(root, raw_path)) is not None]
+    title_records = [record for entry in titles if (record := title_record(root, entry)) is not None]
     # An earlier title is the one to restore, so a path already recorded keeps its record.
     recorded = {entry["path"] for entry in held_titles}
-    merged_titles = held_titles + [e for e in titles if e["path"] not in recorded]
+    merged_titles = held_titles + [entry for entry in title_records if entry["path"] not in recorded]
     manifest.write_text(
         json.dumps(
-            {"copied": sorted(set(held_copied) | set(copied)), "titles": merged_titles},
+            {"copied": sorted(set(held_copied) | set(copied_paths)), "titles": merged_titles},
             indent=2,
         )
     )
     return manifest
 
 
-def read_manifest(manifest: Path) -> tuple[list[str], list[dict[str, object]]]:
+def read_manifest(root: Path, manifest: Path) -> tuple[list[str], list[dict[str, object]]]:
     """What a previous --apply wrote: the paths it copied, and the titles it replaced.
 
     A manifest written before titles were reconciled is a bare list of paths. Read it as
@@ -285,31 +328,34 @@ def read_manifest(manifest: Path) -> tuple[list[str], list[dict[str, object]]]:
     except (OSError, ValueError):
         return [], []
     if isinstance(data, list):
-        return [p for p in data if isinstance(p, str)], []
+        return [path for entry in data if (path := manifest_path(root, entry)) is not None], []
     if not isinstance(data, dict):
         return [], []
-    copied = [p for p in data.get("copied", []) if isinstance(p, str)]
-    titles = [e for e in data.get("titles", []) if isinstance(e, dict) and "path" in e]
+    copied = [path for entry in data.get("copied", []) if (path := manifest_path(root, entry)) is not None]
+    titles = [record for entry in data.get("titles", []) if (record := title_record(root, entry)) is not None]
     return copied, titles
 
 
 def undo(root: Path) -> int:
     """Remove only the files a previous --apply wrote, and restore the titles it replaced."""
     manifest = root / MANIFEST_NAME
-    copied, titles = read_manifest(manifest)
+    copied, titles = read_manifest(root, manifest)
     if not copied and not titles:
         print(f"Nothing to undo — no {MANIFEST_NAME} under {root}")
         return 0
     removed = 0
     for path in copied:
+        target = index_path(root, path)
+        if target is None:
+            continue
         try:
-            Path(path).unlink()
+            target.unlink()
             removed += 1
         except FileNotFoundError:
             continue
         except OSError as error:
             print(f"  could not remove {path}: {error}", file=sys.stderr)
-    restored = restore_titles(titles)
+    restored = restore_titles(root, titles)
     manifest.unlink(missing_ok=True)
     print(f"Removed {removed} of {len(copied)} merged entries.")
     if titles:
@@ -318,11 +364,13 @@ def undo(root: Path) -> int:
     return 0
 
 
-def restore_titles(titles: list[dict[str, object]]) -> int:
+def restore_titles(root: Path, titles: list[dict[str, object]]) -> int:
     """Put each recorded title back, skipping a file the merge no longer owns."""
     restored = 0
     for record in titles:
-        path = Path(str(record["path"]))
+        path = index_path(root, record.get("path"))
+        if path is None:
+            continue
         if not path.is_file():
             continue
         try:
