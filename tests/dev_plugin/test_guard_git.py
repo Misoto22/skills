@@ -30,15 +30,18 @@ guard = _load()
 
 REFUSED = [
     "git push --force",
+    "command git push --force origin feature/x",
     "git push -f origin feature/x",
     "git push origin feature/x -f",
     "git push -fu origin feature/x",
     "git commit --no-verify -m 'skip hooks'",
+    "env CI=1 git commit --no-verify -m 'skip hooks'",
     "git commit -n -m 'skip hooks'",
     "git commit -am 'msg' --no-verify",
     "git push --no-verify",
     "git rebase --no-verify main",
     "gh pr merge 12 --admin --squash",
+    "command gh pr merge 12 --admin --squash",
     "git add -A && git commit --no-verify -m x",
     "git fetch; git push --force origin feature/x",
 ]

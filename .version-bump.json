@@ -25,6 +25,10 @@
       "field": "version"
     },
     {
+      "path": "plugins/dev/.codex-plugin/plugin.json",
+      "field": "version"
+    },
+    {
       "path": "plugins/dev/plugin.json",
       "field": "version"
     },

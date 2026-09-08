@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "plugins" / "dev"
 HOOKS = PLUGIN / "hooks" / "hooks.json"
 MANIFEST = PLUGIN / ".claude-plugin" / "plugin.json"
+CODEX_MANIFEST = PLUGIN / ".codex-plugin" / "plugin.json"
 SESSION_HOOK = PLUGIN / "skills" / "retitle" / "assets" / "session-naming-hook.py"
 PLUGIN_ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^\"' ]+)")
 
@@ -33,6 +34,13 @@ def _commands() -> list[str]:
 
 
 class DevPluginHookTests(unittest.TestCase):
+    def test_codex_manifest_discovers_the_plugin_hook_file(self) -> None:
+        """Codex needs its native manifest before it loads a plugin's hook directory."""
+        manifest = json.loads(CODEX_MANIFEST.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["name"], "dev")
+        self.assertEqual(manifest["hooks"], "./hooks/hooks.json")
+
     def test_the_session_naming_hook_is_registered_on_prompt_submit(self) -> None:
         manifest = json.loads(HOOKS.read_text(encoding="utf-8"))
         self.assertEqual(list(manifest), ["hooks"])

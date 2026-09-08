@@ -1,0 +1,11 @@
+{
+  "name": "dev",
+  "version": "0.16.2",
+  "description": "Development workflow skills.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}
