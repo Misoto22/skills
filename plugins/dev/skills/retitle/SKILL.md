@@ -3,7 +3,7 @@ name: retitle
 description: Normalize agent conversation titles onto a dated `MMDD｜TYPE｜subject` scheme — English by default, Chinese with `--lang=zh` — across Codex, Claude Code, and any client that exposes its session list. Use when asked to 规范对话名称, 整理会话标题, 统一对话命名, 批量重命名会话, 会话名太乱了, clean up my conversation titles, rename my chat sessions, or make my session names consistent. Not for renaming projects, folders, git branches, worktrees, or files; not for editing, archiving, pinning, or deleting the conversations themselves.
 license: MIT
 metadata:
-  version: "0.16.1"
+  version: "0.16.2"
 argument-hint: "[--client=codex|claude-code] [--lang=en|zh] [--tz=<zone>] [--apply]"
 ---
 
@@ -230,7 +230,7 @@ Renaming one session by hand is not the point, though. A client that keeps openi
 
 ### The hook ships with the plugin
 
-Installed as the `dev` plugin, the hook is already registered: the plugin's `hooks/hooks.json` runs it on every `UserPromptSubmit`, and disabling the plugin unregisters it. Nothing is copied and no settings file is edited. `claude plugin details dev@<marketplace>` lists it among the plugin's components.
+Installed as the `dev` plugin, the hook is already registered: the plugin's `hooks/hooks.json` runs it on every `UserPromptSubmit`, and disabling the plugin unregisters it. Nothing is copied and no settings file is edited. Codex receives the instruction to call `mcp__codex_app__set_thread_title` with `threadId` omitted, which targets the current task; Claude Code receives the equivalent `set_session_title` instruction with `session_id: "self"`. `claude plugin details dev@<marketplace>` lists it among the plugin's components.
 
 The hook names in English unless the plugin's `session_title_lang` option says otherwise:
 
@@ -248,11 +248,11 @@ Where the skill was copied on its own — `npx skills add`, skills.sh, or any cl
 
 - **The full rule fires on a session's first prompt; a short re-check fires every fifth prompt after.** A session's direction drifts, and a title set in its first minute goes stale — but the full rule is long, and injecting it every turn would cost more context than the title is worth. `SESSION_TITLE_RECHECK_EVERY` in the environment changes the cadence; `0` fires once and never re-checks.
 - **The re-check tells the model to retitle only on a real change of subject.** Without that bar a title changes every few messages, which is worse than one that is slightly stale, and the user watches it thrash.
-- **It names `session_id: "self"` in the call it asks for.** Left to infer the argument, a model calls `set_session_title` with a title alone, is told `session_id` is required, then supplies the session id it can see — the one in its transcript or scratchpad path. That is the CLI's id, not the client's, so the second call answers "not found" and the session keeps the title the client generated. Two failed calls and a silently unrenamed session is what one missing sentence cost.
+- **It names the current session through each client's native title call.** Claude Code needs `session_id: "self"`; omitting it fails validation, while guessing from a transcript or scratchpad path answers "not found". Codex gets `mcp__codex_app__set_thread_title` with only `title`: omitting `threadId` is how that tool targets the current task, because the hook has no reliable Codex thread ID to pass. The client-specific instruction makes the title land in the authoritative store rather than in a derived catalogue.
 - **It resolves `MMDD` itself** rather than asking the model, so a session running past midnight keeps the date it opened on.
 - **It carries one language's vocabulary, not both.** Injecting the nine types twice would double the longest part of the rule to let the model pick a language it has no basis for picking — the machine's owner has already decided, so the `session_title_lang` option decides once (`SESSION_TITLE_LANG` on a hand-installed command) and the rule that reaches the model names one set.
 - **Every failure path exits 0 with no output.** Unreadable event, unwritable marker, missing directory: the hook stays silent. A broken hook blocks the user's prompt, and no titling scheme is worth that.
-- **It stays silent under Codex.** Codex loads the same plugin hooks and runs the script on every prompt, but has no tool that renames the running thread, and a rule nothing can act on is context spent for nothing.
+- **It distinguishes Codex from Claude Code before it writes the reminder.** Both clients run the same plugin hook, but their current-session address is deliberately different; treating the Codex turn or transcript ID as a thread ID would make the hook silently rename nothing.
 - **It is Python with no imports beyond the standard library.** The obvious shell version needs `jq` to read the event, and a hook lands on whatever machine the skill was installed on.
 
 The client auto-titles a new session before the model has done anything, so the first title a user sees is the client's, replaced moments later by the scheme's. That is expected, not a failure.

@@ -42,6 +42,8 @@ AUDIT 和 STUDY 都是「看完出报告、不建东西」，分界在看的是�
 
 手动改名追不上客户端开新会话的速度，所以规范落在会话诞生的地方——一个 `UserPromptSubmit` hook，随 `dev` 插件启用即注册。语言由插件的 `session_title_lang` 选项决定，默认 `en`，设成 `zh` 即中文；不经插件、单独复制这个技能时，按技能指向的参考文档手动装 hook。
 
+hook 会按实际客户端选用原生的改名接口。在 Codex 中，它要求 agent 调用不带 `threadId` 的 `mcp__codex_app__set_thread_title`，即当前任务；在 Claude Code 中则用带 `session_id: "self"` 的 `set_session_title`。两种路径都不直接改派生出来的侧栏数据库字段。
+
 它在第一个 prompt 触发完整规则，之后每五个 prompt 触发一次短复查。会话的方向会漂移，但完整规则太长，每轮都注入不划算；复查只在主题真的变了时才改名，因为一个每几条消息就变的标题比一个略微过时的更难用。
 
 日期由 hook 自己从 transcript 的第一个时间戳解析，不取当前时钟，所以跨午夜的会话保持开始那天的日期。所有失败路径都静默 exit 0：一个会抛异常的 hook 会拦住你的 prompt。

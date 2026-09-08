@@ -253,15 +253,23 @@ class SessionNamingHookTests(unittest.TestCase):
         context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
         self.assertIn("MMDD｜TYPE｜subject", context)  # noqa: RUF001
 
-    def test_a_codex_plugin_hook_stays_silent(self) -> None:
-        """Codex runs the same plugin hook but has no tool the rule could name."""
+    def test_a_codex_plugin_hook_names_the_current_task(self) -> None:
+        """Codex receives the title call it can execute for its current task."""
         out = self.run_hook("s1", env_extra={"PLUGIN_ROOT": "/plugins/dev"}, event_extra={"turn_id": "t1"})
-        self.assertEqual(self.kind(out), "silent")
-        self.assertFalse(self.markers().exists())
+        self.assertEqual(self.kind(out), "full")
+        context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("mcp__codex_app__set_thread_title", context)
+        self.assertIn("omit `threadId`", context)
+        self.assertNotIn("mcp__ccd_session_mgmt__set_session_title", context)
+        self.assertTrue(self.markers().exists())
 
-    def test_a_codex_shaped_event_stays_silent_without_plugin_variables(self) -> None:
+    def test_a_codex_shaped_event_names_the_current_task_without_plugin_variables(self) -> None:
         out = self.run_hook("s1", event_extra={"turn_id": "t1"})
-        self.assertEqual(self.kind(out), "silent")
+        self.assertEqual(self.kind(out), "full")
+        context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("mcp__codex_app__set_thread_title", context)
+        self.assertIn("omit `threadId`", context)
+        self.assertNotIn("mcp__ccd_session_mgmt__set_session_title", context)
 
     def test_claude_code_fires_even_when_codex_variables_leak_in(self) -> None:
         """A Claude Code session started from a shell that exports PLUGIN_ROOT is still Claude Code."""
@@ -271,6 +279,10 @@ class SessionNamingHookTests(unittest.TestCase):
             event_extra={"prompt_id": "p1"},
         )
         self.assertEqual(self.kind(out), "full")
+        context = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("mcp__ccd_session_mgmt__set_session_title", context)
+        self.assertIn('session_id: "self"', context)
+        self.assertNotIn("mcp__codex_app__set_thread_title", context)
 
     def test_markers_live_in_the_plugin_data_directory_when_there_is_one(self) -> None:
         """CLAUDE_PLUGIN_DATA survives plugin updates; the config directory is the hand-installed home."""
