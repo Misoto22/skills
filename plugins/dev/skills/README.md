@@ -14,6 +14,14 @@ Only release-ready, recursively discoverable skills belong in this directory.
 force-push rule, why `git branch --merged` lies after a rebase merge, and that `git mv`
 leaves ignored files behind. `scripts/sync-shared.py` vendors it into each skill.
 
-`hooks/hooks.json` registers two hooks the moment the plugin is enabled: the
-session-naming hook retitle ships, on every prompt, and `hooks/guard-git.py`, which
-refuses a bare force-push, `--no-verify`, and `gh pr merge --admin` before they run.
+`hooks/hooks.json` registers three hooks the moment the plugin is enabled: the
+session-naming hook retitle ships, on every prompt; `hooks/guard-git.py`, which refuses a
+bare force-push, `--no-verify`, and `gh pr merge --admin` before they run; and
+`hooks/orchestrate.py`, which — when the session's own model is orchestrator-class —
+tells the main thread to delegate on every prompt, because a `/model` switch changes the
+answer between two of them, and refuses its writes into the project, Codex's
+`apply_patch` and the common shell forms of a file write included, leaving the scratchpad
+and everything outside the repository alone. The `orchestrator_models` option
+is the list it matches on, `fable,gpt-6` by default and empty to switch the hook off.
+The two agents it dispatches to live in `agents/`: `implementer` on Opus writes the
+change, `verifier` on Sonnet runs the checks and never edits.
