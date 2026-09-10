@@ -53,6 +53,8 @@
 - **[handoff](plugins/dev/skills/handoff/SKILL.md)**（`/dev:handoff`）—— 把正进行的对话实时镜像到另一个 agent 的历史里，让 Claude Code 的会话出现在 Codex、Codex 的对话出现在 Claude Code。两边触发同样的 hook、用同样的方式追加历史，所以这座桥只是一张字段名对照表；它给的是一份可读的记录，不是可续跑的回放。
 - **[steward](plugins/dev/skills/steward/SKILL.md)**（`/dev:steward`）—— 大内总管：把你最近开过会话的每个仓库巡一遍，逐个快进基准分支、清掉已合并的东西、把对话标题理齐，然后汇报哪些分支可以合并、哪些 worktree 还有会话在用。它 forked 运行、为无人值守而设计：子技能本来要停下来问的问题，全部写进报告，而不是卡住一次没人看着的运行。
 
+启用这个 plugin 还会一并注册三个 hook，跟 skill 无关：`retitle` 自带的那个会话命名 hook；`hooks/guard-git.py`，在裸 force-push、`--no-verify`、`gh pr merge --admin` 真正跑起来之前把它们拦下；以及 [hooks/orchestrate.py](plugins/dev/hooks/orchestrate.py) —— 会话跑在 orchestrator 级别的模型上时，它每轮都提醒主线程去分派任务，并拒掉主线程自己往项目里写的动作：`Edit`、`Write`、Codex 的 `apply_patch`，以及一次文件写入常见的那几种 shell 写法。子 agent 和仓库以外的一切都不碰。`orchestrator_models` 这个选项就是它比对的那份名单，默认 `fable,gpt-6`，留空即关掉这个 hook；它分派的两个子 agent 放在 `agents/`：[implementer](plugins/dev/agents/implementer.md) 跑 Opus，[verifier](plugins/dev/agents/verifier.md) 跑 Sonnet。
+
 #### `brand` —— 视觉识别资产
 
 - **[logo-banner](plugins/brand/skills/logo-banner/SKILL.md)**（`/brand:logo-banner`）—— 先确定风格，再通过 ChatGPT Image 制作统一的 raster logo、图标、favicon 与浅深色社交横幅。
@@ -243,6 +245,8 @@ flowchart LR
 .claude-plugin/marketplace.json   Marketplace：misoto22
 plugins/<plugin>/
 ├── .claude-plugin/plugin.json    Plugin 清单 → /<plugin>:*
+├── agents/                       hook 会分派过去的子 agent
+├── hooks/                        plugin 一启用就注册的 hook
 ├── shared/                       skill 会读的共用规则，只有这一份是手写的
 └── skills/<skill>/               SKILL.md、references/、agents/，以及 vendor 进来的 shared/
 scripts/                          校验、打包、vendor、安装验证
