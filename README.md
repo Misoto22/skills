@@ -53,6 +53,8 @@ Twenty-four skills in seven plugins. The plugin name is the command prefix, and 
 - **[handoff](plugins/dev/skills/handoff/SKILL.md)** (`/dev:handoff`) — mirrors a live conversation into the other agent's history, so Claude Code sessions appear in Codex and Codex threads appear in Claude Code. Both tools fire the same hooks and append the same shape of history, so the bridge is a field-name translation; what it gives you is a readable record, not a resumable replay.
 - **[steward](plugins/dev/skills/steward/SKILL.md)** (`/dev:steward`) — sweeps every repository your sessions have touched: fast-forwards each base, removes what merged, keeps titles in scheme, and reports what is ready to merge and which worktrees a live session still occupies. It runs forked and unattended, so a question a pass would have asked lands in the report instead of blocking a run nobody is watching.
 
+Enabling the plugin also registers three hooks, no skill involved: the session-naming hook `retitle` ships, `hooks/guard-git.py`, which refuses a bare force-push, `--no-verify`, and `gh pr merge --admin` before they run, and [hooks/orchestrate.py](plugins/dev/hooks/orchestrate.py), which — on an orchestrator-class model — tells the main thread to delegate on every prompt and refuses its own writes into the project: `Edit`, `Write`, Codex's `apply_patch`, and the common shell forms of a file write. Subagents and everything outside the repository are left alone. The `orchestrator_models` option is the list it matches on, `fable,gpt-6` by default and empty to switch the hook off; the two subagents it dispatches to live in `agents/`, [implementer](plugins/dev/agents/implementer.md) on Opus and [verifier](plugins/dev/agents/verifier.md) on Sonnet.
+
 #### `brand` — visual identity assets
 
 - **[logo-banner](plugins/brand/skills/logo-banner/SKILL.md)** (`/brand:logo-banner`) — creates confirmed raster logos, icons, favicons, and light/dark social banners through ChatGPT Image; style comes before generation.
@@ -248,6 +250,8 @@ flowchart LR
 .claude-plugin/marketplace.json   Marketplace: misoto22
 plugins/<plugin>/
 ├── .claude-plugin/plugin.json    Plugin manifest → /<plugin>:*
+├── agents/                       Subagents its hooks dispatch to
+├── hooks/                        Hooks registered the moment the plugin is enabled
 ├── shared/                       Rules its skills read, the only copy anyone edits
 └── skills/<skill>/               SKILL.md, references/, agents/, a vendored shared/
 scripts/                          Validation, packaging, vendoring, install verification
