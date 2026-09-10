@@ -132,6 +132,12 @@ jobs:
         with:
           subject-path: dist/*.skill
 
+      # The Latest marker follows creation order, not version order: whichever
+      # release was created most recently wins it, so a tag pushed after a
+      # higher one has already shipped takes the marker off that higher version
+      # and points every download link at the older archives. A back-filled tag
+      # therefore has to decline it. Equal or higher keeps the default, and a
+      # repository with no release yet has nothing to compare against.
       - name: Attach the archives to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -139,8 +145,18 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.skill dist/SHA256SUMS --clobber
           else
+            latest_flag=()
+            current=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" -q .tag_name 2>/dev/null || true)
+            if [ -n "$current" ] && [ "${TAG#v}" != "${current#v}" ]; then
+              lowest=$(printf '%s\n%s\n' "${TAG#v}" "${current#v}" | sort -V | head -n 1)
+              if [ "$lowest" = "${TAG#v}" ]; then
+                echo "$TAG sorts below the current latest $current; releasing it without the Latest marker"
+                latest_flag=(--latest=false)
+              fi
+            fi
             gh release create "$TAG" dist/*.skill dist/SHA256SUMS \
               --verify-tag \
               --generate-notes \
-              --title "$TAG"
+              --title "$TAG" \
+              "${latest_flag[@]}"
           fi
