@@ -37,6 +37,8 @@ for line in sys.stdin:
     if method == "initialize":
         result = {"codexHome": str(home if mode != "wrong_home" else home / "other")}
     elif method == "externalAgentConfig/detect":
+        with (home / "detect-calls").open("a") as record:
+            record.write("detect\n")
         sessions = [{"path": source, "cwd": str(home)}]
         result = {"items": [{"itemType": "SESSIONS", "details": {"sessions": sessions}}]}
     elif method == "externalAgentConfig/import":
@@ -87,6 +89,15 @@ class NativeImportTests(unittest.TestCase):
         self.assertEqual(result.rollout_path, self.home / "rollout.jsonl")
         self.assertTrue(result.changed)
         self.assertEqual(json.loads((self.home / "named.json").read_text())["name"], "Readable title")
+
+    def test_an_unrecognized_source_does_not_rescan_all_history_repeatedly(self):
+        missing = SimpleNamespace(path=self.home / "unrecognized.jsonl", cwd=str(self.home), title="Other")
+        missing.path.write_text("{}\n")
+        with self.client("success") as client:
+            for _ in range(2):
+                with self.assertRaisesRegex(self.native.NativeError, "session_not_detected"):
+                    client.import_session(missing)
+        self.assertEqual((self.home / "detect-calls").read_text().splitlines(), ["detect"])
 
     def test_completion_failure_is_not_reported_as_success(self):
         with (

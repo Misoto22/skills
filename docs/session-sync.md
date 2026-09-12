@@ -61,3 +61,10 @@ skill wording is unchanged; its proposed replacement is recorded separately in
 available, so no wording score or release readiness is claimed. Claude model
 execution additionally requires a valid local Claude login. Store-level sync
 and Codex orchestration verification do not substitute for that execution test.
+
+Removed working directories are imported through managed snapshots whose task
+working directory is the closest existing parent. Original transcripts and
+their recorded working directory remain unchanged. Stage these histories before
+native discovery so a missing directory cannot trigger a full rescan per file.
+Fork identity comes from the UUID filename, since inherited transcript prefixes
+can still name the parent session. Copies and recovery journals are private files.

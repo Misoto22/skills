@@ -99,6 +99,22 @@ class StoreTests(unittest.TestCase):
         (self.projects / "linked.jsonl").symlink_to(outside)
         self.assertEqual(discover_claude(self.projects, self.desktop), [])
 
+    def test_fork_identity_comes_from_uuid_filename_not_inherited_prefix(self):
+        sid = "11111111-1111-4111-8111-111111111111"
+        path = self.projects / "fork" / (sid + ".jsonl")
+        self.write_jsonl(
+            path,
+            [
+                {
+                    "sessionId": "parent-session",
+                    "cwd": "/work",
+                    "type": "user",
+                    "message": {"content": "inherited context"},
+                }
+            ],
+        )
+        self.assertEqual(discover_claude(self.projects, self.desktop)[0].session_id, sid)
+
     def test_publish_unions_accounts_preserves_fields_and_is_idempotent(self):
         source_path = self.projects / "p" / "s1.jsonl"
         self.write_jsonl(

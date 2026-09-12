@@ -122,8 +122,11 @@ def _result(result: Any) -> tuple[str | None, Path | None, bool]:
 
 
 def _write_lines(path: Path, lines: list[dict[str, Any]], append: bool = True) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a" if append else "w", encoding="utf-8") as handle:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | (os.O_APPEND if append else os.O_TRUNC)
+    descriptor = os.open(path, flags, 0o600)
+    with os.fdopen(descriptor, "a" if append else "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
         for line in lines:
             handle.write(json.dumps(line, ensure_ascii=False) + "\n")
 
@@ -140,13 +143,18 @@ def _snapshot(source: SessionSource, projects: Path, existing: str | None = None
         raise ValueError("invalid_snapshot_path")
     records, _ = formats.read_jsonl(source.path)
     normalized = []
+    working_directory = Path(source.cwd)
+    while not working_directory.is_dir() and working_directory != working_directory.parent:
+        working_directory = working_directory.parent
     for original in records:
         record = copy.deepcopy(original)
         if "sessionId" in record:
             record["sessionId"] = sid
+        if "cwd" in record:
+            record["cwd"] = str(working_directory)
         normalized.append(record)
     _write_lines(destination, normalized, append=False)
-    return SessionSource("claude", sid, destination, source.cwd, source.title, source.archived)
+    return SessionSource("claude", sid, destination, str(working_directory), source.title, source.archived)
 
 
 def _publish(source: SessionSource, paths: Paths, apply: bool) -> None:
@@ -195,7 +203,7 @@ def _import_claude(
         # An adopted registry record without its rollout cannot establish
         # whether the native task is still untouched; use a managed branch.
         import_source = source
-        if item.get("imported_thread_id") and (not item.get("rollout_path") or item.get("force_snapshot")):
+        if item.get("force_snapshot") or (item.get("imported_thread_id") and not item.get("rollout_path")):
             if not item.get("snapshot_path"):
                 item["snapshot_path"] = str(
                     paths.claude_projects / "-handoff-imports" / f"{uuid.uuid4()}.jsonl"
@@ -241,6 +249,8 @@ def _import_claude(
             )
             if not registry_match:
                 raise RuntimeError("native_revision_not_imported")
+        if item.get("snapshot_path") == str(import_source.path):
+            item["snapshot_imported"] = True
         if changed and rollout and rollout.is_file():
             owners[str(rollout)] = semantic_digest(rollout, "codex")
         item.update(
@@ -295,11 +305,46 @@ def _reconcile_codex(
         }
     target = _codex_target(item, source, paths)
     pending = item.get("pending")
-    if pending and target.is_file() and semantic_digest(target, "claude") == pending.get("generated_digest"):
-        item.update(pending)
-        owners[str(target)] = pending["generated_digest"]
-        item.pop("pending", None)
-        checkpoint()
+    if pending and apply:
+        stage = Path(pending["stage_path"]) if pending.get("stage_path") else None
+        if stage and stage.exists():
+            if (
+                stage.is_symlink()
+                or stage.parent.resolve() != target.parent.resolve()
+                or not stage.name.startswith(".handoff-")
+            ):
+                raise ValueError("invalid_pending_stage")
+            if semantic_digest(stage, "claude") != pending.get("generated_digest"):
+                raise ValueError("invalid_pending_digest")
+            expected = stage.read_bytes()
+            current = target.read_bytes() if target.exists() else b""
+            if expected.startswith(current):
+                flags = os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW | os.O_CREAT
+                out = os.open(target, flags, 0o600)
+                try:
+                    if target.read_bytes() != current:
+                        raise RuntimeError("target_changed_during_recovery")
+                    with os.fdopen(out, "ab", closefd=False) as handle:
+                        handle.write(expected[len(current) :])
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                finally:
+                    os.close(out)
+            else:
+                # A user continued the interrupted copy. Keep it as a branch;
+                # the original source gets a new target on this pass.
+                item.pop("pending", None)
+                item["force_branch"] = True
+                stage.unlink(missing_ok=True)
+                checkpoint()
+        if target.is_file() and semantic_digest(target, "claude") == pending.get("generated_digest"):
+            item.update(pending)
+            owners[str(target)] = pending["generated_digest"]
+            item.pop("pending", None)
+            item.pop("stage_path", None)
+            checkpoint()
+            if stage:
+                stage.unlink(missing_ok=True)
     old_digest = item.get("source_digest")
     generated_digest = item.get("generated_digest")
     try:
@@ -315,7 +360,7 @@ def _reconcile_codex(
             "source": str(source.path),
             "error": str(exc),
         }
-    if old_digest == digest and item.get("target_path") and target.exists():
+    if old_digest == digest and item.get("target_path") and target.exists() and not item.get("force_branch"):
         target_source = SessionSource(
             "claude", item.get("target_session_id", ""), target, source.cwd, source.title, source.archived
         )
@@ -330,6 +375,7 @@ def _reconcile_codex(
     rewritten = prefix_count and (len(records) < prefix_count or item.get("source_prefix_sha") != prefix_hash)
     branched = bool(
         continued
+        or item.get("force_branch")
         or rewritten
         or (target.exists() and old_digest and old_digest != digest and not generated_digest)
     )
@@ -340,9 +386,9 @@ def _reconcile_codex(
         mode = False
         session_id = target.stem
     else:
-        parent = item.get("tail")
         mode = target.exists()
-        records = records[int(item.get("source_record_count", 0)) :]
+        parent = item.get("tail") if mode else None
+        records = records[int(item.get("source_record_count", 0)) :] if mode else records
     session_id = session_id if branched else (item.get("target_session_id") or target.stem)
     lines, tail = formats.codex_to_claude(records, session_id=session_id, cwd=source.cwd, parent=parent)
     if apply:
@@ -369,6 +415,7 @@ def _reconcile_codex(
                 archived=source.archived,
             )
             item["target_path"] = str(target)
+            pending["stage_path"] = str(stage)
             item["pending"] = pending
             checkpoint()
             flags = os.O_WRONLY | os.O_NOFOLLOW | (os.O_APPEND if mode else os.O_CREAT | os.O_EXCL)
@@ -385,9 +432,12 @@ def _reconcile_codex(
             owners[str(target)] = generated
             item.update(pending)
             item.pop("pending", None)
+            item.pop("stage_path", None)
+            item.pop("force_branch", None)
             checkpoint()
         finally:
-            stage.unlink(missing_ok=True)
+            if not item.get("pending"):
+                stage.unlink(missing_ok=True)
         _publish(
             SessionSource("claude", session_id, target, source.cwd, source.title, source.archived),
             paths,
@@ -417,6 +467,18 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
             state = _load(paths.state)
             state.setdefault("claude", {})
             state.setdefault("codex", {})
+            migrated = {}
+            for old_key, item in state["claude"].items():
+                key = old_key
+                try:
+                    identity = str(uuid.UUID(Path(item["path"]).stem))
+                    key = "claude:" + identity
+                except (KeyError, ValueError):
+                    pass
+                if key in migrated and migrated[key].get("path") != item.get("path"):
+                    raise ValueError("duplicate_source_identity")
+                migrated[key] = item
+            state["claude"] = migrated
             owners_claude = state.setdefault("owned_claude", {})
             owners_codex = state.setdefault("owned_codex", {})
             owned_stats = state.setdefault("owned_stats", {})
@@ -430,6 +492,12 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
                 for r in native.existing_imports()
                 if r.get("source_path") and r.get("imported_thread_id")
             }
+            for item in state["claude"].values():
+                registered_snapshot = adopted.get(item.get("snapshot_path"))
+                if registered_snapshot and registered_snapshot.get("imported_thread_id") == item.get(
+                    "imported_thread_id"
+                ):
+                    item["snapshot_imported"] = True
             claude = discover_claude(paths.claude_projects, paths.claude_desktop)
             codex = discover_codex(paths.codex_database)
             legacy = _load(paths.home / ".claude" / "handoff-state.json")
@@ -438,7 +506,28 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
                 for pair in (legacy.get("pairs", {}) or {}).values()
                 if isinstance(pair, dict) and pair.get("codex_rollout")
             }
+            # Stage removed-worktree histories together, before the one native
+            # discovery scan. Native detection excludes non-existing directories.
+            if hasattr(native, "begin_pass"):
+                native.begin_pass()
+            if apply:
+                for source in claude:
+                    if Path(source.cwd).is_dir() or "-handoff-imports" in source.path.parts:
+                        continue
+                    item = state["claude"].setdefault(_source_key("claude", source), {})
+                    if item.get("digest") == _digest(source.path, "claude", item):
+                        continue
+                    item["force_snapshot"] = True
+                    item.setdefault(
+                        "snapshot_path",
+                        str(paths.claude_projects / "-handoff-imports" / f"{uuid.uuid4()}.jsonl"),
+                    )
+                    checkpoint()
+                    _snapshot(source, paths.claude_projects, item["snapshot_path"])
+            pending_targets = {v.get("target_path") for v in state["codex"].values() if v.get("pending")}
             for source in claude:
+                if str(source.path) in pending_targets:
+                    continue
                 if "-handoff-imports" in source.path.parts:
                     continue
                 if str(source.path) in owners_claude and owners_claude[str(source.path)] == _digest(
