@@ -75,8 +75,9 @@ iterations. The iteration records retain model identity, immutable run provenanc
 scored tuning and holdout outcomes, and comparison gates. Earlier records affected
 by suite fingerprint bookkeeping remain historical evidence, not passing gates.
 `drafts/handoff-continuous-sync.md` remains an unaccepted broader rewrite; it is
-not the installed or evaluated candidate. No marketplace version release or
-merge is implied by local installation or a reviewable feature branch.
+not the installed or evaluated candidate. This release packages the implementation
+and these tested instructions.
+Installed client caches remain derived copies of the same repository release.
 
 Removed working directories are imported through managed snapshots whose task
 working directory is the closest existing parent. Original transcripts and

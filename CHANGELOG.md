@@ -4,7 +4,9 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
-- Added a continuous local handoff runtime with native Codex import/readback, Claude indexes for every existing local account, branch preservation, retry journals, and an observable macOS watcher. Published wording remains gated; see `docs/session-sync.md`.
+## 0.17.1 — 2026-09-12
+
+- Added a continuous local handoff runtime with native Codex import/readback, Claude indexes for every existing local account, branch preservation, retry journals, and an observable macOS watcher. Both bounded wording evaluation gates passed; see `docs/session-sync.md` and `evals/handoff/iteration-2/benchmark-summary.md`.
 
 - The `orchestrate` hook now dispatches through each client's current interface: Claude Code uses `Task` with an `Agent` fallback, while Codex uses `collaboration.spawn_agent` with isolated child context and an explicit model.
 - Codex implementation and verification roles now read `agents.default_subagent_model` and optional `review_model` from the base config, and the installed-artifact check rejects a stale dispatch directive.
