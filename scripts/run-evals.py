@@ -373,6 +373,9 @@ def _check_case(
             or len(modules) != len(set(modules))
         ):
             errors.append(f"{label}: modules must be a list of unique nonempty strings")
+        execution = case.get("execution")
+        if execution is not None:
+            errors.extend(_check_execution(label, skill, execution))
     else:
         expected = case.get("expected")
         if not isinstance(expected, str) or not expected.strip():
@@ -402,6 +405,137 @@ def _check_case(
             errors.append(f"{label}: routes_to names its own skill")
         elif routes_to not in known:
             errors.append(f"{label}: routes_to names {routes_to!r}, which is not published")
+    return errors
+
+
+def _check_execution(label: str, skill: str, execution: object) -> list[str]:
+    """Validate a model-callable tool contract before it can reach a paid run."""
+
+    if not isinstance(execution, dict):
+        return [f"{label}: execution must be an object"]
+    errors: list[str] = []
+    unknown_execution = set(execution) - {
+        "fixture_root",
+        "commands",
+        "allowed_tools",
+        "required_tools",
+        "required_commands",
+        "checks",
+    }
+    if unknown_execution:
+        errors.append(f"{label}: execution has unknown fields: {', '.join(sorted(unknown_execution))}")
+    suite_root = (EVALS_ROOT / skill).resolve()
+    fixture_raw = execution.get("fixture_root")
+    if not isinstance(fixture_raw, str) or not fixture_raw:
+        errors.append(f"{label}: execution fixture_root must be a nonempty relative path")
+    else:
+        fixture = (suite_root / fixture_raw).resolve()
+        if not fixture.is_relative_to(suite_root):
+            errors.append(f"{label}: execution fixture must stay inside its eval suite")
+        elif not fixture.is_dir():
+            errors.append(f"{label}: execution fixture directory does not exist")
+
+    commands = execution.get("commands")
+    skill_root_matches = sorted(PLUGINS_ROOT.glob(f"*/skills/{skill}"))
+    if not isinstance(commands, dict) or not commands:
+        errors.append(f"{label}: execution commands must be a nonempty object")
+    elif len(skill_root_matches) == 1:
+        skill_root = skill_root_matches[0].resolve()
+        for name, command in commands.items():
+            command_label = f"{label}: execution command {name!r}"
+            if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", name):
+                errors.append(f"{command_label} needs a safe lowercase name")
+                continue
+            if not isinstance(command, dict):
+                errors.append(f"{command_label} must be an object")
+                continue
+            unknown_command = set(command) - {"script", "args", "env"}
+            if unknown_command:
+                errors.append(f"{command_label} has unknown fields: {', '.join(sorted(unknown_command))}")
+            script_raw = command.get("script")
+            if not isinstance(script_raw, str) or not script_raw:
+                errors.append(f"{command_label} script must be a nonempty relative path")
+            else:
+                script = (skill_root / script_raw).resolve()
+                if not script.is_relative_to(skill_root):
+                    errors.append(f"{command_label} script must stay inside the skill")
+                elif not script.is_file() or script.suffix != ".py":
+                    errors.append(f"{command_label} script must name a repository-owned Python file")
+            args = command.get("args", [])
+            if not isinstance(args, list) or any(not isinstance(item, str) for item in args):
+                errors.append(f"{command_label} args must be a list of strings")
+            environment = command.get("env", {})
+            if not isinstance(environment, dict):
+                errors.append(f"{command_label} env must be an object")
+            else:
+                for key, value in environment.items():
+                    if not isinstance(key, str) or not key.isupper() or not isinstance(value, str):
+                        errors.append(f"{command_label} env must map uppercase names to relative paths")
+                    elif any(
+                        marker in key for marker in ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
+                    ):
+                        errors.append(f"{command_label} env may not declare credentials")
+                    elif Path(value).is_absolute() or ".." in Path(value).parts:
+                        errors.append(f"{command_label} env paths must stay inside the fixture")
+
+    required = execution.get("required_tools", [])
+    allowed_tools = {"read_file", "write_file", "run_command"}
+    if not isinstance(required, list) or any(item not in allowed_tools for item in required):
+        errors.append(f"{label}: execution required_tools names an unsupported tool")
+    allowed = execution.get("allowed_tools", sorted(allowed_tools))
+    if (
+        not isinstance(allowed, list)
+        or not allowed
+        or any(item not in allowed_tools for item in allowed)
+        or len(allowed) != len(set(allowed))
+    ):
+        errors.append(f"{label}: execution allowed_tools must name unique supported tools")
+    elif isinstance(required, list) and any(item not in allowed for item in required):
+        errors.append(f"{label}: execution required_tools must also be allowed")
+    required_commands = execution.get("required_commands", [])
+    command_names = set(commands) if isinstance(commands, dict) else set()
+    if (
+        not isinstance(required_commands, list)
+        or any(not isinstance(item, str) or item not in command_names for item in required_commands)
+        or len(required_commands) != len(set(required_commands))
+    ):
+        errors.append(f"{label}: execution required_commands must name unique declared commands")
+    checks = execution.get("checks")
+    if not isinstance(checks, list) or not checks:
+        errors.append(f"{label}: execution checks must be a nonempty list")
+    else:
+        for check in checks:
+            if not isinstance(check, dict) or check.get("type") not in {
+                "file_exists",
+                "json_contains",
+                "json_length",
+            }:
+                errors.append(f"{label}: execution check has an unsupported type")
+                continue
+            allowed_check = {
+                "file_exists": {"type", "path"},
+                "json_contains": {"type", "path", "contains"},
+                "json_length": {"type", "path", "key", "equals"},
+            }[check["type"]]
+            unknown_check = set(check) - allowed_check
+            if unknown_check:
+                errors.append(
+                    f"{label}: execution check has unknown fields: {', '.join(sorted(unknown_check))}"
+                )
+            path = check.get("path")
+            if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
+                errors.append(f"{label}: execution check path must stay inside the fixture")
+            if check["type"] == "json_contains" and not isinstance(check.get("contains"), dict):
+                errors.append(f"{label}: json_contains check needs an object named contains")
+            if check["type"] == "json_length" and (
+                not isinstance(check.get("key"), str)
+                or not check["key"]
+                or type(check.get("equals")) is not int
+                or check["equals"] < 0
+            ):
+                errors.append(
+                    f"{label}: json_length check needs a nonempty key and nonnegative integer equals"
+                )
     return errors
 
 
