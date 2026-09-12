@@ -66,7 +66,7 @@
     },
     {
       "id": "index-entry-not-just-transcript",
-      "prompt": "I converted a Codex session into ~/.claude/projects but it does not show in the sidebar. Why?",
+      "prompt": "I converted a Codex session into ~/.claude/projects but it does not show in the sidebar. Why, and how do I make it visible in every existing local account? Also explain what registration and verification the opposite Claude-to-Codex direction requires.",
       "expectations": [
         "Explains the desktop app lists conversations from its own index under claude-code-sessions, not from ~/.claude/projects.",
         "Publishes indexes across all existing local Claude accounts and matches cliSessionId while preserving an existing desktop sessionId; does not assume the transcript UUID is the desktop ID.",
@@ -75,7 +75,7 @@
     },
     {
       "id": "hook-stays-silent",
-      "prompt": "The mirror does not seem to be running. How do I debug it?",
+      "prompt": "The mirror does not seem to be running. How do I debug it, which state proves synchronization completed, and why should the hook avoid printing feedback or failing a turn? If one hook is absent, does that also make an independently running watcher one-way?",
       "expectations": [
         "Starts with handoff.py status and the watcher completion report; a silent hook exit is not proof that synchronization completed.",
         "Explains that a hook's stdout is read as feedback by the agent and a non-zero exit can stop a turn.",
