@@ -64,6 +64,36 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "watcher_bootstrap_failed"):
             self.module.install_watcher(self.home, self.runner, run=failed, system="Darwin")
 
+    def test_reinstall_waits_for_a_transient_launchd_unload(self):
+        attempts = []
+
+        def unloading(args, **kwargs):
+            if args[1] == "bootstrap":
+                attempts.append(args)
+                return SimpleNamespace(returncode=5 if len(attempts) == 1 else 0)
+            return SimpleNamespace(returncode=0)
+
+        with patch.object(self.module.time, "sleep"):
+            result = self.module.install_watcher(self.home, self.runner, run=unloading, system="Darwin")
+        self.assertEqual(result["status"], "installed")
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(attempts[0], attempts[1])
+
+    def test_persistent_launchd_unload_error_has_a_bounded_retry(self):
+        attempts = []
+
+        def failing(args, **kwargs):
+            if args[1] == "bootstrap":
+                attempts.append(args)
+            return SimpleNamespace(returncode=5)
+
+        with (
+            patch.object(self.module.time, "sleep"),
+            self.assertRaisesRegex(ValueError, "watcher_bootstrap_failed"),
+        ):
+            self.module.install_watcher(self.home, self.runner, run=failing, system="Darwin")
+        self.assertEqual(len(attempts), 5)
+
     def test_sync_request_records_no_transcript_or_hook_payload(self):
         path = self.module.request_sync(self.home)
         self.assertTrue(path.is_file())

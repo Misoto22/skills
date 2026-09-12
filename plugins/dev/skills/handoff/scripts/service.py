@@ -91,10 +91,18 @@ def install_watcher(
     # Only stop this service, and only after all configuration validation passed.
     run(["launchctl", "bootout", target], capture_output=True, text=True, check=False)
     _write(plist, plistlib.dumps(data))
-    result = run(["launchctl", "bootstrap", domain, str(plist)], capture_output=True, text=True, check=False)
-    if result.returncode:
-        raise ValueError("watcher_bootstrap_failed")
-    return {"status": "installed", "plist": str(plist), "label": LABEL}
+    # launchd can briefly report EIO while the previous owned job finishes unloading.
+    for delay in (0, 0.1, 0.2, 0.4, 0.8):
+        if delay:
+            time.sleep(delay)
+        result = run(
+            ["launchctl", "bootstrap", domain, str(plist)], capture_output=True, text=True, check=False
+        )
+        if result.returncode == 0:
+            return {"status": "installed", "plist": str(plist), "label": LABEL}
+        if result.returncode != 5:
+            break
+    raise ValueError("watcher_bootstrap_failed")
 
 
 def uninstall_watcher(home: Path, runner: Path, *, run=subprocess.run) -> dict:
