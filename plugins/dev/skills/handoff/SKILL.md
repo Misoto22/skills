@@ -36,9 +36,9 @@ Worth knowing before reading their source, because both mistakes look like succe
 
 **A mirror must be its own conversation.** Appending into a history the other tool has open races that tool's own writer. The mirror keeps its own id and its own file; the original is never touched.
 
-**Writing the transcript is not enough on the Claude side.** The desktop app lists conversations from its own index under `~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/local_*.json`, not from `~/.claude/projects/`. A converter that writes only the transcript produces a file nothing displays. `write_index_entry` writes both, into the account the app is actually signed in as — which is `lastKnownAccountUuid` in the app's `config.json`, not the account `~/.claude.json` names.
+**Writing the transcript is not enough on the Claude side.** The desktop app lists conversations from its own index under `~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/local_*.json`, not from `~/.claude/projects/`. Publish an index in every existing local account. Match its `cliSessionId` to the transcript UUID and preserve the existing desktop `sessionId`; those identities can differ. The runtime preserves each account's archive choices and recoverably archives only its own duplicate aliases. Verify the index separately from opening the conversation in the desktop app.
 
-Writing into Codex needs no equivalent: its catalogue is a projection a scanner derives from the rollout files, so the rollout is the whole job. Registering in its SQLite by hand, as `cc2cx` does, writes a row the scanner then regenerates.
+Codex also needs native registration. Import through its native session API and verify the returned task with native readback. A raw rollout file is not proof of a registered task, and manually inserting a SQLite row is not a supported substitute. The runtime reads the catalogue without writing rows. Histories whose old working directory no longer exists use a managed snapshot with the nearest existing parent; the original transcript and its recorded directory remain unchanged.
 
 ## Run it
 
@@ -66,7 +66,7 @@ Say this plainly when offering the skill, because "synced" implies more than thi
 
 A mirror is a **readable record of what happened, not a resumable replay.** Codex encrypts its reasoning under its own key and Claude signs its thinking blocks; neither signature is reconstructible from the other side's text. So Claude's thinking arrives as a reasoning summary, and Codex reasoning that carries only `encrypted_content` is dropped rather than forged into a block Claude cannot verify.
 
-Once mirrored, the two conversations are separate. Continuing on one side does not reach back to the other.
+Once imported, the conversations have separate identities and can be continued from their readable context. The watcher synchronizes subsequent changes in both directions. It may update an untouched import, but it preserves an independently continued conversation and imports later changes as a separate branch. Never overwrite either original or merge competing continuations into one history. This is continued context with branch preservation, not a byte-exact provider replay.
 
 ## The one guess
 
