@@ -320,6 +320,7 @@ class PromptDirectiveTests(unittest.TestCase):
         self.assertIn(FABLE, output)
         self.assertIn("dev:implementer", output)
         self.assertIn("dev:verifier", output)
+        self.assertIn("Task", output)
         self.assertIn("ORCHESTRATOR_MODELS", output)
 
     def test_a_cheap_session_hears_nothing(self) -> None:
@@ -327,19 +328,53 @@ class PromptDirectiveTests(unittest.TestCase):
 
         self.assertEqual(run(event), (0, ""))
 
-    def test_codex_is_told_to_spawn_an_agent_rather_than_to_name_a_claude_one(self) -> None:
-        event = {"turn_id": "turn-1", "model": GPT6}
-        code, output = run(event, PLUGIN_ROOT=CODEX_CACHE)
+    def test_codex_is_told_to_spawn_configured_role_models_with_the_native_tool(self) -> None:
+        with tempfile.TemporaryDirectory() as codex_home:
+            Path(codex_home, "config.toml").write_text(
+                'review_model = "configured-review"\n'
+                "[agents]\n"
+                'default_subagent_model = "configured-implementer"\n',
+                encoding="utf-8",
+            )
+            event = {"turn_id": "turn-1", "model": GPT6}
+            code, output = run(event, PLUGIN_ROOT=CODEX_CACHE, CODEX_HOME=codex_home)
+
+        self.assertEqual(code, 0)
+        self.assertIn("collaboration.spawn_agent", output)
+        self.assertIn("configured-implementer", output)
+        self.assertIn("configured-review", output)
+        self.assertIn("inherits", output)
+        self.assertNotIn("agents.default_subagent_model", output)
+        self.assertNotIn("dev:implementer", output)
+
+    def test_codex_uses_the_configured_subagent_model_for_both_roles_without_a_review_model(self) -> None:
+        with tempfile.TemporaryDirectory() as codex_home:
+            Path(codex_home, "config.toml").write_text(
+                '[agents]\ndefault_subagent_model = "configured-cheap"\n',
+                encoding="utf-8",
+            )
+            event = {"turn_id": "turn-1", "model": GPT6}
+            code, output = run(event, PLUGIN_ROOT=CODEX_CACHE, CODEX_HOME=codex_home)
+
+        self.assertEqual(code, 0)
+        self.assertGreaterEqual(output.count("configured-cheap"), 2)
+
+    def test_codex_without_a_configured_subagent_model_names_the_required_source(self) -> None:
+        with tempfile.TemporaryDirectory() as codex_home:
+            event = {"turn_id": "turn-1", "model": GPT6}
+            code, output = run(event, PLUGIN_ROOT=CODEX_CACHE, CODEX_HOME=codex_home)
 
         self.assertEqual(code, 0)
         self.assertIn("agents.default_subagent_model", output)
-        self.assertNotIn("dev:implementer", output)
+        self.assertIn("explicitly", output)
 
     def test_claude_code_is_recognised_by_its_own_marker(self) -> None:
         event = {"turn_id": "turn-1", "model": FABLE}
         _, output = run(event, CLAUDECODE="1", PLUGIN_ROOT=CODEX_CACHE)
 
         self.assertIn("dev:implementer", output)
+        self.assertIn("Task", output)
+        self.assertIn("Agent", output)
 
 
 class SubagentTests(unittest.TestCase):

@@ -31,6 +31,9 @@ HOOK_CONFIG = "./hooks/hooks.json"
 ORCHESTRATOR_MODEL = "gpt-6-astra"
 CHEAP_MODEL = "gpt-5.6-luna"
 CLAUDE_AGENT = "dev:implementer"
+SPAWN_TOOL = "collaboration.spawn_agent"
+IMPLEMENTATION_MODEL = "configured-implementation-model"
+VERIFICATION_MODEL = "configured-verification-model"
 EDITED_PATH = "src/app.py"
 PATCH_BODY = (
     "*** Begin Patch\n"
@@ -82,6 +85,30 @@ def _run(hook: Path, model: str, project: str, tool: str, command: str) -> subpr
     )
 
 
+def _run_prompt(hook: Path, project: str, codex_home: Path) -> subprocess.CompletedProcess[str]:
+    """Invoke the installed UserPromptSubmit hook with a controlled Codex model config."""
+    event = {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "installed-codex-smoke",
+        "turn_id": "turn-1",
+        "model": ORCHESTRATOR_MODEL,
+        "prompt": "implement the specified change",
+        "cwd": project,
+    }
+    return subprocess.run(
+        [sys.executable, str(hook)],
+        input=json.dumps(event),
+        capture_output=True,
+        check=False,
+        env={
+            "PATH": os.environ.get("PATH", ""),
+            "PLUGIN_ROOT": str(hook.parents[1]),
+            "CODEX_HOME": str(codex_home),
+        },
+        text=True,
+    )
+
+
 def _refusal_errors(result: subprocess.CompletedProcess[str], tool: str) -> list[str]:
     """What is wrong with the deny object, or nothing when Codex would act on it."""
     if result.returncode != 0:
@@ -103,6 +130,20 @@ def _refusal_errors(result: subprocess.CompletedProcess[str], tool: str) -> list
     return errors
 
 
+def _directive_errors(result: subprocess.CompletedProcess[str]) -> list[str]:
+    """What is wrong with the Codex automatic-dispatch directive."""
+    if result.returncode != 0:
+        return [f"installed orchestrate hook exited {result.returncode} on UserPromptSubmit"]
+    directive = result.stdout.strip()
+    errors = []
+    for required in (SPAWN_TOOL, IMPLEMENTATION_MODEL, VERIFICATION_MODEL, "fork_turns", "inherits"):
+        if required not in directive:
+            errors.append(f"the Codex directive does not name {required}")
+    if CLAUDE_AGENT in directive:
+        errors.append(f"the Codex directive incorrectly names Claude Code's {CLAUDE_AGENT} agent")
+    return errors
+
+
 def verify(install_root: Path) -> list[str]:
     """Return installed-artifact errors, or an empty list when the Codex hook is sound."""
     hook, errors = installed_hook(install_root)
@@ -117,10 +158,20 @@ def verify(install_root: Path) -> list[str]:
         return [f"{manifest_path} must declare hooks as {HOOK_CONFIG!r}"]
 
     with tempfile.TemporaryDirectory() as project:
+        codex_home = Path(project) / "codex-home"
+        codex_home.mkdir()
+        (codex_home / "config.toml").write_text(
+            f'review_model = "{VERIFICATION_MODEL}"\n'
+            "[agents]\n"
+            f'default_subagent_model = "{IMPLEMENTATION_MODEL}"\n',
+            encoding="utf-8",
+        )
+        prompted = _run_prompt(hook, project, codex_home)
         patched = _run(hook, ORCHESTRATOR_MODEL, project, "apply_patch", PATCH_BODY)
         shelled = _run(hook, ORCHESTRATOR_MODEL, project, "Bash", SHELL_EDIT)
         cheap = _run(hook, CHEAP_MODEL, project, "apply_patch", PATCH_BODY)
-    errors = _refusal_errors(patched, "apply_patch") + _refusal_errors(shelled, "Bash")
+    errors = _directive_errors(prompted)
+    errors += _refusal_errors(patched, "apply_patch") + _refusal_errors(shelled, "Bash")
     if cheap.returncode != 0 or cheap.stdout.strip():
         errors.append(f"a project edit on {CHEAP_MODEL} was not left alone: {cheap.stdout.strip()}")
     return errors

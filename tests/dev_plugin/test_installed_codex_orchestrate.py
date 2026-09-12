@@ -71,6 +71,19 @@ class InstalledCodexOrchestrateTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("apply_patch", result.stderr)
 
+    def test_verifier_reports_a_stale_codex_dispatch_directive(self) -> None:
+        """The installed smoke covers automatic delegation, not only edit refusal."""
+        with tempfile.TemporaryDirectory() as temporary:
+            install = Path(temporary) / "dev"
+            copytree(DEV_PLUGIN, install)
+            hook = install / "hooks" / "orchestrate.py"
+            source = hook.read_text(encoding="utf-8")
+            hook.write_text(source.replace("collaboration.spawn_agent", "spawned agents"), encoding="utf-8")
+            result = self._verify(install)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("collaboration.spawn_agent", result.stderr)
+
     def test_verifier_reports_an_install_holding_no_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             result = self._verify(Path(temporary))

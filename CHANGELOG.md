@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+- Added a continuous local handoff runtime with native Codex import/readback, Claude indexes for every existing local account, branch preservation, retry journals, and an observable macOS watcher. Published wording remains gated; see `docs/session-sync.md`.
+
+- The `orchestrate` hook now dispatches through each client's current interface: Claude Code uses `Task` with an `Agent` fallback, while Codex uses `collaboration.spawn_agent` with isolated child context and an explicit model.
+- Codex implementation and verification roles now read `agents.default_subagent_model` and optional `review_model` from the base config, and the installed-artifact check rejects a stale dispatch directive.
 - The release workflow keeps the Latest marker on the highest version when an older tag is pushed after a newer one. GitHub gives that marker to whichever release was created most recently rather than to the highest version, so tagging `v0.16.3` after `v0.17.0` had already shipped moved every "latest release" link — and the download every consumer takes the `.skill` archives from — back onto the older build, silently and after the fact. The job now reads the repository's current latest tag before creating the release and compares it to `$TAG` with `sort -V`, passing `--latest=false` only when the tag being released sorts below it. Equal or higher keeps the default, a repository with no release yet has nothing to compare against so the first release is unaffected, and the upload branch that runs when the release already exists is untouched.
 
 ## 0.17.0 — 2026-09-10

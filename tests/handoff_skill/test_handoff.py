@@ -21,6 +21,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "plugins" / "dev" / "skills" / "handoff" / "scripts"
@@ -173,6 +174,19 @@ class RegisterTests(unittest.TestCase):
         note = self._install()
         self.assertIn("left alone", note)
         self.assertEqual(self.config.read_text(), "{not json")
+
+    def test_installed_runner_includes_native_sync_and_watcher_modules(self):
+        with patch.object(handoff, "RUNNER_HOME", self.runner.parent):
+            handoff.install_runner()
+        for name in ("handoff.py", "formats.py", "native.py", "stores.py", "sync.py", "service.py"):
+            self.assertEqual((self.runner.parent / name).read_bytes(), (SCRIPTS / name).read_bytes())
+
+    def test_hook_command_quotes_a_runner_path_with_spaces(self):
+        import shlex
+
+        runner = self.runner.parent / "a directory" / "handoff.py"
+        words = shlex.split(handoff.hook_command("claude", runner))
+        self.assertEqual(words[1], str(runner))
 
 
 if __name__ == "__main__":
