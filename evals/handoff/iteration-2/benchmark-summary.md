@@ -1,26 +1,26 @@
 # Evaluation iteration gate
 
 - Result: **pass**
-- Before Tuning: `.eval-runs/handoff-completion/final-before-tuning.json`
-- Before Tuning HEAD: `1ab1893c08643012176f9b2f1bc716ef9368b783`
+- Before Tuning: `.eval-runs/handoff-completion/final-middle-tuning.json`
+- Before Tuning HEAD: `07a624ae7fcc679361c652d697b66e36e0586e9b`
 - Before Tuning dirty: `False`
 - Before Tuning dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
 - Before Tuning models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
-- Before Holdout: `.eval-runs/handoff-completion/final-before-holdout.json`
-- Before Holdout HEAD: `1ab1893c08643012176f9b2f1bc716ef9368b783`
+- Before Holdout: `.eval-runs/handoff-completion/final-middle-holdout.json`
+- Before Holdout HEAD: `07a624ae7fcc679361c652d697b66e36e0586e9b`
 - Before Holdout dirty: `False`
 - Before Holdout dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
 - Before Holdout models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
-- After Tuning: `.eval-runs/handoff-completion/final-middle-tuning.json`
-- After Tuning HEAD: `07a624ae7fcc679361c652d697b66e36e0586e9b`
+- After Tuning: `.eval-runs/handoff-completion/final-after-tuning.json`
+- After Tuning HEAD: `0b8a200acb5487e21215d4288ddfcd18dfb854cf`
 - After Tuning dirty: `False`
 - After Tuning dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
 - After Tuning models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
-- After Holdout: `.eval-runs/handoff-completion/final-middle-holdout.json`
-- After Holdout HEAD: `07a624ae7fcc679361c652d697b66e36e0586e9b`
+- After Holdout: `.eval-runs/handoff-completion/clean-after-holdout.json`
+- After Holdout HEAD: `0b8a200acb5487e21215d4288ddfcd18dfb854cf`
 - After Holdout dirty: `False`
 - After Holdout dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
 - After Holdout models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
-- Tuning gain: 0.444444
+- Tuning gain: 0.333333
 - Holdout gain: 0.000000
 - Skill fingerprint changed: true

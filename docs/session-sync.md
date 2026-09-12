@@ -55,13 +55,28 @@ evidence distinct.
 
 ## Current release gate
 
-The runtime implementation is reviewable on its feature branch. The published
-skill wording is unchanged; its proposed replacement is recorded separately in
-`drafts/handoff-continuous-sync.md`. The scoped evaluation credential was not
-available, so no wording score or release readiness is claimed. Fresh desktop
-verification exercised Fable dispatch to the Opus implementer and Sonnet verifier,
-including exact output-byte checks. Codex parent and child execution was verified
-independently.
+The feature branch has passed the full repository gate: 1,116 Python tests
+with one expected platform skip, 83% runtime coverage against an 82% floor,
+and the formatting, shell, registry, installation and evaluation structure checks.
+Independent review found no remaining spec or standards findings. Regression
+coverage includes archived native imports, adoption of existing imports, and
+continued histories after rollout relocation.
+
+Fresh desktop verification exercised Fable dispatch to the Opus implementer and
+Sonnet verifier, including exact output-byte checks. Codex parent and child
+execution was verified independently. Local readback verified 1,134 native Codex
+tasks, 326 Claude copies, and all 1,459 expected transcript indexes in each of
+four accounts. A fresh background-only fixture completed both directions and
+returned a continued Claude copy as a preserved native branch; three later
+watcher cycles completed without errors or fixture duplication.
+
+The published skill received bounded wording corrections through two evaluation
+iterations. The iteration records retain model identity, immutable run provenance,
+scored tuning and holdout outcomes, and comparison gates. Earlier records affected
+by suite fingerprint bookkeeping remain historical evidence, not passing gates.
+`drafts/handoff-continuous-sync.md` remains an unaccepted broader rewrite; it is
+not the installed or evaluated candidate. No marketplace version release or
+merge is implied by local installation or a reviewable feature branch.
 
 Removed working directories are imported through managed snapshots whose task
 working directory is the closest existing parent. Original transcripts and
