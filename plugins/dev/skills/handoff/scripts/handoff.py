@@ -22,8 +22,10 @@ that fires two hundred times writes each exchange once.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
+import shlex
 import shutil
 import sys
 import uuid
@@ -44,6 +46,7 @@ CODEX_HOOKS = Path("~/.codex/hooks.json").expanduser()
 DESKTOP_SESSIONS = Path("~/Library/Application Support/Claude/claude-code-sessions").expanduser()
 DESKTOP_CONFIG = Path("~/Library/Application Support/Claude/config.json").expanduser()
 HOOK_EVENTS = ("PostToolUse", "Stop")
+RUNNER_MODULES = ("formats.py", "handoff.py", "native.py", "stores.py", "sync.py", "service.py")
 
 
 def load_state() -> dict[str, Any]:
@@ -250,13 +253,16 @@ def install_runner() -> Path:
     """
     RUNNER_HOME.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).resolve().parent
-    for module in ("formats.py", "handoff.py"):
-        shutil.copyfile(source / module, RUNNER_HOME / module)
+    for module in RUNNER_MODULES:
+        temporary = RUNNER_HOME / (module + ".new")
+        shutil.copyfile(source / module, temporary)
+        temporary.replace(RUNNER_HOME / module)
     return RUNNER_HOME / "handoff.py"
 
 
 def hook_command(direction: str, runner: Path) -> str:
-    return f"{sys.executable} {runner} mirror --from={direction} >/dev/null 2>&1 || true"
+    command = f"{shlex.quote(sys.executable)} {shlex.quote(str(runner))} mirror --from={direction}"
+    return command + " >/dev/null 2>&1 || true"
 
 
 def register(config: Path, direction: str, remove: bool, runner: Path | None = None) -> str:
@@ -292,47 +298,53 @@ def register(config: Path, direction: str, remove: bool, runner: Path | None = N
 
 
 def cmd_mirror(args: argparse.Namespace) -> int:
-    """The hook entrypoint. It reports nothing and fails nothing.
+    """Request reconciliation without running a converter inside an active turn."""
+    import service
 
-    A hook that writes to stdout is read as feedback by the agent that ran it,
-    and a hook that exits non-zero can stop a turn. Mirroring is bookkeeping;
-    it has no business doing either, so every failure is swallowed here and
-    surfaced through `status` instead.
-    """
-    try:
-        state = load_state()
-        payload = hook_payload()
-        if args.source == "claude":
-            note = mirror_from_claude(payload, state)
-        else:
-            note = mirror_from_codex(payload, state)
-        state["last"] = {"at": datetime.now().isoformat(timespec="seconds"), "note": note}
-        save_state(state)
-    except Exception as error:
-        try:
-            state = load_state()
-            state["last"] = {"at": datetime.now().isoformat(timespec="seconds"), "error": repr(error)}
-            save_state(state)
-        except OSError:
-            pass
+    # The watcher also polls, so a failed wakeup cannot lose a conversation.
+    with contextlib.suppress(OSError):
+        service.request_sync(Path.home())
     return 0
 
 
 def cmd_install(args: argparse.Namespace) -> int:
+    import service
+
+    home = Path.home()
+    service.uninstall_watcher(home, RUNNER_HOME / "handoff.py")
+    for config in (CLAUDE_HOOKS, CODEX_HOOKS):
+        if config.is_file():
+            backup = (
+                RUNNER_HOME / "backups" / (config.name + "." + datetime.now().strftime("%Y%m%dT%H%M%S%f"))
+            )
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(config, backup)
+            backup.chmod(0o600)
     runner = None if args.remove else install_runner()
     if runner is not None:
         print(f"runner: {runner}")
     print(register(CLAUDE_HOOKS, "claude", remove=args.remove, runner=runner))
     print(register(CODEX_HOOKS, "codex", remove=args.remove, runner=runner))
     if args.remove:
-        shutil.rmtree(RUNNER_HOME, ignore_errors=True)
-        print("Mirrors already written are left in place; delete them yourself if you want them gone.")
+        print("Watcher and hooks removed. Conversation mirrors, sync state, and backups are retained.")
     else:
-        print("Codex trusts a hook by hash — the first Codex session after this asks you to approve it.")
+        if not getattr(args, "no_watch", False):
+            print(json.dumps(service.install_watcher(home, runner)))
+        print("Hook trust remains client-controlled. The watcher runs independently of chat hooks.")
     return 0
 
 
 def cmd_status(_: argparse.Namespace) -> int:
+    watcher = RUNNER_HOME / "watcher-state.json"
+    print(f"Watcher state {watcher}")
+    if watcher.is_file():
+        try:
+            print(json.dumps(json.loads(watcher.read_text()), indent=2))
+        except (OSError, ValueError):
+            print("  unreadable — synchronization is not verified")
+    else:
+        print("  no completed watcher pass")
+    print("Legacy hook state, retained for recovery:")
     state = load_state()
     pairs = state.get("pairs") or {}
     print(f"Handoff state {STATE_PATH}")
@@ -355,6 +367,25 @@ def cmd_status(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sync(args: argparse.Namespace) -> int:
+    import service
+
+    home = Path(args.home).expanduser() if args.home else Path.home()
+    report = service.run_once(home, apply=args.apply, codex_binary=args.codex_binary)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    if args.apply:
+        service.record_result(home, report)
+    return 1 if report.get("errors") or (args.apply and report.get("unfinished")) else 0
+
+
+def cmd_watch(args: argparse.Namespace) -> int:
+    import service
+
+    home = Path(args.home).expanduser() if args.home else Path.home()
+    service.watch(home, interval=args.interval, codex_binary=args.codex_binary)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -363,12 +394,27 @@ def main() -> int:
     mirror.set_defaults(run=cmd_mirror)
     install = sub.add_parser("install", help="register the hooks on both sides")
     install.add_argument("--remove", action="store_true", help=argparse.SUPPRESS)
+    install.add_argument(
+        "--no-watch", action="store_true", help="register hooks without installing the macOS watcher"
+    )
     install.set_defaults(run=cmd_install)
     uninstall = sub.add_parser("uninstall", help="drop this skill's hook entries from both sides")
     uninstall.set_defaults(run=cmd_install, remove=True)
     sub.add_parser("status", help="what is paired and whether the hooks are registered").set_defaults(
         run=cmd_status
     )
+    reconcile = sub.add_parser("sync", help="reconcile both local stores (report only by default)")
+    reconcile.add_argument(
+        "--apply", action="store_true", help="write and verify the planned synchronization"
+    )
+    reconcile.add_argument("--home", help="explicit local store home for isolated verification")
+    reconcile.add_argument("--codex-binary", default="codex", help="native Codex executable")
+    reconcile.set_defaults(run=cmd_sync)
+    watch = sub.add_parser("watch", help="continuously reconcile both local stores")
+    watch.add_argument("--home", help="explicit local store home")
+    watch.add_argument("--interval", type=float, default=30, help="maximum seconds between reconciliations")
+    watch.add_argument("--codex-binary", default="codex", help="native Codex executable")
+    watch.set_defaults(run=cmd_watch)
     args = parser.parse_args()
     if not hasattr(args, "remove"):
         args.remove = False

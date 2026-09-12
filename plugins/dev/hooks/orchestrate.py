@@ -36,6 +36,8 @@ import re
 import shlex
 import subprocess
 import sys
+import tomllib
+from pathlib import Path
 
 SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
 REDIRECT = re.compile(r"\A(?:\d+|&)?>>?(.*)\Z", re.DOTALL)
@@ -75,28 +77,79 @@ DIRECTIVE = (
     "for subagents into the scratchpad instead. "
     "Set ORCHESTRATOR_MODELS to an empty string to switch this off."
 )
-DELEGATION = {
-    "claude": (
-        "Delegate implementation to subagents on cheaper models: `dev:implementer` (Opus) for "
-        "code changes, `dev:verifier` (Sonnet) for running checks and tests, the built-in "
-        "Explore agent for lookups."
-    ),
-    "codex": (
-        "Delegate implementation to spawned agents (they run on `agents.default_subagent_model`); "
-        "keep this thread for clarification, decomposition, dispatch, and acceptance."
-    ),
-}
-DISPATCH = {
-    "claude": (
-        "Dispatch this change with the Agent tool to `dev:implementer`, handing it the path, the "
-        "intent, and the check that decides whether it worked."
-    ),
-    "codex": (
-        "Spawn an agent to make this change, handing it the path, the intent, and the check that "
-        "decides whether it worked."
-    ),
-}
+CLAUDE_DELEGATION = (
+    "Automatically delegate authorized code changes with the `Task` tool to `dev:implementer` "
+    "(Opus), then use a separate `Task` call to `dev:verifier` (Sonnet) for independent checks. "
+    "Older clients may expose the same dispatcher as `Agent`; use whichever name the current "
+    "client provides. Use the built-in Explore agent for lookups."
+)
+CLAUDE_DISPATCH = (
+    "Dispatch this change with the `Task` tool (`Agent` on clients that expose that legacy name) "
+    "to `dev:implementer`, handing it the path, intent, and check that decides whether it worked."
+)
 BASH_ALLOWANCE = "Read-only commands, git, and running the project's checks are still allowed here."
+
+
+def codex_role_models() -> tuple[str | None, str | None]:
+    """Configured Codex implementation and verification models, without exposing other settings.
+
+    Codex's collaboration tool inherits the parent model when ``model`` is omitted. The installed
+    client already has one authoritative cheaper-model setting, ``agents.default_subagent_model``;
+    ``review_model`` is the native optional verifier choice. Reading those two values here lets the
+    directive name an explicit model without baking one provider's current catalogue into the
+    plugin. A missing or malformed config produces no guess and the directive tells the model which
+    setting it must resolve before dispatch.
+    """
+    home = os.environ.get("CODEX_HOME")
+    root = Path(home).expanduser() if home else Path.home() / ".codex"
+    try:
+        config = tomllib.loads((root / "config.toml").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+        return None, None
+    agents = config.get("agents")
+    agents = agents if isinstance(agents, dict) else {}
+    implementation = agents.get("default_subagent_model")
+    implementation = implementation.strip() if isinstance(implementation, str) else None
+    implementation = implementation or None
+    verification = config.get("review_model")
+    verification = verification.strip() if isinstance(verification, str) else None
+    verification = verification or implementation
+    return implementation, verification
+
+
+def delegation(kind: str) -> str:
+    """Client-native automatic delegation instructions for the current installation."""
+    if kind == "claude":
+        return CLAUDE_DELEGATION
+    implementation, verification = codex_role_models()
+    if implementation:
+        choices = (
+            f'Pass `model: "{implementation}"` for implementation and '
+            f'`model: "{verification}"` for verification.'
+        )
+    else:
+        choices = (
+            "Resolve `agents.default_subagent_model` from the current Codex configuration before "
+            "dispatch and pass that value explicitly for both roles."
+        )
+    return (
+        "Automatically delegate authorized code changes with `collaboration.spawn_agent`, using "
+        '`fork_turns: "none"` and a complete task message. Wait for that child, then spawn a '
+        "separate verification child that only runs the declared checks. "
+        f"{choices} Omitting `model` inherits this orchestrator model, so never omit it."
+    )
+
+
+def dispatch(kind: str) -> str:
+    """The concrete dispatch sentence used when an orchestrator attempts a project write."""
+    if kind == "claude":
+        return CLAUDE_DISPATCH
+    implementation, _ = codex_role_models()
+    model = f' with `model: "{implementation}"`' if implementation else " with an explicit model"
+    return (
+        f'Dispatch this change with `collaboration.spawn_agent`{model} and `fork_turns: "none"`, '
+        "handing it the path, intent, and check that decides whether it worked."
+    )
 
 
 def orchestrator_models() -> list[str]:
@@ -425,7 +478,7 @@ def deny(tool: str, path: str, kind: str, extra: str = "") -> dict:
     """The PreToolUse refusal both clients accept, with the dispatch it should have used."""
     reason = (
         f"Refused: {tool} on {path}. This session runs on an orchestrator-class model, and an "
-        f"orchestrator does not edit project files itself. {DISPATCH[kind]} You remain the "
+        f"orchestrator does not edit project files itself. {dispatch(kind)} You remain the "
         "reviewer of what comes back: read the diff and the check output before accepting it."
     )
     if extra:
@@ -463,7 +516,7 @@ def on_prompt(event: dict) -> int:
     model = resolve_model(event)
     if not is_orchestrator(model):
         return 0
-    print(DIRECTIVE.format(model=model, delegation=DELEGATION[client(event)]))
+    print(DIRECTIVE.format(model=model, delegation=delegation(client(event))))
     return 0
 
 

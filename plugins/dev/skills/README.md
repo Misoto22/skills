@@ -23,5 +23,13 @@ answer between two of them, and refuses its writes into the project, Codex's
 `apply_patch` and the common shell forms of a file write included, leaving the scratchpad
 and everything outside the repository alone. The `orchestrator_models` option
 is the list it matches on, `fable,gpt-6` by default and empty to switch the hook off.
-The two agents it dispatches to live in `agents/`: `implementer` on Opus writes the
-change, `verifier` on Sonnet runs the checks and never edits.
+In Claude Code it uses `Task` (`Agent` on clients that still use that name) to send the
+change to `agents/implementer` on Opus, then the checks to the independent,
+read-only `agents/verifier` on Sonnet. In Codex it uses `collaboration.spawn_agent` with
+`fork_turns: "none"` and explicit models: `agents.default_subagent_model` for
+implementation, then `review_model` for verification when configured or the
+implementation model otherwise. Per-invocation profile and `-c` overrides are absent
+from Codex hook events, so the directive reads the base config and cannot promise to see
+those overrides.
+
+The continuous handoff runtime is under review; its operation and pending release gates are documented in [session synchronization](../../../docs/session-sync.md).
