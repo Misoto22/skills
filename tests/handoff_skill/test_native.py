@@ -22,7 +22,7 @@ def load_native():
 
 
 SERVER = r"""
-import json, sys
+import json, sys, time
 from pathlib import Path
 home = Path(sys.argv[1])
 mode = sys.argv[2]
@@ -37,6 +37,8 @@ for line in sys.stdin:
     if method == "initialize":
         result = {"codexHome": str(home if mode != "wrong_home" else home / "other")}
     elif method == "externalAgentConfig/detect":
+        if mode == "slow_discovery":
+            time.sleep(0.15)
         with (home / "detect-calls").open("a") as record:
             record.write("detect\n")
         sessions = [{"path": source, "cwd": str(home)}]
@@ -89,6 +91,13 @@ class NativeImportTests(unittest.TestCase):
         self.assertEqual(result.rollout_path, self.home / "rollout.jsonl")
         self.assertTrue(result.changed)
         self.assertEqual(json.loads((self.home / "named.json").read_text())["name"], "Readable title")
+
+    def test_large_history_discovery_has_its_own_timeout(self):
+        with self.client("slow_discovery") as client:
+            client.timeout = 0.05
+            result = client.import_session(self.source)
+            self.assertTrue(result.changed)
+            self.assertEqual(client.timeout, 0.05)
 
     def test_an_unrecognized_source_does_not_rescan_all_history_repeatedly(self):
         missing = SimpleNamespace(path=self.home / "unrecognized.jsonl", cwd=str(self.home), title="Other")
