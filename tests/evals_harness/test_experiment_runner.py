@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import sys
 import tempfile
 import types
@@ -44,6 +45,50 @@ def response(*, content="", tool_calls=None, prompt_tokens=10, completion_tokens
         choices=[types.SimpleNamespace(message=message, finish_reason="stop")],
         usage=types.SimpleNamespace(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
     )
+
+
+class SuiteInputFingerprintTests(unittest.TestCase):
+    def _copy_suite(self, temporary: Path, skill: str) -> tuple[Path, Path, dict]:
+        suite_root = temporary / "evals" / skill
+        skill_root = temporary / "skills" / skill
+        shutil.copytree(ROOT / "evals" / skill, suite_root)
+        shutil.copytree(next((ROOT / "plugins").glob(f"*/skills/{skill}")), skill_root)
+        suite_path = suite_root / "evals.json"
+        return suite_path, skill_root, json.loads(suite_path.read_text(encoding="utf-8"))
+
+    def test_uses_declared_runtime_inputs_and_ignores_iteration_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            suite_path, skill_root, suite = self._copy_suite(Path(temporary), "reunite")
+            with mock.patch.object(RUNNER.HARNESS, "_skill_root", return_value=skill_root):
+                baseline = RUNNER.suite_input_fingerprint("reunite", suite_path, suite)
+                report = suite_path.parent / "iteration-99" / "benchmark-summary.md"
+                report.parent.mkdir()
+                report.write_text("review prose", encoding="utf-8")
+                self.assertEqual(baseline, RUNNER.suite_input_fingerprint("reunite", suite_path, suite))
+                fixture = suite_path.parent / "fixtures/tool-merge/account-a/org-a/local_a.json"
+                fixture.write_text(fixture.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+                fixture_changed = RUNNER.suite_input_fingerprint("reunite", suite_path, suite)
+                self.assertNotEqual(baseline, fixture_changed)
+                command = skill_root / "scripts/merge.py"
+                command.write_text(command.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+                source_changed = RUNNER.suite_input_fingerprint("reunite", suite_path, suite)
+                self.assertNotEqual(fixture_changed, source_changed)
+                suite_path.write_text(suite_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+                self.assertNotEqual(
+                    source_changed, RUNNER.suite_input_fingerprint("reunite", suite_path, suite)
+                )
+
+    def test_artifact_change_invalidates_the_suite_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            suite_path, skill_root, suite = self._copy_suite(Path(temporary), "bazi-reading")
+            artifact_case = next(case for case in suite["behaviors"] if "artifact" in case)
+            artifact = suite_path.parent / artifact_case["artifact"]
+            with mock.patch.object(RUNNER.HARNESS, "_skill_root", return_value=skill_root):
+                baseline = RUNNER.suite_input_fingerprint("bazi-reading", suite_path, suite)
+                artifact.write_text(artifact.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+                self.assertNotEqual(
+                    baseline, RUNNER.suite_input_fingerprint("bazi-reading", suite_path, suite)
+                )
 
 
 class ModelDrivenToolTests(unittest.TestCase):
