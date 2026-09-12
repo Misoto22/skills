@@ -253,6 +253,7 @@ def _import_claude(
             item["snapshot_imported"] = True
         if changed and rollout and rollout.is_file():
             owners[str(rollout)] = semantic_digest(rollout, "codex")
+            owners["thread:" + thread] = owners[str(rollout)]
         item.update(
             imported_thread_id=thread,
             rollout_path=str(rollout) if rollout else None,
@@ -482,6 +483,9 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
             owners_claude = state.setdefault("owned_claude", {})
             owners_codex = state.setdefault("owned_codex", {})
             owned_stats = state.setdefault("owned_stats", {})
+            for item in state["claude"].values():
+                if item.get("imported_thread_id") and item.get("rollout_digest"):
+                    owners_codex.setdefault("thread:" + item["imported_thread_id"], item["rollout_digest"])
 
             def checkpoint():
                 if apply:
@@ -565,9 +569,11 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
             for source in codex:
                 if str(source.path) in obsolete:
                     continue
-                if str(source.path) in owners_codex and owners_codex[str(source.path)] == _digest(
+                baseline = owners_codex.get("thread:" + source.session_id, owners_codex.get(str(source.path)))
+                if baseline is not None and baseline == _digest(
                     source.path, "codex", owned_stats.setdefault(str(source.path), {})
                 ):
+                    owners_codex.setdefault("thread:" + source.session_id, baseline)
                     continue
                 report["counts"]["codex"] += 1
                 key = _source_key("codex", source)
