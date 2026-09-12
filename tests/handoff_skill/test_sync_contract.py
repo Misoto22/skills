@@ -21,6 +21,7 @@ class RealisticNative:
         self.paths = paths
         self.calls: list[tuple[str, str]] = []
         self.imports: dict[str, str] = {}
+        self.hashes: dict[str, str] = {}
         self.rollouts: dict[str, Path] = {}
         self.counter = 0
         self.fail_next = False
@@ -33,7 +34,7 @@ class RealisticNative:
             {
                 "source_path": source,
                 "imported_thread_id": thread,
-                "content_sha256": hashlib.sha256(Path(source).read_bytes()).hexdigest(),
+                "content_sha256": self.hashes.get(source),
             }
             for source, thread in self.imports.items()
         ]
@@ -56,6 +57,7 @@ class RealisticNative:
         self._insert(thread, source, rollout)
         self.calls.append((str(source.path), thread))
         self.imports[str(source.path)] = thread
+        self.hashes[str(source.path)] = hashlib.sha256(source.path.read_bytes()).hexdigest()
         self.rollouts[str(source.path)] = rollout
         changed = not self.unchanged_once
         self.unchanged_once = False
@@ -423,6 +425,57 @@ class SyncContractTests(unittest.TestCase):
         report = sync.synchronize(self.paths, self.native, apply=True)
         self.assertTrue(report["errors"])
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_deleted_generated_file_is_rebuilt_with_its_full_history(self):
+        self.codex()
+        sync.synchronize(self.paths, self.native, apply=True)
+        target = next(self.paths.claude_projects.rglob("*.jsonl"))
+        expected = sync.semantic_digest(target, "claude")
+        target.unlink()
+        report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertFalse(report["errors"])
+        self.assertEqual(sync.semantic_digest(target, "claude"), expected)
+
+    def test_partial_journaled_write_recovers_exact_bytes_without_duplicate_lines(self):
+        self.codex()
+        sync.synchronize(self.paths, self.native, apply=True)
+        target = next(self.paths.claude_projects.rglob("*.jsonl"))
+        expected = target.read_bytes()
+        state = json.loads(self.paths.state.read_text())
+        item = next(iter(state["codex"].values()))
+        stage = target.parent / ".handoff-interrupted"
+        stage.write_bytes(expected)
+        item["pending"] = {key: value for key, value in item.items() if key != "pending"}
+        item["pending"]["stage_path"] = str(stage)
+        item.pop("source_digest")
+        item.pop("generated_digest")
+        target.write_bytes(expected[: len(expected) // 2])
+        self.paths.state.write_text(json.dumps(state))
+        report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertFalse(report["errors"])
+        self.assertEqual(target.read_bytes(), expected)
+        self.assertFalse(stage.exists())
+
+    def test_removed_worktree_import_uses_a_snapshot_and_preserves_original(self):
+        source = self.claude()
+        missing = self.root / "removed-worktree"
+        records = source.read_text().replace(str(self.root), str(missing))
+        source.write_text(records)
+        original = source.read_bytes()
+        for _ in range(2):
+            report = sync.synchronize(self.paths, self.native, apply=True)
+            self.assertFalse(report["errors"])
+        self.assertEqual(len(self.native.calls), 1)
+        imported_path = Path(self.native.calls[0][0])
+        self.assertNotEqual(imported_path, source)
+        self.assertEqual(imported_path.stat().st_mode & 0o777, 0o600)
+        imported = json.loads(imported_path.read_text().splitlines()[0])
+        self.assertEqual(imported["cwd"], str(self.root))
+        self.assertEqual(source.read_bytes(), original)
+        source.write_text(source.read_text().replace("hello", "continued after import"))
+        report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertFalse(report["errors"])
+        self.assertEqual(len(self.native.calls), 2)
 
     def test_generated_target_uses_claude_project_directory(self):
         self.codex()

@@ -43,6 +43,10 @@ class NativeCodex:
         self.notifications: list[dict] = []
         self.sequence = 0
         self.detected: set[str] = set()
+        self.detection_complete = False
+
+    def begin_pass(self) -> None:
+        self.detection_complete = False
 
     def __enter__(self):
         self.start()
@@ -191,6 +195,7 @@ class NativeCodex:
                 "maxSessions": 1000000,
             },
         )
+        self.detection_complete = True
         for item in result.get("items", []):
             if not isinstance(item, dict) or item.get("itemType") != "SESSIONS":
                 continue
@@ -213,7 +218,9 @@ class NativeCodex:
         existing = next(
             (r for r in self.existing_imports() if str(Path(r["source_path"]).resolve()) == path), None
         )
-        if path not in self.detected:
+        if path not in self.detected and (
+            not self.detection_complete or "-handoff-imports" in source.path.parts
+        ):
             self._detect(source.cwd)
         if path not in self.detected:
             raise NativeError("native_session_not_detected")

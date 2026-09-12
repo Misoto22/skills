@@ -6,8 +6,9 @@ import hashlib
 import json
 import re
 import sqlite3
+import uuid
 from collections import OrderedDict
-from contextlib import closing
+from contextlib import closing, suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -121,7 +122,12 @@ def discover_claude(projects: Path, desktop: Path) -> list[SessionSource]:
                 except ValueError:
                     continue
                 metadata = None
-                if records:
+                if records and any(
+                    r.get("type") in ("user", "assistant")
+                    and isinstance(r.get("message"), dict)
+                    and r["message"].get("content")
+                    for r in records
+                ):
                     first = next(
                         (
                             r
@@ -131,6 +137,10 @@ def discover_claude(projects: Path, desktop: Path) -> list[SessionSource]:
                         {},
                     )
                     sid = first.get("sessionId") or path.stem
+                    # Forks retain parent session ids in their inherited prefix.
+                    # Claude opens the UUID named by the transcript filename.
+                    with suppress(ValueError):
+                        sid = str(uuid.UUID(path.stem))
                     cwd = next(
                         (r.get("cwd") for r in records if isinstance(r.get("cwd"), str) and r.get("cwd")), ""
                     )
