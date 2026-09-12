@@ -1,5 +1,6 @@
 {
   "skill": "handoff",
+  "data_classification": "synthetic",
   "triggers": [
     {
       "id": "see-codex-in-claude",
@@ -58,9 +59,9 @@
       "id": "mirror-is-not-a-replay",
       "prompt": "Once this is on, can I resume the exact same session in Codex?",
       "expectations": [
-        "Says no: a mirror is a readable record, not a resumable replay.",
+        "Distinguishes readable imported context that can be continued as a separate task from a byte-exact resumable provider replay.",
         "Explains that Codex encrypts its reasoning and Claude signs its thinking blocks, so neither signature survives translation.",
-        "Notes that after mirroring the two conversations are separate and continuing one does not reach the other."
+        "Explains that an independently continued conversation is preserved and subsequent changes synchronize as a separate branch, without overwriting either original."
       ]
     },
     {
@@ -68,17 +69,17 @@
       "prompt": "I converted a Codex session into ~/.claude/projects but it does not show in the sidebar. Why?",
       "expectations": [
         "Explains the desktop app lists conversations from its own index under claude-code-sessions, not from ~/.claude/projects.",
-        "Says the index entry must go in the account the app is signed in as, read from lastKnownAccountUuid rather than ~/.claude.json.",
-        "Does not suggest writing into Codex's SQLite catalogue, which a scanner regenerates from the rollout files."
+        "Publishes indexes across all existing local Claude accounts and matches cliSessionId while preserving an existing desktop sessionId; does not assume the transcript UUID is the desktop ID.",
+        "Explains that Codex needs native import and native readback; neither a raw rollout file nor a manually inserted SQLite row proves a registered native task."
       ]
     },
     {
       "id": "hook-stays-silent",
       "prompt": "The mirror does not seem to be running. How do I debug it?",
       "expectations": [
-        "Points at handoff.py status rather than expecting hook output, because the hook writes nothing and always exits 0.",
+        "Starts with handoff.py status and the watcher completion report; a silent hook exit is not proof that synchronization completed.",
         "Explains that a hook's stdout is read as feedback by the agent and a non-zero exit can stop a turn.",
-        "Checks whether both sides are registered, since one-sided registration is a one-way mirror."
+        "Checks both hook registrations and the independent watcher state, without claiming that one missing hook necessarily makes the running watcher one-way."
       ]
     }
   ]
