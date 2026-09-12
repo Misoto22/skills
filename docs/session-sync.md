@@ -58,9 +58,10 @@ evidence distinct.
 The runtime implementation is reviewable on its feature branch. The published
 skill wording is unchanged; its proposed replacement is recorded separately in
 `drafts/handoff-continuous-sync.md`. The scoped evaluation credential was not
-available, so no wording score or release readiness is claimed. Claude model
-execution additionally requires a valid local Claude login. Store-level sync
-and Codex orchestration verification do not substitute for that execution test.
+available, so no wording score or release readiness is claimed. Fresh desktop
+verification exercised Fable dispatch to the Opus implementer and Sonnet verifier,
+including exact output-byte checks. Codex parent and child execution was verified
+independently.
 
 Removed working directories are imported through managed snapshots whose task
 working directory is the closest existing parent. Original transcripts and
@@ -68,3 +69,9 @@ their recorded working directory remain unchanged. Stage these histories before
 native discovery so a missing directory cannot trigger a full rescan per file.
 Fork identity comes from the UUID filename, since inherited transcript prefixes
 can still name the parent session. Copies and recovery journals are private files.
+
+Claude desktop identity is distinct from transcript identity. Match indexes by
+`cliSessionId`, preserve an existing desktop `sessionId`, and reuse that entry
+when publishing to each account. Do not assume the index filename contains the
+transcript UUID. Recoverably archived duplicate aliases remain excluded from
+title selection and future publication.

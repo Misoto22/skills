@@ -115,6 +115,74 @@ class StoreTests(unittest.TestCase):
         )
         self.assertEqual(discover_claude(self.projects, self.desktop)[0].session_id, sid)
 
+    def test_publish_matches_cli_identity_and_preserves_desktop_identity(self):
+        source_path = self.projects / "p" / "cli-id.jsonl"
+        self.write_jsonl(
+            source_path,
+            [{"sessionId": "cli-id", "cwd": "/work", "type": "user", "message": {"content": "Hello"}}],
+        )
+        for account in ("a", "b"):
+            (self.desktop / account / "org").mkdir(parents=True)
+        existing = self.desktop / "a/org/local_desktop-id.json"
+        existing.write_text(
+            json.dumps(
+                {
+                    "sessionId": "local_desktop-id",
+                    "cliSessionId": "cli-id",
+                    "title": "Hello",
+                    "isArchived": True,
+                    "custom": "preserve",
+                }
+            )
+        )
+        source = SessionSource("claude", "cli-id", source_path, "/work", "Hello")
+        duplicate = self.desktop / "a/org/local_cli-id.json"
+        duplicate.write_text(
+            json.dumps(
+                {
+                    "sessionId": "local_cli-id",
+                    "cliSessionId": "cli-id",
+                    "handoffDuplicateOf": "local_desktop-id",
+                    "title": "Stale",
+                    "isArchived": True,
+                }
+            )
+        )
+        for _ in range(2):
+            publish_claude_index(source, self.desktop)
+        self.assertEqual(len(list(self.desktop.glob("*/*/local_*.json"))), 3)
+        for account in ("a", "b"):
+            entry = self.desktop / account / "org/local_desktop-id.json"
+            data = json.loads(entry.read_text())
+            self.assertEqual(data["sessionId"], "local_desktop-id")
+            self.assertEqual(data["cliSessionId"], "cli-id")
+        self.assertEqual(json.loads(existing.read_text())["custom"], "preserve")
+        self.assertTrue(json.loads(existing.read_text())["isArchived"])
+
+    def test_late_desktop_index_replaces_only_the_runtime_created_alias(self):
+        source_path = self.projects / "p/cli.jsonl"
+        self.write_jsonl(
+            source_path,
+            [{"sessionId": "cli", "cwd": "/work", "type": "user", "message": {"content": "Hello"}}],
+        )
+        org = self.desktop / "a/org"
+        org.mkdir(parents=True)
+        source = SessionSource("claude", "cli", source_path, "/work", "Hello")
+        publish_claude_index(source, self.desktop)
+        desktop_entry = org / "local_desktop.json"
+        desktop_entry.write_text(
+            json.dumps(
+                {"sessionId": "local_desktop", "cliSessionId": "cli", "title": "Hello", "isArchived": False}
+            )
+        )
+        discover_claude(self.projects, self.desktop)
+        publish_claude_index(source, self.desktop)
+        alias = json.loads((org / "local_cli.json").read_text())
+        self.assertTrue(alias["isArchived"])
+        self.assertEqual(alias["handoffDuplicateOf"], "local_desktop")
+        self.assertFalse(alias["handoffPreviousArchived"])
+        self.assertFalse(json.loads(desktop_entry.read_text())["isArchived"])
+
     def test_publish_unions_accounts_preserves_fields_and_is_idempotent(self):
         source_path = self.projects / "p" / "s1.jsonl"
         self.write_jsonl(

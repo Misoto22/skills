@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
+import tempfile
 import uuid
 from collections import OrderedDict
 from contextlib import closing, suppress
@@ -27,6 +29,9 @@ class SessionSource:
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _CLAUDE_CACHE: OrderedDict[str, tuple[tuple[int, int, int, int], tuple[str, str, str] | None]] = OrderedDict()
 _CLAUDE_CACHE_LIMIT = 2048
+_INDEX_STATE: dict[str, Path | None] = {"root": None}
+_INDEX_ALIASES: dict[str, list[Path]] = {}
+_INDEX_DETAILS: dict[Path, dict[str, Any]] = {}
 
 
 def _records(path: Path, *, tolerate_malformed: bool = True) -> list[dict[str, Any]]:
@@ -73,17 +78,26 @@ def _user_title(record: dict[str, Any]) -> str:
 
 
 def _desktop_entries(desktop: Path) -> dict[str, list[tuple[float, dict[str, Any]]]]:
+    _INDEX_STATE["root"] = desktop.resolve()
+    _INDEX_ALIASES.clear()
+    _INDEX_DETAILS.clear()
     found: dict[str, list[tuple[float, dict[str, Any]]]] = {}
     if not desktop.is_dir():
         return found
-    for account in sorted((p for p in desktop.iterdir() if p.is_dir()), key=lambda p: p.name):
-        for org in sorted((p for p in account.iterdir() if p.is_dir()), key=lambda p: p.name):
+    for account in sorted(
+        (p for p in desktop.iterdir() if p.is_dir() and not p.is_symlink()), key=lambda p: p.name
+    ):
+        for org in sorted(
+            (p for p in account.iterdir() if p.is_dir() and not p.is_symlink()), key=lambda p: p.name
+        ):
             for entry in sorted(org.glob("local_*.json")):
+                if entry.is_symlink():
+                    continue
                 try:
                     data = json.loads(entry.read_text())
                 except (OSError, ValueError):
                     continue
-                if not isinstance(data, dict):
+                if not isinstance(data, dict) or data.get("handoffDuplicateOf"):
                     continue
                 sid = data.get("cliSessionId") or data.get("sessionId")
                 if not isinstance(sid, str) or not sid:
@@ -93,6 +107,8 @@ def _desktop_entries(desktop: Path) -> dict[str, list[tuple[float, dict[str, Any
                 except OSError:
                     continue
                 found.setdefault(sid, []).append((mtime, data))
+                _INDEX_ALIASES.setdefault(sid, []).append(entry)
+                _INDEX_DETAILS[entry] = data
     return found
 
 
@@ -281,6 +297,20 @@ def semantic_digest(path: Path, kind: str) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+def _write_index(target: Path, data: dict[str, Any]) -> None:
+    fd, temporary = tempfile.mkstemp(prefix=".handoff-index-", dir=target.parent)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            json.dump(data, handle, ensure_ascii=False, separators=(",", ":"))
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+    finally:
+        with suppress(FileNotFoundError):
+            os.unlink(temporary)
+    _INDEX_DETAILS[target] = data
+
+
 def publish_claude_index(source: SessionSource, desktop: Path) -> int:
     """Create or update one local index entry in every existing account."""
     if not _ID.fullmatch(source.session_id):
@@ -294,17 +324,31 @@ def publish_claude_index(source: SessionSource, desktop: Path) -> int:
     )
     if not accounts:
         return 0
+    if desktop.resolve() != _INDEX_STATE["root"]:
+        _desktop_entries(desktop)
+    aliases = [
+        p
+        for p in _INDEX_ALIASES.get(source.session_id, [])
+        if p.is_file() and not p.is_symlink() and not _INDEX_DETAILS.get(p, {}).get("handoffDuplicateOf")
+    ]
+    generated_name = f"local_{source.session_id}"
+
+    def preference(path: Path):
+        return (
+            not _INDEX_DETAILS.get(path, {}).get("handoffGeneratedIndex"),
+            path.stem != generated_name,
+            path.stat().st_mtime_ns,
+        )
+
+    canonical = max(aliases, key=preference, default=None)
+    index_name = canonical.stem if canonical else generated_name
     stamp = int(source.path.stat().st_mtime * 1000)
     changed = 0
     for account in accounts:
         orgs = sorted(
             (p for p in account.iterdir() if p.is_dir() and not p.is_symlink()), key=lambda p: p.name
         )
-        matching = []
-        for org in orgs:
-            candidate = org / f"local_{source.session_id}.json"
-            if candidate.is_file() and not candidate.is_symlink():
-                matching.append(candidate)
+        matching = [p for p in aliases if p.parent.parent == account]
 
         def activity(org: Path) -> int:
             values = []
@@ -318,14 +362,14 @@ def publish_claude_index(source: SessionSource, desktop: Path) -> int:
             return max(values, default=0)
 
         target = (
-            matching[0]
+            max(matching, key=preference)
             if matching
             else (orgs[0] if len(orgs) == 1 else max(orgs, key=activity, default=None))
         )
         if target is None:
             continue
         if target.is_dir():
-            target = target / f"local_{source.session_id}.json"
+            target = target / (index_name + ".json")
         try:
             target.resolve().relative_to(desktop.resolve())
         except ValueError as exc:
@@ -335,9 +379,11 @@ def publish_claude_index(source: SessionSource, desktop: Path) -> int:
         except (OSError, ValueError):
             data = {}
         old = dict(data)
+        if not target.is_file():
+            data["handoffGeneratedIndex"] = True
         data.update(
             {
-                "sessionId": f"local_{source.session_id}",
+                "sessionId": target.stem,
                 "cliSessionId": source.session_id,
                 "cwd": source.cwd,
                 "originCwd": source.cwd,
@@ -350,6 +396,22 @@ def publish_claude_index(source: SessionSource, desktop: Path) -> int:
             data["isArchived"] = source.archived
         target.parent.mkdir(parents=True, exist_ok=True)
         if data != old:
-            target.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+            _write_index(target, data)
+            if target not in _INDEX_ALIASES.setdefault(source.session_id, []):
+                _INDEX_ALIASES[source.session_id].append(target)
+            changed += 1
+        # A desktop session can finish creating its index after our first scan.
+        # Archive only an alias explicitly created by this runtime, preserving
+        # its prior archive value so that the operation remains reversible.
+        for alias in matching:
+            if alias == target or not _INDEX_DETAILS.get(alias, {}).get("handoffGeneratedIndex"):
+                continue
+            duplicate = json.loads(alias.read_text())
+            if duplicate.get("handoffDuplicateOf") or not duplicate.get("handoffGeneratedIndex"):
+                continue
+            duplicate["handoffPreviousArchived"] = duplicate.get("isArchived")
+            duplicate["handoffDuplicateOf"] = target.stem
+            duplicate["isArchived"] = True
+            _write_index(alias, duplicate)
             changed += 1
     return changed
