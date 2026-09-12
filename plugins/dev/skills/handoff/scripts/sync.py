@@ -131,7 +131,11 @@ def _write_lines(path: Path, lines: list[dict[str, Any]], append: bool = True) -
 def _snapshot(source: SessionSource, projects: Path, existing: str | None = None) -> SessionSource:
     sid = Path(existing).stem if existing else str(uuid.uuid4())
     destination = Path(existing) if existing else projects / "-handoff-imports" / f"{sid}.jsonl"
-    destination.resolve().relative_to((projects / "-handoff-imports").resolve())
+    staging_root = projects / "-handoff-imports"
+    if staging_root.is_symlink():
+        raise ValueError("invalid_snapshot_root")
+    staging_root.resolve().relative_to(projects.resolve())
+    destination.resolve().relative_to(staging_root.resolve())
     if destination.is_symlink() or not re.fullmatch(r"[a-f0-9-]{36}", destination.stem):
         raise ValueError("invalid_snapshot_path")
     records, _ = formats.read_jsonl(source.path)
@@ -265,6 +269,9 @@ def _codex_target(item: dict[str, Any], source: SessionSource, paths: Paths) -> 
     existing = item.get("target_path")
     slug = re.sub(r"[^a-zA-Z0-9]", "-", source.cwd)
     root = paths.claude_projects / slug
+    if root.is_symlink():
+        raise ValueError("invalid_target_root")
+    root.resolve().relative_to(paths.claude_projects.resolve())
     if existing:
         target = Path(existing)
         target.resolve().relative_to(root.resolve())

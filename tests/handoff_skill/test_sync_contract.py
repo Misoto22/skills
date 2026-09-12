@@ -412,6 +412,18 @@ class SyncContractTests(unittest.TestCase):
         self.assertEqual(len(self.native.calls), 2)
         self.assertFalse(json.loads(self.paths.state.read_text())["codex"])
 
+    def test_generated_target_rejects_a_symlinked_project_directory(self):
+        import re
+
+        self.codex()
+        outside = self.root / "outside"
+        outside.mkdir()
+        project = self.paths.claude_projects / re.sub(r"[^a-zA-Z0-9]", "-", str(self.root))
+        project.symlink_to(outside, target_is_directory=True)
+        report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertTrue(report["errors"])
+        self.assertEqual(list(outside.iterdir()), [])
+
     def test_generated_target_uses_claude_project_directory(self):
         self.codex()
         sync.synchronize(self.paths, self.native, apply=True)
