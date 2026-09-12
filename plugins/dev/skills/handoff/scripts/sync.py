@@ -552,6 +552,10 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
                             "content_sha256"
                         ):
                             item["digest"] = semantic_digest(source.path, "claude")
+                            rollout_digest = semantic_digest(Path(thread["path"]), "codex")
+                            if rollout_digest == item["digest"]:
+                                item["rollout_digest"] = rollout_digest
+                                owners_codex["thread:" + item["imported_thread_id"]] = rollout_digest
                         else:
                             item["force_snapshot"] = True
                     except Exception:

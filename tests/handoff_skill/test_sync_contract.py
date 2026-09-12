@@ -404,6 +404,39 @@ class SyncContractTests(unittest.TestCase):
         self.assertTrue(report["errors"])
         self.assertEqual(outside.read_text(), "preserve")
 
+    def test_adopted_archived_import_does_not_echo_but_preserves_continuation(self):
+        source = self.claude()
+        self.native.import_session(SessionSource("claude", "claude-session", source, str(self.root), "hello"))
+        old = self.native.rollouts[str(source)]
+        archived = self.root / "archived_sessions" / old.name
+        archived.parent.mkdir()
+        old.rename(archived)
+        with closing(sqlite3.connect(self.paths.codex_database)) as conn:
+            conn.execute("UPDATE threads SET rollout_path = ?, archived = 1", (str(archived),))
+            conn.commit()
+        for _ in range(3):
+            report = sync.synchronize(self.paths, self.native, apply=True)
+            self.assertFalse(report["errors"])
+            self.assertFalse(json.loads(self.paths.state.read_text())["codex"])
+        self.paths.state.unlink()
+        with archived.open("a") as handle:
+            handle.write(
+                json.dumps(
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "message",
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": "existing native continuation"}],
+                        },
+                    }
+                )
+                + "\n"
+            )
+        report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertFalse(report["errors"])
+        self.assertEqual(len(json.loads(self.paths.state.read_text())["codex"]), 1)
+
     def test_archived_import_keeps_identity_and_propagates_real_continuation(self):
         self.claude()
         sync.synchronize(self.paths, self.native, apply=True)
