@@ -554,8 +554,9 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
                         # A stale registry entry is not evidence of a usable task.
                         item.clear()
                 outcome = _import_claude(source, paths, native, item, apply, owners_codex, checkpoint)
-                checkpoint()
-                if apply:
+                if outcome.get("status") != "unchanged":
+                    checkpoint()
+                if apply and outcome.get("status") == "error":
                     with contextlib.suppress(OSError, ValueError):
                         _publish(source, paths, apply)
                 report["results"].append(outcome)
@@ -581,7 +582,8 @@ def synchronize(paths: Paths, native: Native, apply: bool = False) -> dict[str, 
                         "source": str(source.path),
                         "error": type(exc).__name__,
                     }
-                checkpoint()
+                if outcome.get("status") != "unchanged":
+                    checkpoint()
                 report["results"].append(outcome)
                 if outcome.get("status") == "error":
                     report["errors"].append(outcome)

@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import patch
 
 from plugins.dev.skills.handoff.scripts import formats, sync
 from plugins.dev.skills.handoff.scripts.stores import SessionSource
@@ -484,6 +485,16 @@ class SyncContractTests(unittest.TestCase):
 
         target = next(self.paths.claude_projects.rglob("*.jsonl"))
         self.assertEqual(target.parent.name, re.sub(r"[^a-zA-Z0-9]", "-", str(self.root)))
+
+    def test_unchanged_scan_writes_one_checkpoint_instead_of_one_per_source(self):
+        for name in ("one", "two", "three"):
+            source = self.claude(name + ".jsonl")
+            source.write_text(source.read_text().replace("claude-session", name))
+        sync.synchronize(self.paths, self.native, apply=True)
+        with patch.object(sync, "_save", wraps=sync._save) as save:
+            report = sync.synchronize(self.paths, self.native, apply=True)
+        self.assertFalse(report["errors"])
+        self.assertEqual(save.call_count, 1)
 
     def test_native_read_thread_rejects_missing_rollout_path(self):
         with self.assertRaisesRegex(RuntimeError, "unreadable"):
