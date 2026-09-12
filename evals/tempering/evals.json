@@ -1,5 +1,6 @@
 {
   "skill": "tempering",
+  "data_classification": "synthetic",
   "triggers": [
     {
       "id": "chinese-soften",

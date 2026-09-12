@@ -135,7 +135,7 @@ def _fixture_ignore(directory: str, names: list[str]) -> set[str]:
     return dropped
 
 
-_FIXTURE_EXCLUDED = frozenset({".git", ".claude", ".superpowers", "__pycache__", ".coverage"})
+_FIXTURE_EXCLUDED = frozenset({".git", ".claude", ".eval-runs", ".superpowers", "__pycache__", ".coverage"})
 
 
 @contextlib.contextmanager
@@ -1920,6 +1920,29 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertIn(".github/workflows/audit-probe.yml", result.stderr)
+
+    def test_version_audit_ignores_local_evaluation_run_outputs(self) -> None:
+        """A local paid run can vendor packages that happen to name the release version.
+
+        `.eval-runs/` is ignored run evidence, never a source tree. Its virtual
+        environment must not turn an otherwise clean version audit red while
+        published files outside that one directory remain covered.
+        """
+
+        with repository_copy() as copied:
+            probe = copied / ".eval-runs" / "venv" / "package.json"
+            probe.parent.mkdir(parents=True)
+            probe.write_text(f'{{"version": "{declared_version()}"}}\n', encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, "scripts/bump-version.py", "--audit"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(".eval-runs", result.stdout + result.stderr)
 
     def test_no_front_matter_value_holds_an_unquoted_colon(self) -> None:
         """A bare colon makes an installer skip the skill, quietly.

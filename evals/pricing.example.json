@@ -1,0 +1,16 @@
+{
+  "currency": "CNY",
+  "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "date": "2026-09-12",
+  "policy": "Reserve at 3 CNY per million input tokens and 12 CNY per million output tokens, a 50 percent margin over the confirmed peak V4.1-Flash cache-miss rates; ignore cache discounts",
+  "candidate": {
+    "model": "deepseek-default",
+    "input_cny_per_million": 3,
+    "output_cny_per_million": 12
+  },
+  "judge": {
+    "model": "deepseek-default",
+    "input_cny_per_million": 3,
+    "output_cny_per_million": 12
+  }
+}

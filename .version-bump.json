@@ -97,6 +97,7 @@
   "audit": {
     "exclude": [
       ".claude",
+      ".eval-runs",
       ".git",
       ".version-bump.json",
       "CHANGELOG.md",
