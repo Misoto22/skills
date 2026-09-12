@@ -25,6 +25,12 @@ An iteration starts from a measurement, not from a reading of the skill. A rule
 that looks wrong on the page and passes every case is not the iteration's
 business.
 
+For a paid execution run, reserve its full worst-case CNY amount in the shared
+ledger before starting. Keep it dry and local by default: no report publishing,
+no unattended schedule, and no remote CI score. GitHub continues to run the
+free structural and installation gates. The remote scored workflow is disabled
+by default and has no schedule.
+
 ## 2. Reflect — on both sides
 
 Two lists, written before any edit:
@@ -71,6 +77,15 @@ held-out set is large enough to rank one candidate against another. One case per
 section cannot rank anything. It can only veto — so it is used as a veto, and
 the tuning score remains the thing being improved. Calling a tripwire a search
 objective would be the overfit one level up.
+
+For completed experiment records, run
+`python3 scripts/compare-eval-runs.py --before-tuning BEFORE-TUNING.json --before-holdout BEFORE-HOLDOUT.json --after-tuning AFTER-TUNING.json --after-holdout AFTER-HOLDOUT.json --benchmark benchmark-summary.md`.
+The gate compares only the with-skill arm. It is inconclusive when either run
+is malformed, lacks that arm, has void samples, or cannot prove identical suite,
+scoring, and sampled cases. The Markdown record must retain every phase
+record's HEAD, dirty state, dirty-tree fingerprint, and model configuration, as
+well as the reason a comparison passed, failed, or was inconclusive; score
+percentages alone are not an iteration record.
 
 ## The split
 

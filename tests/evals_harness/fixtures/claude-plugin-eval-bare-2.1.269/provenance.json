@@ -1,0 +1,11 @@
+{
+  "captured_date": "2026-09-12",
+  "command": "claude plugin eval init --bare smoke --eval-dir evals",
+  "package": "@anthropic-ai/claude-code",
+  "version": "2.1.269",
+  "npm_dist_integrity": "sha512-osSbRU1KjlAfhVSgso7g+KxCr5DLNlfm7xeRPpm/c9s+7HGqQLHbkUYvjepbe6TiHJa9iSeirW/t7vW4sZhTIQ==",
+  "npm_dist_shasum": "862f6deaffbfda326ca2306b21f4db80265c2d52",
+  "prompt_sha256": "b9e1dbf0803b68784376b809002c5cfffd17849503201a1c36192fb6daf0e9c7",
+  "criteria_sha256": "1439ce48786e0b03353b7981a1f90ddfe8ba745147e8c6de9f34f7a85fe0781e",
+  "tarball": "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.269.tgz"
+}

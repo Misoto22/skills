@@ -38,6 +38,121 @@ The hand-run remains the higher-fidelity path, and it is what an iteration uses:
 `--report`, the prompts put to a fresh agent with the skills actually installed,
 and what happened written down. `evals/email/iteration-1/` is that, done.
 
+## Experiment runs and cost boundaries
+
+The repository gate remains free: GitHub Actions runs structural checks, unit
+tests, and installation checks. It does not run model scoring. The remote Evals
+workflow has no schedule and its scored job is disabled unless the repository
+explicitly enables it; hosted runners cannot use the protected gateway.
+
+Paid experiments run locally through an SSH loopback gateway and a scoped
+1Password reference. They start dry and keep reports local; no command may
+publish a report or spend money merely because a pull request was opened. A
+shared CNY ledger reserves the worst case before a request. Observed provider
+usage is evidence for the report, not permission to release an untrusted
+reservation.
+
+The execution runner may expose named fixture tools. That boundary is a
+declared tool allowlist and fixture copy, not an operating-system sandbox: do
+not point it at production data, user home directories, or arbitrary commands.
+
+Create an environment file with a gateway URL and a credential-store reference;
+never source a reference dotenv file straight into the SDK, and never replace
+the reference with a key value:
+
+```dotenv
+LITELLM_EVALS_BASE_URL=https://gateway.example/v1
+LITELLM_EVALS_API_KEY=op://vault/item/field
+```
+
+Set the placeholders once for a split run, then use the same arguments first
+without `--execute`. The dry run computes the reservation and writes nothing to
+the provider. `op run` resolves the reference only for the child process.
+
+```bash
+SKILL=your-skill
+CASE=your-behavior-case
+SPLIT=tuning
+RUN=before-tuning
+
+op run --env-file .evals.env -- python3 scripts/run-evals-experiment.py "$SKILL" \
+  --case "$CASE" --split "$SPLIT" --arms both --samples 3 \
+  --candidate-model deepseek-default --judge-model deepseek-default \
+  --candidate-reasoning-effort none --judge-reasoning-effort none \
+  --model-provenance .eval-runs/model-provenance.json \
+  --max-turns 4 --max-tool-calls 4 --max-input-tokens 32000 \
+  --max-output-tokens 4000 --judge-max-output-tokens 1000 --retries 0 \
+  --prices evals/pricing.example.json --max-cost-cny 0.30 --budget-limit-cny 1.00 \
+  --budget-ledger .eval-runs/budget.json --output ".eval-runs/$RUN.json"
+```
+
+After reviewing the printed reservation, repeat that command with `--execute`
+as its final argument. The output path must be new: the runner refuses to
+overwrite evidence. Run the same four-phase shape separately for
+`before-tuning`, `before-holdout`, `after-tuning`, and `after-holdout`; use the
+matching `--split` each time.
+
+`--candidate-reasoning-effort` and `--judge-reasoning-effort` are optional and
+omitted by default. Use them only when the selected provider and gateway
+support the option. The configured DeepSeek-through-LiteLLM path accepts
+`none`, which explicitly disables DeepSeek thinking mode; it is passed as the
+top-level OpenAI-compatible `reasoning_effort` field. Do not assume `none` has
+the same meaning or support for another provider.
+
+`--model-provenance` records an operator-supplied mapping attestation. It never
+discovers gateway internals automatically. Create it from a reviewed gateway
+inventory, keeping it free of credentials:
+
+```json
+{
+  "source": "reviewed gateway inventory",
+  "as_of": "2026-09-12",
+  "mapping_digest": "<64-character lowercase SHA-256 digest>",
+  "candidate": {
+    "requested_alias": "deepseek-default",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "revision": "DeepSeek-V4.1-Flash",
+    "deployment_id": "<reviewed deployment identifier>"
+  },
+  "judge": {
+    "requested_alias": "deepseek-default",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "revision": "DeepSeek-V4.1-Flash",
+    "deployment_id": "<reviewed deployment identifier>"
+  }
+}
+```
+
+Read the ledger and the saved record after every execution:
+
+```bash
+jq '{limit_cny, reserved_cny, runs}' .eval-runs/budget.json
+jq '{run_id, run_config, provenance, usage_trusted, actual_cost, summary}' \
+  ".eval-runs/$RUN.json"
+```
+
+If a run returns nonzero, stop. Keep its record and ledger entry; when usage is
+untrusted, the full reservation deliberately remains held. Diagnose the error
+without retrying, then start a new output record only after the shared ledger
+has enough remaining capacity. Never edit or delete a ledger entry to release a
+reservation.
+
+Run tuning and holdout as four separate records: before-tuning, before-holdout,
+after-tuning, and after-holdout. Apply the gate with
+`scripts/compare-eval-runs.py --before-tuning BEFORE-TUNING.json --before-holdout BEFORE-HOLDOUT.json --after-tuning AFTER-TUNING.json --after-holdout AFTER-HOLDOUT.json`.
+It combines each version's two split records and compares only their
+`with`-skill arms. The suite, scoring, model, and case-sample evidence must
+match; tuning must improve strictly, and holdout must not fall. A missing arm,
+wrong split, void sample, malformed record, or non-comparable sample set is
+`inconclusive`, never a pass. Add `--benchmark PATH` to write a compact
+Markdown record beside the iteration.
+
+Claude Code's official eval feature was initialized separately with the
+temporary 2.1.269 client. That initialization is not a paid run and is not
+evidence that its independent scorer has passed this repository's gate.
+
 ## Splits
 
 A case carrying `"holdout": true` belongs to the gate; everything else belongs

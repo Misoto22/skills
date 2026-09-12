@@ -1,5 +1,6 @@
 {
   "skill": "reunite",
+  "data_classification": "synthetic",
   "triggers": [
     {
       "id": "vanished-after-switch",
@@ -102,6 +103,34 @@
         "Explains that the desktop app and the CLI hold separate logins, so a rename lands in the app's index and not necessarily the one the CLI reports.",
         "Does not conclude the rename failed without looking in the other account's index first."
       ]
+    },
+    {
+      "id": "synthetic-sandbox-merge",
+      "prompt": "Use the available evaluation tools to apply the declared merge command to the synthetic two-account session index. Inspect the resulting manifest and report exactly what the tool changed.",
+      "expectations": [
+        "Actually invokes the declared merge command rather than only describing it.",
+        "Reports that two synthetic index entries were copied and that the manifest records them.",
+        "Does not claim to have read or changed any real user session history."
+      ],
+      "execution": {
+        "fixture_root": "fixtures/tool-merge",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["merge"],
+        "commands": {
+          "merge": {
+            "script": "scripts/merge.py",
+            "args": ["--apply", "--keep-orphans"],
+            "env": {"CLAUDE_DESKTOP_SESSIONS_DIR": "."}
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": ".session-merge-manifest.json"},
+          {"type": "json_length", "path": ".session-merge-manifest.json", "key": "copied", "equals": 2},
+          {"type": "file_exists", "path": "account-a/org-a/local_b.json"},
+          {"type": "file_exists", "path": "account-b/org-b/local_a.json"}
+        ]
+      }
     }
   ]
 }
