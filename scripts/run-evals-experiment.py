@@ -99,6 +99,31 @@ def content_fingerprint(paths: list[Path]) -> str:
     return fingerprint(content)
 
 
+def suite_input_fingerprint(skill: str, suite_path: Path, suite: dict) -> str:
+    """Fingerprint only declared inputs that can change a behavior evaluation.
+
+    Iteration notes are review records, not runtime inputs.  A comparison must remain
+    valid when those notes change, while a suite declaration, supplied artifact,
+    execution fixture, or declared tool implementation must still invalidate it.
+    """
+
+    suite_root = suite_path.parent.resolve()
+    skill_root = HARNESS._skill_root(skill).resolve()
+    paths = [suite_path]
+    for case in suite["behaviors"]:
+        for field in ("fixture", "artifact"):
+            declared = case.get(field)
+            if declared is not None:
+                paths.append(suite_root / declared)
+        execution = case.get("execution") or {}
+        fixture_root = execution.get("fixture_root")
+        if fixture_root is not None:
+            paths.append(suite_root / fixture_root)
+        for command in execution.get("commands", {}).values():
+            paths.append(skill_root / command["script"])
+    return content_fingerprint(paths)
+
+
 def mechanical_input_fingerprint(skill: str, cases: list[dict]) -> str:
     paths = []
     skill_root = HARNESS._skill_root(skill)
@@ -790,7 +815,7 @@ def main() -> int:
         if sandbox:
             sandbox.close()
     record = make_run_record(
-        suite_fingerprint=content_fingerprint([suite_path.parent]),
+        suite_fingerprint=suite_input_fingerprint(args.skill, suite_path, suite),
         scoring_fingerprint=fingerprint(scoring_config(args, prices, suite, model_provenance)),
         skill_fingerprint=fingerprint(HARNESS.behavior_system_prompt(args.skill)),
         candidate=model_config("candidate", args),
