@@ -139,13 +139,13 @@ class NativeCodex:
             # No import should ask to execute a tool or obtain a permission grant.
             self._send({"id": message["id"], "error": {"code": -32601, "message": "Unsupported request"}})
 
-    def call(self, method: str, params: dict) -> dict:
+    def call(self, method: str, params: dict, *, timeout: float | None = None) -> dict:
         if self.process is None:
             self.start()
         self.sequence += 1
         request_id = self.sequence
         self._send({"id": request_id, "method": method, "params": params})
-        deadline = time.monotonic() + self.timeout
+        deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
         while True:
             message = self._next(deadline)
             if message.get("id") == request_id:
@@ -194,6 +194,8 @@ class NativeCodex:
                 "maxSessionAgeDays": 36500,
                 "maxSessions": 1000000,
             },
+            # Native discovery scans the complete local archive before returning.
+            timeout=max(self.timeout, 300),
         )
         self.detection_complete = True
         for item in result.get("items", []):
