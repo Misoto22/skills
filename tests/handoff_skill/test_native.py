@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[2] / "plugins/dev/skills/handoff/scripts"
 
@@ -22,7 +24,7 @@ def load_native():
 
 
 SERVER = r"""
-import json, sys, time
+import json, os, sys, time
 from pathlib import Path
 home = Path(sys.argv[1])
 mode = sys.argv[2]
@@ -35,7 +37,8 @@ for line in sys.stdin:
         continue
     result = {}
     if method == "initialize":
-        result = {"codexHome": str(home if mode != "wrong_home" else home / "other")}
+        selected = os.environ.get("CODEX_HOME", "") if mode == "environment_home" else home
+        result = {"codexHome": str(selected if mode != "wrong_home" else home / "other")}
     elif method == "externalAgentConfig/detect":
         if mode == "slow_discovery":
             time.sleep(0.15)
@@ -91,6 +94,13 @@ class NativeImportTests(unittest.TestCase):
         self.assertEqual(result.rollout_path, self.home / "rollout.jsonl")
         self.assertTrue(result.changed)
         self.assertEqual(json.loads((self.home / "named.json").read_text())["name"], "Readable title")
+
+    def test_selected_home_reaches_child_without_changing_parent_environment(self):
+        unrelated = str(self.home / "unrelated")
+        with patch.dict(os.environ, {"CODEX_HOME": unrelated}):
+            with self.client("environment_home") as client:
+                self.assertEqual(client.home, self.home.resolve())
+            self.assertEqual(os.environ["CODEX_HOME"], unrelated)
 
     def test_large_history_discovery_has_its_own_timeout(self):
         with self.client("slow_discovery") as client:

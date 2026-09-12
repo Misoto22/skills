@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
 import re
 import subprocess
@@ -66,6 +67,7 @@ class NativeCodex:
                 stderr=subprocess.DEVNULL,
                 text=True,
                 bufsize=1,
+                env={**os.environ, "CODEX_HOME": str(self.home)},
             )
         except OSError as error:
             raise NativeError("native_client_unavailable") from error
