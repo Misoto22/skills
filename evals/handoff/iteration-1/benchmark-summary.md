@@ -1,0 +1,24 @@
+# Evaluation iteration gate
+
+- Result: **inconclusive**
+- Before Tuning: `.eval-runs/handoff-completion/release-before-tuning.json`
+- Before Tuning HEAD: `c9dbf82d04257a97f9f66fd6eead6392ad7eeb36`
+- Before Tuning dirty: `False`
+- Before Tuning dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
+- Before Tuning models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
+- Before Holdout: `.eval-runs/handoff-completion/release-before-holdout.json`
+- Before Holdout HEAD: `c9dbf82d04257a97f9f66fd6eead6392ad7eeb36`
+- Before Holdout dirty: `False`
+- Before Holdout dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
+- Before Holdout models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
+- After Tuning: `.eval-runs/handoff-completion/release-after-tuning.json`
+- After Tuning HEAD: `939579f8e7bed40585388bde7eacffed47d31bd4`
+- After Tuning dirty: `False`
+- After Tuning dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
+- After Tuning models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
+- After Holdout: `.eval-runs/handoff-completion/release-after-holdout.json`
+- After Holdout HEAD: `939579f8e7bed40585388bde7eacffed47d31bd4`
+- After Holdout dirty: `False`
+- After Holdout dirty fingerprint: `12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126`
+- After Holdout models: `{"candidate": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}, "judge": {"base_url_label": "scoped-gateway", "model": "deepseek-default", "provider": "openai-compatible"}}`
+- Reason: suite fingerprint changed

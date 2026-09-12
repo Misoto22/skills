@@ -1,33 +1,31 @@
-`handoff` makes a conversation you are having in one agent appear in the other one's history while it is still going. Work in Claude Code, close it, open Codex — the conversation is there. Work in Codex, open Claude Code — same.
+`handoff` keeps readable conversation history available in Claude Code and Codex on the same machine. Its background watcher discovers both local stores, registers native Codex tasks, and creates Claude transcripts with indexes in every existing local Claude account.
 
-## Why it is a small thing to build
+## Set it up
 
-The two tools converged, probably by borrowing from each other.
+From the installed skill directory:
 
-They fire hooks on the same events under the same configuration shape — Codex's `hooks.json` uses Claude Code's schema down to the environment variable names. And both write their history as one JSON object per line, appended as the conversation runs, rather than saved at the end. So a hook on either side can read what has accumulated since it last looked and write that into the other side's format.
-
-What is left is a field-name translation: `type:assistant` here is `response_item/message` there, `content[tool_use]` is `function_call`, and so on. That table is the whole of the conversion.
-
-## What it actually does
-
-Every tool call and every completed turn, a hook reads the new lines of the conversation it is in and appends them, translated, to a mirror on the other side. The mirror is a separate conversation with its own id: appending into a history the other tool has open would race that tool's own writer, and a corrupted transcript costs more than a duplicated one.
-
-```
-python3 scripts/handoff.py install     # register the hooks on both sides
-python3 scripts/handoff.py status      # what is paired, how far each has read
-python3 scripts/handoff.py uninstall   # remove the hooks, keep the mirrors
+```bash
+python3 scripts/handoff.py sync           # preview the planned reconciliation
+python3 scripts/handoff.py sync --apply   # apply one pass
+python3 scripts/handoff.py install        # install the stable runner, hooks and watcher
+python3 scripts/handoff.py status         # inspect installation and completion state
+python3 scripts/handoff.py uninstall      # remove this service and hooks, keep histories
 ```
 
-`install` edits two files you may already have hooks in — `~/.claude/settings.json` and `~/.codex/hooks.json`. It touches only entries that name this script, and installing twice replaces rather than stacks. Codex trusts hooks by hash, so the next Codex session asks you to approve it once.
+Installation backs up the hook settings, updates this skill's entries in `~/.claude/settings.json` and `~/.codex/hooks.json`, and preserves other hooks. On macOS it also installs its own launch agent. Reinstall after a plugin update to refresh the stable runner. Client hook trust remains under the client's control. Other platforms report the watcher as not installed; run `watch` or explicit sync passes where supported.
 
-## What it is not
+## How histories stay separate
 
-**It is a readable record, not a resumable replay.** Codex encrypts its reasoning under its own key and Claude signs its thinking blocks. Neither signature can be reconstructed from the other side's text, so the reasoning arrives as plain summary text where it survives at all. You can read the whole conversation on the other side and pick up from it; you cannot resume it as if it had been running there.
+A Codex rollout file alone is insufficient: the bridge uses native import and reads the resulting task back. Claude also needs a desktop index entry. The bridge matches the transcript's `cliSessionId` and preserves an existing desktop `sessionId`, including when those two IDs differ.
 
-**The two copies diverge after the handoff.** Continuing in one tool does not reach back to the other.
+Untouched imports can receive updates. If either copy has been independently continued, the bridge preserves it and sends later history as a separate branch. Originals are retained. Histories from deleted working directories use a managed snapshot with an existing parent directory, leaving the recorded original unchanged.
 
-**It does not slow anything down.** The hook writes nothing to stdout and always exits zero — a hook's output is read as feedback by the agent that ran it, and a failing hook can stop a turn. Mirroring is bookkeeping, so its failures are recorded in the state file and surface through `status` rather than in the middle of your work.
+## What to verify
 
-## The part that is a guess
+A hook only requests a background scan. Its silent zero exit does not prove that any conversation synchronized. Read the latest watcher completion report and per-source failures, then open a fresh imported conversation in the destination application. All-account index checks and actual sidebar visibility are separate checks.
 
-Codex's hook payload does not say which file it is writing, so the Codex side falls back to the most recently modified rollout for that directory. Two Codex sessions in the same directory at the same time can pair to the wrong one. The pairing then sticks to the file it actually read, so a wrong guess makes one wrong mirror rather than corrupting a right one.
+Large archives can take time to scan, especially after a watcher restart. Synchronization is eventual; a configured polling interval is not an end-to-end latency guarantee. Partial final lines wait until the next complete record.
+
+## Limits
+
+This preserves readable context, not a byte-exact provider replay. Encrypted reasoning, signed thinking, attachments and provider-specific state may not survive translation. Imported conversations can be continued as separate tasks. Subagents and cloud-only histories are excluded, and this is not a transfer between computers.

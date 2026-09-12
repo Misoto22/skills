@@ -56,9 +56,9 @@ Say what `install` will edit before running it. These are the user's own hook co
 
 ## The hook contract
 
-`mirror` writes nothing to stdout and always exits 0. A hook's stdout is read as feedback by the agent that ran it, and a non-zero exit can stop a turn. Mirroring is bookkeeping and has no business doing either, so every failure is swallowed and recorded in the state file instead — `status` is where a broken mirror surfaces.
+`mirror` writes nothing to stdout and always exits 0. A hook's stdout is read as feedback by the agent that ran it, and a non-zero exit can stop a turn. The hook only writes a scan-request marker; it does not translate the current transcript. The independent watcher discovers both stores and records each pass. A silent zero exit is not evidence that synchronization completed. Start diagnosis with `python3 scripts/handoff.py status`, then read `~/.claude/handoff/watcher-state.json` and `~/.claude/handoff/last-sync-report.json` for the latest completion and any unfinished sources.
 
-Each side keeps a byte watermark, so a `PostToolUse` hook firing two hundred times translates each exchange once. `read_jsonl` stops at the last newline: the hook fires while the other tool is mid-write, and the final line is routinely half-written.
+Stable source identities, conversation digests and ownership checkpoints prevent repeated scans from duplicating histories. The reader stops at the last complete newline, because a source may still be writing. Preserve an incomplete tail for the next pass; do not treat it as a successfully synchronized message.
 
 ## What does not survive
 
@@ -68,9 +68,9 @@ A mirror is a **readable record of what happened, not a resumable replay.** Code
 
 Once imported, the conversations have separate identities and can be continued from their readable context. The watcher synchronizes subsequent changes in both directions. It may update an untouched import, but it preserves an independently continued conversation and imports later changes as a separate branch. Never overwrite either original or merge competing continuations into one history. This is continued context with branch preservation, not a byte-exact provider replay.
 
-## The one guess
+## Source selection
 
-Codex's hook payload does not name the rollout it is writing, so `mirror --from=codex` falls back to the most recently modified rollout declaring that working directory. Two Codex sessions in one directory can therefore pair to the wrong file. The pairing is keyed by the file actually read rather than by the directory, so a wrong guess produces one wrong mirror instead of corrupting a right one — but say it is a guess when reporting.
+Codex's hook payload does not name the rollout it is writing. The watcher instead discovers top-level native task IDs and their recorded rollout paths from the read-only catalogue. It does not choose the newest file in a working directory. Multiple tasks can therefore share a directory without being paired by recency; subagents and cloud-only tasks remain excluded.
 
 ## Reporting
 
@@ -84,4 +84,4 @@ Handoff state <path>
   hooks in hooks.json: installed, but pointing at a plugin cache (codex)
 ```
 
-Both hook lines matter. Installed on one side only is a one-way mirror, which looks like a working sync until the day it is needed in the other direction. And `pointing at a plugin cache` means an install predating this runner, or one that has not been re-run since a plugin update: that hook resolves until the cache directory goes, then silently stops.
+The example above is legacy pairing output, not proof that the current watcher completed a pass. Check the watcher completion timestamp, `status`, `error_count`, and `unfinished_count`, then inspect per-source failures in the last sync report. Verify a fresh source through native readback and the account indexes before claiming success. Check both hook registrations for event requests, but one missing hook does not make an independently running watcher one-way: the watcher scans both stores. And `pointing at a plugin cache` means an install predating this runner, or one that has not been re-run since a plugin update: that hook resolves until the cache directory goes, then silently stops.
