@@ -55,7 +55,7 @@ evidence distinct.
 
 ## Current release gate
 
-The feature branch has passed the full repository gate: 1,116 Python tests
+The feature branch has passed the full repository gate: 1,117 Python tests
 with one expected platform skip, 83% runtime coverage against an 82% floor,
 and the formatting, shell, registry, installation and evaluation structure checks.
 Independent review found no remaining spec or standards findings. Regression
