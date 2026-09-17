@@ -4,10 +4,22 @@ name: Release
 # are served by manually uploaded .skill archives. This builds them once per
 # tag instead of asking every consumer to rebuild them locally.
 #
-# Two ways in, one path through. Pushing a tag is the ordinary route. Dispatch
-# exists because some callers can trigger a workflow but cannot push a tag; it
-# creates the tag itself, from the default branch only, and every step after
-# resolution works from $TAG rather than from what triggered the run.
+# This workflow no longer decides when a release happens. release-please does:
+# a Conventional Commit lands on main, release-please.yml opens or updates
+# "chore(main): release X.Y.Z", and merging that pull request rewrites every
+# versioned file, tags vX.Y.Z and publishes the GitHub Release. The tag is
+# pushed by the misoto22-release-bot App rather than by GITHUB_TOKEN, which is
+# the only reason the push below starts this run at all — a tag created with
+# GITHUB_TOKEN triggers nothing.
+#
+# So by the time this runs the release page already exists, and the "Attach"
+# step always takes the --clobber upload branch. The create branch below stays
+# for a tag pushed by hand, which the ordinary path no longer does.
+#
+# Two ways in, one path through. The tag push is the ordinary route. Dispatch
+# is for re-running the packaging over a release that is already there — an
+# upload that failed, an attestation to redo — and every step after resolution
+# works from $TAG rather than from what triggered the run.
 
 on:
   push:
@@ -97,19 +109,18 @@ jobs:
       - name: Run the test suite
         run: python3 -m unittest discover -s tests -v
 
-      # A tag pushed with GITHUB_TOKEN does not start another workflow run, so
-      # this cannot hand off to the push trigger — the job finishes the release.
-      - name: Create the tag
+      # This step used to create the tag. release-please owns it now, and a tag
+      # invented here would carry a version its manifest never recorded — the
+      # next release pull request would then compute its bump from the wrong
+      # base. A dispatch for a tag nobody cut is a mistake, so say so rather
+      # than building archives that hang under nothing.
+      - name: Refuse a dispatch for a tag that does not exist
         if: github.event_name == 'workflow_dispatch'
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "::error::$TAG already exists; releasing it again would rewrite history"
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG does not exist. A release is cut by merging release-please's release pull request; this workflow only packages one that is already there."
             exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "skills $TAG"
-          git push origin "$TAG"
 
       - name: Package every published skill
         run: |

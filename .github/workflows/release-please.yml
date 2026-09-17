@@ -1,0 +1,41 @@
+# Open and maintain the release pull request with the fleet release bot.
+#
+# The file is not called release.yml because that name belongs to the archive
+# builder: it fires on `push: tags` and attaches a `.skill` for every published
+# skill to the GitHub Release. Renaming it would break the one delivery route
+# claude.ai and Cowork have on a personal plan.
+#
+# The chain: a Conventional Commit lands on main -> this job opens or updates
+# "chore(main): release X.Y.Z" -> merging that pull request rewrites all
+# forty-four versioned files, writes CHANGELOG.md, tags vX.Y.Z and publishes
+# the GitHub Release -> release.yml packages the archives and uploads them to
+# that release. The release must be created by the misoto22-release-bot App
+# token rather than GITHUB_TOKEN, because anything created with GITHUB_TOKEN
+# triggers no further workflow runs and the archives would never be built.
+#
+# What the bot rewrites is declared in release-please-config.json, and
+# `scripts/bump-version.py --audit` holds that list to .version-bump.json so a
+# file can never be in one and missing from the other.
+
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: Misoto22/ci/.github/workflows/release.yml@168697c01c8c24ce02a24a4e7b7b773e65c5cefe # v0.2.0
+    with:
+      app-client-id: ${{ vars.APP_CLIENT_ID }}
+    secrets:
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

@@ -99,6 +99,7 @@
       ".claude",
       ".eval-runs",
       ".git",
+      ".release-please-manifest.json",
       ".version-bump.json",
       "CHANGELOG.md",
       "deprecated",

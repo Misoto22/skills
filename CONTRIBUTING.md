@@ -112,16 +112,27 @@ Tests come before implementation, and a change to what a script asserts needs a 
 
 ## Releasing
 
+Nobody cuts a release by hand. `release-please` does, from the pull-request titles that landed on `main`, which is
+the other reason the title has to be a Conventional Commit and why `pr-title / pr-title` is a required check.
+
+Merging a `feat:` or `fix:` pull request makes the bot open or update one called `chore(main): release X.Y.Z`. That
+pull request rewrites every versioned file listed under `extra-files` in `release-please-config.json` — both plugin
+manifests per plugin, every `SKILL.md` front matter, `registry.json`, the validator's `VERSION`, and the two test
+constants — and writes the `CHANGELOG.md` entry. Review it like any other pull request; the whole gate runs on it.
+Merging it tags `vX.Y.Z`, publishes the GitHub Release, and `release.yml` then builds a `.skill` for every published
+skill and attaches them to it, which is how claude.ai and Cowork are served on a personal plan.
+
+What decides the number is the commit type: `fix:` is a patch, `feat:` a minor, and a `!` or a `BREAKING CHANGE:`
+trailer a major. New skills are a minor. A change to an install string or a command prefix is breaking, and in 0.x
+that belongs in the minor position — so write it as `feat!:` only once this repository is past 1.0.
+
+`scripts/bump-version.py <version>` still exists for a correction the bot cannot make, and `--audit` is now the check
+that `release-please-config.json` and `.version-bump.json` still describe the same set of files:
+
 ```bash
-python3 scripts/bump-version.py <version>
+python3 scripts/bump-version.py --audit
 ```
 
-Then update `CHANGELOG.md`, close `## Unreleased` with the version and date, merge, and tag:
-
-```bash
-git tag -a v<version> -m "skills v<version>" && git push origin v<version>
-```
-
-The tag builds a `.skill` for every published skill and attaches them to a GitHub Release, which is how claude.ai and Cowork are served on a personal plan.
-
-New skills are a minor bump. A change to an install string or a command prefix is breaking, and in 0.x that also belongs in the minor position.
+A file that carries the version and is declared in only one of them fails that check. A new `SKILL.md` is registered
+in both by `scripts/new-skill.py`, and every file release-please rewrites in place carries a
+`# x-release-please-version` comment on the line holding the version — delete it and the release walks past the file.

@@ -1,8 +1,11 @@
 # Changelog
 
-All notable changes to this repository are documented here.
-
-## Unreleased
+All notable changes to this repository are documented here. Everything up to
+0.17.1 was written by hand; from the next release on, release-please writes this
+file from the Conventional Commit subjects that landed on `main`, which is why
+the two heading shapes differ. There is no `## Unreleased` section to keep
+current any more — an unreleased change is described by its own commit subject,
+and the open release pull request always shows what the next release would say.
 
 ## 0.17.1 — 2026-09-12
 

@@ -63,6 +63,7 @@ def main() -> int:
         _unregister_license_exception(args.plugin, touched)
     _unregister_root_readme(args.plugin, args.skill, touched)
     _unregister_version_bump(args.plugin, args.skill, retires_plugin, touched)
+    _unregister_release_please(args.plugin, args.skill, retires_plugin, touched)
     _unregister_skills_sh(args.plugin, args.skill, touched)
     _unregister_translations(args.plugin, args.skill, retires_plugin, touched)
     _drop_dangling_hand_offs(args.skill, touched)
@@ -284,6 +285,29 @@ def _unregister_version_bump(plugin: str, skill: str, retires_plugin: bool, touc
             f"plugins/{plugin}/plugin.json",
         }
         config["json"] = [entry for entry in config["json"] if entry["path"] not in retired]
+    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    touched.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _unregister_release_please(plugin: str, skill: str, retires_plugin: bool, touched: list[str]) -> None:
+    """Drop the retired paths from the release bot's rewrite list.
+
+    Left behind, they are files release-please is told to open on every release
+    and cannot find — and `bump-version.py --audit` fails on them, because a
+    path named there and absent from the tree is the same drift as a path
+    declared in .version-bump.json and missing here.
+    """
+
+    path = ROOT / "release-please-config.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    dropped = {f"plugins/{plugin}/skills/{skill}/SKILL.md"}
+    if retires_plugin:
+        dropped |= {
+            f"plugins/{plugin}/.claude-plugin/plugin.json",
+            f"plugins/{plugin}/plugin.json",
+        }
+    package = config["packages"]["."]
+    package["extra-files"] = [entry for entry in package["extra-files"] if entry["path"] not in dropped]
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 
