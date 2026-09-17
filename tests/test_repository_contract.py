@@ -34,6 +34,7 @@ REGISTRIES = [
     "bundle/.claude-plugin/plugin.json",
     "scripts/validate-repository.py",
     ".version-bump.json",
+    "release-please-config.json",
     "skills.sh.json",
     "registry.json",
     "i18n/zh.json",
@@ -44,7 +45,36 @@ PLUGIN_PATH = PLUGIN / ".claude-plugin" / "plugin.json"
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 LINK_SCRIPT = ROOT / "scripts" / "link-skills.sh"
 CHANGELOG_PATH = ROOT / "CHANGELOG.md"
-RELEASE_HEADING = re.compile(r"^## (\d+\.\d+\.\d+) — \d{4}-\d{2}-\d{2}$")
+RELEASE_PLEASE_CONFIG_PATH = ROOT / "release-please-config.json"
+RELEASE_PLEASE_MANIFEST_PATH = ROOT / ".release-please-manifest.json"
+# Two shapes, because two things wrote this file. Every heading up to the
+# migration was hand-written as `## X.Y.Z — YYYY-MM-DD`; from the next release
+# on they are release-please's, which links the compare view and parenthesises
+# the date — `## [X.Y.Z](…/compare/vA.B.C...vX.Y.Z) (YYYY-MM-DD)`, or the bare
+# `## X.Y.Z (YYYY-MM-DD)` when there is no earlier tag to compare against. No
+# literal version here: the audit greps this file for the current one.
+RELEASE_HEADING = re.compile(
+    r"^## (?:\[(?P<linked>\d+\.\d+\.\d+)\]\(\S+\)|(?P<bare>\d+\.\d+\.\d+))"
+    r"(?: — \d{4}-\d{2}-\d{2}| \(\d{4}-\d{2}-\d{2}\))$"
+)
+
+
+def changelog_releases() -> list[str]:
+    """Return every version CHANGELOG.md documents, in the order it documents them."""
+
+    found = []
+    for line in CHANGELOG_PATH.read_text(encoding="utf-8").splitlines():
+        match = RELEASE_HEADING.match(line)
+        if match:
+            found.append(match.group("linked") or match.group("bare"))
+    return found
+
+
+def release_please_extra_files() -> dict[str, dict]:
+    """Return the paths release-please rewrites, keyed by path."""
+
+    config = json.loads(RELEASE_PLEASE_CONFIG_PATH.read_text(encoding="utf-8"))
+    return {entry["path"]: entry for entry in config["packages"]["."]["extra-files"]}
 
 
 def declared_version() -> str:
@@ -695,7 +725,13 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("shellcheck scripts/*.sh", workflow)
 
     def test_changelog_keeps_one_unreleased_section_and_descending_releases(self) -> None:
-        """Two `## Unreleased` sections merge on sight, and the second one's entries vanish."""
+        """Two `## Unreleased` sections merge on sight, and the second one's entries vanish.
+
+        release-please writes this file now and never opens an `## Unreleased`
+        section, so the ordinary count is zero. The rule stays because a hand
+        edit could still add one, and a second one would silently swallow the
+        first one's entries.
+        """
 
         headings = [
             line for line in CHANGELOG_PATH.read_text(encoding="utf-8").splitlines() if line.startswith("## ")
@@ -710,19 +746,25 @@ class RepositoryContractTests(unittest.TestCase):
                 continue
             match = RELEASE_HEADING.match(heading)
             self.assertIsNotNone(match, f"malformed release heading: {heading!r}")
-            releases.append(tuple(int(part) for part in match.group(1).split(".")))
+            version = match.group("linked") or match.group("bare")
+            releases.append(tuple(int(part) for part in version.split(".")))
 
         self.assertEqual(releases, sorted(releases, reverse=True), "releases must run newest first")
         self.assertEqual(len(releases), len(set(releases)), "a version is documented twice")
 
     def test_changelog_documents_the_declared_version(self) -> None:
-        """A bump that never closed `## Unreleased` tags a release nothing describes."""
+        """The release pull request writes both, so a version in one and not the other is drift.
+
+        release-please rewrites `VERSION` in the validator and prepends the
+        matching CHANGELOG section in the same commit. This test is what fails
+        if the changelog updater is ever dropped from the config, which would
+        otherwise only show as a Release page with no notes.
+        """
 
         version = declared_version()
-        changelog = CHANGELOG_PATH.read_text(encoding="utf-8")
-        self.assertRegex(
-            changelog,
-            rf"(?m)^## {re.escape(version)} — \d{{4}}-\d{{2}}-\d{{2}}$",
+        self.assertIn(
+            version,
+            changelog_releases(),
             f"CHANGELOG.md has no section for the declared version {version}",
         )
 
@@ -1598,7 +1640,11 @@ class RepositoryContractTests(unittest.TestCase):
     def test_every_action_is_pinned_to_a_commit(self) -> None:
         """A tag is a moving reference. Whoever can move it can change what CI runs."""
 
-        pinned = re.compile(r"^[\w.-]+/[\w.-]+@[0-9a-f]{40} # \S+$")
+        # `owner/repo@sha`, or `owner/repo/path/to/workflow.yml@sha` for a
+        # reusable workflow in another repository — the fleet's release and
+        # pr-title callers are the second shape, and the moving-reference
+        # hazard is identical for both.
+        pinned = re.compile(r"^[\w.-]+/[\w.-]+(?:/[\w./-]+\.ya?ml)?@[0-9a-f]{40} # \S+$")
         seen = 0
         for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -1632,7 +1678,12 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertRegex("\n".join(lines), r"(?m)^  cancel-in-progress: (true|false)$", path.name)
 
             runners = [index for index, line in enumerate(lines) if line.strip().startswith("runs-on:")]
-            self.assertTrue(runners, f"{path.name} defines no job")
+            # A job that only calls a reusable workflow declares no runner, so
+            # the timeout is the called workflow's to set — `Misoto22/ci` owns
+            # the release and pr-title jobs. What this repository still owns is
+            # the concurrency group above, which applies to the caller.
+            callers = [index for index, line in enumerate(lines) if line.startswith("    uses: ")]
+            self.assertTrue(runners or callers, f"{path.name} defines no job")
             for index in runners:
                 self.assertRegex(
                     lines[index + 1],
@@ -1657,11 +1708,18 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(parsed.stdout.strip(), declared_version())
 
     def test_release_can_be_dispatched_and_still_resolves_one_tag(self) -> None:
-        """Dispatch exists for callers that can start a workflow but not push a tag."""
+        """Dispatch re-runs the packaging over a release release-please already cut."""
 
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", workflow)
+
+        # The tag is release-please's to create. One invented here would carry a
+        # version its manifest never recorded, and the next release pull request
+        # would compute its bump from the wrong base.
+        self.assertNotIn("git tag -a", workflow)
+        self.assertNotIn("git push origin", workflow)
+        self.assertIn('if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG"', workflow)
         self.assertIn("inputs:", workflow)
         self.assertIn("REQUESTED: ${{ inputs.version }}", workflow)
         # Interpolating an input straight into a script would be injection into a
@@ -1680,6 +1738,184 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotIn("GITHUB_REF_NAME", after)
         for command in ("gh release view", "gh release upload", "gh release create"):
             self.assertIn(f'{command} "$TAG"', after)
+
+    def test_release_please_rewrites_every_file_that_carries_the_version(self) -> None:
+        """The two lists describe the same files from opposite ends.
+
+        `.version-bump.json` knows which files carry a version;
+        `release-please-config.json` is what actually rewrites them when the
+        release pull request merges. Each is green on its own while they
+        disagree, and the disagreement only shows as a published archive whose
+        `metadata.version` is one release behind the tag it hangs under.
+        """
+
+        declared = json.loads((ROOT / ".version-bump.json").read_text(encoding="utf-8"))
+        extra_files = release_please_extra_files()
+
+        for entry in declared["json"]:
+            with self.subTest(path=entry["path"]):
+                self.assertEqual(
+                    extra_files.get(entry["path"]),
+                    {"type": "json", "path": entry["path"], "jsonpath": f"$.{entry['field']}"},
+                )
+        for relative in declared["text"]:
+            with self.subTest(path=relative):
+                self.assertEqual(extra_files.get(relative), {"type": "generic", "path": relative})
+                self.assertIn(
+                    "x-release-please-version",
+                    (ROOT / relative).read_text(encoding="utf-8"),
+                    f"{relative} gives the generic updater no line to rewrite",
+                )
+
+        # registry.json is generated rather than declared, so the version audit
+        # excludes it — but it restates the version once per published skill.
+        self.assertEqual(
+            extra_files.get("registry.json"),
+            {"type": "json", "path": "registry.json", "jsonpath": "$..version"},
+        )
+        covered = {entry["path"] for entry in declared["json"]} | set(declared["text"])
+        self.assertEqual(set(extra_files), covered | {"registry.json"})
+
+    def test_the_release_manifest_agrees_with_the_tree(self) -> None:
+        """A manifest ahead of the tree skips a version; behind it, the bot re-releases one."""
+
+        manifest = json.loads(RELEASE_PLEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(manifest, {".": declared_version()})
+
+        config = json.loads(RELEASE_PLEASE_CONFIG_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(config["release-type"], "simple")
+        self.assertFalse(config["include-component-in-tag"], "the tag shape is vX.Y.Z, with no component")
+        self.assertTrue(config["always-update"], "the release branch must follow main under a strict policy")
+        self.assertEqual(set(config["packages"]), {"."})
+        # A bootstrap-sha would make the bot ignore the history before it. There
+        # is nothing to ignore: the version this manifest names is a real tag
+        # with a real Release, so the walk already stops in the right place.
+        self.assertNotIn("bootstrap-sha", config)
+
+    def test_the_audit_fails_when_release_please_would_walk_past_a_file(self) -> None:
+        """The cross-check has to bite, or it is a comment."""
+
+        with repository_copy() as copied:
+            config_path = copied / "release-please-config.json"
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            package = config["packages"]["."]
+            dropped = package["extra-files"].pop()["path"]
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+            result = self._run_in(copied, "scripts/bump-version.py", "--audit", expect_success=False)
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(dropped, result.stderr)
+        self.assertIn("release-please-config.json", result.stderr)
+
+    def test_the_audit_fails_when_a_release_annotation_is_deleted(self) -> None:
+        """Without the marker the generic updater finds no line and says nothing."""
+
+        relative = "plugins/writing/skills/email/SKILL.md"
+        with repository_copy() as copied:
+            skill = copied / relative
+            skill.write_text(
+                skill.read_text(encoding="utf-8").replace(" # x-release-please-version", ""),
+                encoding="utf-8",
+            )
+
+            result = self._run_in(copied, "scripts/bump-version.py", "--audit", expect_success=False)
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(relative, result.stderr)
+        self.assertIn("x-release-please-version", result.stderr)
+
+    def test_the_release_marker_is_not_read_as_part_of_the_version(self) -> None:
+        """The marker sits on the same line as the value every reader parses.
+
+        The frontmatter parser took a quoted scalar as everything after the
+        colon, so the comment release-please needs would have made every skill
+        read as drifted — while still passing, because the comparison would
+        simply never match anything.
+        """
+
+        relative = "plugins/writing/skills/email/SKILL.md"
+        version = declared_version()
+        with repository_copy() as copied:
+            skill = copied / relative
+            original = skill.read_text(encoding="utf-8")
+            self.assertIn(f'  version: "{version}" # x-release-please-version', original)
+
+            accepted = self._run_in(
+                copied, "scripts/validate-repository.py", "--skip-tests", expect_success=False
+            )
+            self.assertNotIn(relative, accepted.stderr)
+
+            skill.write_text(original.replace(f'version: "{version}"', 'version: "0.0.1"'), encoding="utf-8")
+            rejected = self._run_in(
+                copied, "scripts/validate-repository.py", "--skip-tests", expect_success=False
+            )
+
+        self.assertNotEqual(rejected.returncode, 0, rejected.stdout)
+        self.assertIn(relative, rejected.stderr)
+        self.assertIn(f"metadata.version must be {version}", rejected.stderr)
+
+    def test_the_scaffold_hands_a_new_skill_to_the_release_bot(self) -> None:
+        """A skill registered in one list and not the other is frozen at the version it was born on."""
+
+        with repository_copy() as copied:
+            self._run_in(copied, "scripts/new-skill.py", "releaseprobe", "probe")
+
+            relative = "plugins/releaseprobe/skills/probe/SKILL.md"
+            config = json.loads((copied / "release-please-config.json").read_text(encoding="utf-8"))
+            extra_files = {entry["path"]: entry for entry in config["packages"]["."]["extra-files"]}
+            self.assertEqual(extra_files.get(relative), {"type": "generic", "path": relative})
+            for manifest in (
+                "plugins/releaseprobe/.claude-plugin/plugin.json",
+                "plugins/releaseprobe/plugin.json",
+            ):
+                self.assertEqual(
+                    extra_files.get(manifest),
+                    {"type": "json", "path": manifest, "jsonpath": "$.version"},
+                )
+            self.assertIn("x-release-please-version", (copied / relative).read_text(encoding="utf-8"))
+            # The scaffold owes the audit a clean run, not just an entry.
+            self._run_in(copied, "scripts/bump-version.py", "--audit")
+
+    def test_the_release_bot_opens_the_release_pull_request(self) -> None:
+        """The caller job is what turns a merged Conventional Commit into a tag."""
+
+        workflow = (ROOT / ".github" / "workflows" / "release-please.yml").read_text(encoding="utf-8")
+
+        self.assertIn("on:\n  push:\n    branches: [main]", workflow)
+        self.assertRegex(
+            workflow,
+            r"(?m)^    uses: Misoto22/ci/\.github/workflows/release\.yml@[0-9a-f]{40} # \S+$",
+        )
+        for permission in ("contents: write", "pull-requests: write", "issues: write"):
+            self.assertIn(permission, workflow)
+        # The App token is the whole point: a tag created with GITHUB_TOKEN
+        # starts no further run, so release.yml would never build the archives.
+        self.assertIn("app-client-id: ${{ vars.APP_CLIENT_ID }}", workflow)
+        self.assertIn("APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}", workflow)
+        self.assertNotIn("actions/checkout", workflow)
+
+    def test_pull_request_titles_are_linted_before_they_become_commit_subjects(self) -> None:
+        """A squashed title is what release-please parses, so a sloppy one is a wrong bump."""
+
+        workflow = (ROOT / ".github" / "workflows" / "pr-title.yml").read_text(encoding="utf-8")
+
+        # pull_request from a fork gets a read-only token; the target variant
+        # runs the base branch's definition, which is why the check only starts
+        # reporting on the pull request after this file is on main.
+        self.assertIn("pull_request_target:", workflow)
+        self.assertNotRegex(workflow, r"(?m)^  pull_request:")
+        for event in ("opened", "edited", "synchronize", "reopened", "labeled", "unlabeled"):
+            self.assertIn(event, workflow)
+        self.assertIn("permissions:\n  pull-requests: read", workflow)
+        # `<caller job id> / <called job name>`, and both are `pr-title`, so the
+        # required-check context is `pr-title / pr-title`.
+        self.assertRegex(
+            workflow,
+            r"(?m)^jobs:\n  pr-title:\n    uses: Misoto22/ci/\.github/workflows/pr-title\.yml"
+            r"@[0-9a-f]{40} # \S+$",
+        )
+        self.assertNotIn("actions/checkout", workflow)
 
     def test_install_workflow_covers_every_supported_route(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "install.yml").read_text(encoding="utf-8")

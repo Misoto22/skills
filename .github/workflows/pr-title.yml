@@ -1,0 +1,32 @@
+# Lint the pull-request title against Conventional Commits.
+#
+# The pull-request title becomes the commit subject on main, and that subject is
+# what release-please parses to decide the next version. A sloppy title is a
+# missed release or a wrong bump.
+#
+# The trigger is pull_request_target because a pull_request run from a fork gets
+# a read-only token. `labeled` and `unlabeled` are in the list because the
+# reusable workflow skips titles carrying release-please's own
+# `autorelease: pending` label, and without those events the skip only takes
+# effect on the next edit.
+#
+# The caller job id is `pr-title` and the called job is also named `pr-title`,
+# so the status-check context is `pr-title / pr-title`. That exact string is
+# what goes in the ruleset, not a bare `pr-title`.
+
+name: PR title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    uses: Misoto22/ci/.github/workflows/pr-title.yml@168697c01c8c24ce02a24a4e7b7b773e65c5cefe # v0.2.0

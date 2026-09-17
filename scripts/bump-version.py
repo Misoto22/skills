@@ -9,6 +9,13 @@ how a tag ends up describing artefacts that disagree with it.
   python3 scripts/bump-version.py --audit      Also grep the repository for stragglers
   python3 scripts/bump-version.py <version>    Rewrite every declared occurrence
 
+release-please moves the version now: merging its release pull request rewrites
+every path `release-please-config.json` lists under `extra-files`. This file is
+no longer the thing that writes a release, but it is still the thing that knows
+which files carry a version, so `--audit` holds the two lists to each other —
+a path declared here and missing there is a file the next release leaves on the
+old number, and neither half fails on its own.
+
 `--audit` is the half that matters: declaring a file is easy to forget, so the
 grep runs over everything not explicitly excluded and reports what the declared
 list missed.
@@ -32,7 +39,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".version-bump.json"
+RELEASE_PLEASE_CONFIG = ROOT / "release-please-config.json"
 REGISTRY = ROOT / "registry.json"
+# The marker release-please's generic updater looks for. It rewrites the
+# version on the line carrying it, and silently leaves a file without it.
+ANNOTATION = "x-release-please-version"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 AUDIT_SUFFIXES = {".md", ".json", ".py", ".txt", ".yaml", ".yml", ".sh", ".toml"}
 
@@ -107,6 +118,61 @@ def bump(config: dict, current: str, new: str) -> list[str]:
             path.write_text(updated, encoding="utf-8")
             changed.append(relative)
     return changed
+
+
+def release_please_gaps(config: dict) -> list[str]:
+    """Return one line per declared file the release bot would walk past.
+
+    Two lists describe the same set of files from opposite ends: this one names
+    every path that carries a version, and `release-please-config.json` names
+    every path the bot rewrites when a release pull request merges. Each is
+    green on its own while they disagree, and the disagreement only surfaces as
+    a released artefact advertising the version before it.
+    """
+
+    entries = json.loads(RELEASE_PLEASE_CONFIG.read_text(encoding="utf-8"))
+    extra_files = entries["packages"]["."]["extra-files"]
+    by_path = {entry["path"]: entry for entry in extra_files}
+    problems: list[str] = []
+
+    for entry in config["json"]:
+        declared = by_path.get(entry["path"])
+        if declared is None:
+            problems.append(f"{entry['path']}: declared here, but not in release-please-config.json")
+        elif declared.get("type") != "json" or declared.get("jsonpath") != f"$.{entry['field']}":
+            problems.append(
+                f"{entry['path']}: release-please updates it as"
+                f" {declared.get('type')} {declared.get('jsonpath')},"
+                f" not as json $.{entry['field']}"
+            )
+
+    for relative in config["text"]:
+        declared = by_path.get(relative)
+        if declared is None:
+            problems.append(f"{relative}: declared here, but not in release-please-config.json")
+        elif declared.get("type") != "generic":
+            problems.append(
+                f"{relative}: release-please updates it as {declared.get('type')}, not as generic"
+            )
+        if ANNOTATION not in (ROOT / relative).read_text(encoding="utf-8"):
+            problems.append(
+                f"{relative}: carries no `{ANNOTATION}` comment, so the generic"
+                " updater has no line to rewrite"
+            )
+
+    # registry.json is generated rather than declared, which is why the grep
+    # above excludes it — but it restates the version twenty-five times, and a
+    # release that left it behind fails `build-registry.py --check` on the next
+    # pull request rather than on the release.
+    registry = by_path.get("registry.json")
+    if registry is None or registry.get("jsonpath") != "$..version":
+        problems.append("registry.json: release-please must rewrite it as json $..version")
+
+    for path in sorted(by_path):
+        if not (ROOT / path).exists():
+            problems.append(f"{path}: release-please-config.json names a file that is not here")
+
+    return problems
 
 
 def audit(config: dict, current: str) -> list[str]:
@@ -198,7 +264,14 @@ def main() -> int:
                 for line in stragglers:
                     print(f"  {line}", file=sys.stderr)
                 return 1
+            gaps = release_please_gaps(config)
+            if gaps:
+                print("release-please would not move these:", file=sys.stderr)
+                for line in gaps:
+                    print(f"  {line}", file=sys.stderr)
+                return 1
             print("no undeclared occurrences")
+            print("release-please covers every declared file")
         return 0
 
     if not SEMVER.match(args.version):
@@ -221,7 +294,10 @@ def main() -> int:
     changed.extend(rebuild_registry())
     for relative, count in sorted(Counter(changed).items()):
         print(f"{current} → {args.version}  {relative}" + (f" ({count} occurrences)" if count > 1 else ""))
-    print(f"\n{len(set(changed))} files updated. Next: update CHANGELOG.md, then tag v{args.version}.")
+    print(
+        f"\n{len(set(changed))} files updated. Releases are the bot's job now:"
+        " this is for a correction release-please cannot make."
+    )
     return 0
 
 

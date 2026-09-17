@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Scaffold a skill, and register it everywhere the validator will look.
 
-Adding a skill by hand means editing seven places — PUBLISHED in the validator,
+Adding a skill by hand means editing eight places — PUBLISHED in the validator,
 marketplace.json if the plugin is new, both plugin manifests, both READMEs,
-.version-bump.json, and skills.sh.json. The validator catches a missed one, but
-catching is not the same as doing.
+.version-bump.json, release-please-config.json, and skills.sh.json. The
+validator catches a missed one, but catching is not the same as doing.
 
 Two manifests, because two families of client read one: Claude Code reads
 .claude-plugin/plugin.json, and everything implementing Agent Plugins reads
@@ -41,7 +41,7 @@ name: {skill}
 description: PLACEHOLDER, rewrite before committing — say in concrete terms when to use this skill, name the artefacts and phrasings that should trigger it, and end with what it is not for. One line; the frontmatter parser does not fold. Triggering depends entirely on this field.
 license: {license_name}
 metadata:
-  version: "{version}"
+  version: "{version}" # x-release-please-version
 ---
 
 # {title}
@@ -203,6 +203,7 @@ def main() -> int:
     _register_published(args.plugin, args.skill, created)
     _register_root_readme(args.plugin, args.skill, created)
     _register_version_bump(args.plugin, args.skill, new_plugin, created)
+    _register_release_please(args.plugin, args.skill, new_plugin, created)
     _register_skills_sh(args.plugin, args.skill, created)
     _register_translations(args.plugin, args.skill, new_plugin, created)
     # Last two, in this order: both read the tree the steps above changed, and
@@ -517,6 +518,42 @@ def _register_version_bump(plugin: str, skill: str, new_plugin: bool, created: l
     ):
         if new_plugin and all(entry["path"] != manifest for entry in config["json"]):
             config["json"].append({"path": manifest, "field": "version"})
+    path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    created.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _register_release_please(plugin: str, skill: str, new_plugin: bool, created: list[str]) -> None:
+    """The release bot rewrites the version, so it has to know the new files too.
+
+    .version-bump.json is the drift guard; release-please-config.json is what
+    actually moves the numbers when a release pull request merges.
+    `bump-version.py --audit` holds the two to each other, so a scaffold that
+    wrote only one of them would leave the repository red — and a scaffold that
+    wrote neither would ship a skill frozen at whatever version it was born on.
+    """
+
+    path = ROOT / "release-please-config.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    extra_files = config["packages"]["."]["extra-files"]
+    declared = {entry["path"] for entry in extra_files}
+
+    # The manifests go with the other plugin manifests, ahead of registry.json;
+    # the SKILL.md goes at the head of the generic entries. Position is not
+    # cosmetic: remove-skill.py has to leave this file byte-identical.
+    registry = next(index for index, entry in enumerate(extra_files) if entry["path"] == "registry.json")
+    for manifest in (
+        f"plugins/{plugin}/.claude-plugin/plugin.json",
+        f"plugins/{plugin}/plugin.json",
+    ):
+        if new_plugin and manifest not in declared:
+            extra_files.insert(registry, {"type": "json", "path": manifest, "jsonpath": "$.version"})
+            registry += 1
+
+    skill_file = f"plugins/{plugin}/skills/{skill}/SKILL.md"
+    if skill_file not in declared:
+        first_generic = next(index for index, entry in enumerate(extra_files) if entry["type"] == "generic")
+        extra_files.insert(first_generic, {"type": "generic", "path": skill_file})
+
     path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     created.append(f"{path.relative_to(ROOT)} (updated)")
 

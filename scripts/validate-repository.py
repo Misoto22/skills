@@ -14,12 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_ROOT = ROOT / "plugins"
 TESTS_ROOT = ROOT / "tests"
 MARKETPLACE_MANIFEST = ROOT / ".claude-plugin" / "marketplace.json"
-VERSION = "0.17.1"
+VERSION = "0.17.1"  # x-release-please-version
 
 # Lowercase letters, digits and hyphens. Claude Code is lenient about a plugin
 # or marketplace name; the claude.ai marketplace sync is not, and a keyword that
 # does not match is one a plugin directory will not surface.
 KEBAB_CASE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
+
+# A quoted frontmatter scalar, with the YAML comment that may trail it.
+QUOTED_SCALAR = re.compile(r"""\A(?P<quote>["'])(?P<value>.*?)(?P=quote)(?:\s+\#.*)?\Z""")
 
 # The published surface, asserted exactly: a plugin or skill that appears on disk
 # without being added here is unregistered somewhere, and one listed here without
@@ -790,9 +793,17 @@ def _parse_frontmatter(
 
 
 def _unquote(value: str) -> str:
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-        return value[1:-1]
-    return value
+    """Strip the quotes from a quoted scalar, and the comment that may follow it.
+
+    Only a quoted scalar may carry a trailing comment here. release-please's
+    generic updater rewrites the line it finds `# x-release-please-version` on,
+    so the release bot needs that marker beside `metadata.version`, and a parser
+    that read it as part of the value would report every skill as drifted. A
+    plain scalar is returned whole: a description's `#` is prose.
+    """
+
+    match = QUOTED_SCALAR.match(value)
+    return match.group("value") if match else value
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, object]:

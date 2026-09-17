@@ -1,0 +1,234 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "changelog-type": "default",
+  "include-component-in-tag": false,
+  "always-update": true,
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance"
+    },
+    {
+      "type": "revert",
+      "section": "Reverts"
+    },
+    {
+      "type": "docs",
+      "section": "Documentation",
+      "hidden": false
+    },
+    {
+      "type": "refactor",
+      "section": "Refactoring",
+      "hidden": false
+    }
+  ],
+  "packages": {
+    ".": {
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "bundle/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/writing/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/writing/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/docs/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/docs/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/dev/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/dev/.codex-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/dev/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/astrology/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/astrology/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/chinese-metaphysics/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/chinese-metaphysics/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/brand/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/brand/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/photography/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/photography/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "registry.json",
+          "jsonpath": "$..version"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/handoff/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/reunite/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/steward/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/retitle/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/astrology/skills/natal-reading/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/astrology/skills/natal-chart/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/bazi-ziwei-cross/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/ziwei-reading/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/ziwei-chart/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/photography/skills/photo-abstract-editorial-native/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/brand/skills/logo-banner/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/bazi-compatibility-reading/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/bazi-compatibility/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/bazi-reading/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/chinese-metaphysics/skills/bazi-chart/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/astrology/skills/synastry-reading/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/writing/skills/personal-blog/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/astrology/skills/synastry/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/cleanup/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/sync/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/dev/skills/ship/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/writing/skills/email/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/writing/skills/tempering/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/docs/skills/repo-polish/SKILL.md"
+        },
+        {
+          "type": "generic",
+          "path": "scripts/validate-repository.py"
+        },
+        {
+          "type": "generic",
+          "path": "tests/synastry_skill/test_skill_contract.py"
+        },
+        {
+          "type": "generic",
+          "path": "tests/bazi_skill/test_skill_contract.py"
+        }
+      ]
+    }
+  }
+}
