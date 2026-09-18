@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   release:
-    uses: Misoto22/ci/.github/workflows/release.yml@168697c01c8c24ce02a24a4e7b7b773e65c5cefe # v0.2.0
+    uses: Misoto22/ci/.github/workflows/release.yml@65443cf5cd7c65b978373aeb0a0e93127b0d6ede # v0.5.0
     with:
       app-client-id: ${{ vars.APP_CLIENT_ID }}
     secrets:
