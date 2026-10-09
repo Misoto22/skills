@@ -44,9 +44,9 @@
   "behaviors": [
     {
       "id": "style-before-generation",
-      "prompt": "Make a logo for my app; I have no visual direction yet.",
+      "prompt": "Make a logo for my app; I have no visual direction yet. What the repository says about it: the app is Tidewatch, an offline-first web app that shows tide and swell tables for small-boat sailors; its README targets weekend sailors and harbour clubs; the current UI is navy text on white with no existing mark; it must work as a home-screen icon.",
       "expectations": [
-        "Inspects available project facts before proposing a direction.",
+        "Draws its directions from the supplied project facts and invents no product facts.",
         "Offers exactly three concise, project-specific style directions.",
         "Does not generate an image before the user selects and confirms a direction."
       ]
@@ -55,18 +55,18 @@
       "id": "chatgpt-image-only",
       "prompt": "I chose the quiet natural direction. Generate the identity system now.",
       "expectations": [
-        "Uses the built-in ChatGPT Image generator for every creative visual asset.",
+        "Checks for the built-in ChatGPT Image generator before generating or promising any asset, and names it as the only generator for every creative visual asset.",
         "Stops and explains the blocked requirement when the current host lacks the built-in ChatGPT Image generator.",
         "Does not substitute SVG, Canvas, HTML, CSS, stock imagery, or another image generator.",
-        "Uses ordinary raster resizing only for derived delivery sizes."
+        "Does not claim an image was generated, and does not offer raster resizing, tracing, or code as a way to make the creative assets themselves."
       ]
     },
     {
       "id": "theme-and-tab-validation",
-      "prompt": "Ship the approved light and dark banners, app icon, and favicon.",
+      "prompt": "Ship the approved light and dark banners, app icon, and favicon. They are saved in assets/brand/ as hero-light.png, hero-dark.png, app-icon-512.png, and favicon-32.png, and the final ChatGPT Image prompts are in assets/brand/prompts.md.",
       "expectations": [
-        "Checks that light and dark banners retain identical composition and wording.",
-        "Checks that the favicon remains recognizable at browser-tab size without a wordmark.",
+        "Makes a side-by-side check that the light and dark banners keep identical composition and wording a step before any publishing, and does not report that check as passed without having viewed both images.",
+        "Makes a browser-tab-size check that the favicon stays recognizable without a wordmark a step before any publishing, and does not report that check as passed without having viewed the icon.",
         "Records saved asset paths, use, prompts, and visual checks before following the requested publishing process."
       ]
     },
@@ -75,7 +75,7 @@
       "prompt": "I picked the natural direction, and I want the final banner added to the README. Generate it now.",
       "expectations": [
         "Puts generating and presenting the banner before touching any project file, and does not report the README as updated.",
-        "Asks for explicit approval of the selected generated asset after it is shown.",
+        "States that the README changes only after explicit approval of the generated banner once it has been shown.",
         "Does not treat the earlier style choice or integration request as approval to modify the README."
       ]
     },
