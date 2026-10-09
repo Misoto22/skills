@@ -2173,6 +2173,26 @@ class RepositoryContractTests(unittest.TestCase):
         # One group, so a package several skills share moves everywhere at once.
         self.assertEqual(len(re.findall(r"(?m)^      [\w-]+:\n        patterns:", entry.group(1))), 1)
 
+    def test_skills_that_share_a_package_pin_the_same_version(self) -> None:
+        """Two skills on two tzdata releases disagree about the same birth time."""
+
+        pins: dict[str, dict[str, str]] = {}
+        for path in sorted(PLUGINS.glob("*/skills/*/requirements.txt")):
+            relative = path.relative_to(ROOT).as_posix()
+            for line in path.read_text(encoding="utf-8").splitlines():
+                requirement = line.split("#", 1)[0].strip()
+                if not requirement:
+                    continue
+                name, separator, version = requirement.partition("==")
+                self.assertEqual(separator, "==", f"{relative}: {requirement!r} is not an exact pin")
+                pins.setdefault(name.strip().lower(), {})[relative] = version.strip()
+
+        shared = {name: files for name, files in pins.items() if len(files) > 1}
+        self.assertIn("pyswisseph", shared, "the ephemeris skills no longer share a package")
+        for name, files in sorted(shared.items()):
+            with self.subTest(package=name):
+                self.assertEqual(len(set(files.values())), 1, f"{name} is pinned differently: {files}")
+
     def test_list_script_prints_only_published_plugins(self) -> None:
         result = subprocess.run(
             ["bash", "scripts/list-plugins.sh"],
