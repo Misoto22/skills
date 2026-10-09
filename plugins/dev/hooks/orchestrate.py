@@ -39,7 +39,11 @@ import sys
 import tomllib
 from pathlib import Path
 
-SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import git_argv
+from shell_argv import SEGMENT, unwrap
+
 REDIRECT = re.compile(r"\A(?:\d+|&)?>>?(.*)\Z", re.DOTALL)
 MODEL_ARGUMENT = re.compile(r"--model[=\s]+(\S+)")
 # `<<EOF`, `<<-'EOF'`, `<< "EOF"` — the word that closes the body the operator opens.
@@ -55,20 +59,6 @@ PLUGIN_OPTION = "CLAUDE_PLUGIN_OPTION_ORCHESTRATOR_MODELS"
 
 EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
 PATCH_TOOL = "apply_patch"
-ENV_COMMANDS = ("env", "/usr/bin/env", "/bin/env")
-WRAPPER_COMMANDS = ("command", "exec")
-ENV_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
-# Duplicated from guard-git rather than shared: each hook must run from its own file.
-GIT_OPTIONS_WITH_VALUE = (
-    "-C",
-    "-c",
-    "--git-dir",
-    "--work-tree",
-    "--namespace",
-    "--config-env",
-    "--super-prefix",
-    "--attr-source",
-)
 MUTATING_VERBS = ("mv", "rm", "touch", "mkdir", "patch", "tee")
 # `cp a b`, `ln -s a b`, `install -m 644 a b` read every operand but the last one.
 DESTINATION_VERBS = ("cp", "ln", "install")
@@ -337,26 +327,6 @@ def _words(segment: str) -> list[str]:
         return []
 
 
-def _unwrap(words: list[str]) -> list[str]:
-    """Remove shell wrappers that run, rather than merely describe, their command.
-
-    `command sed`, `exec tee` and `env KEY=value sed` would otherwise hide the verb.
-    Kept deliberately small, as in guard-git: treating an arbitrary word as a wrapper
-    turns inspection commands into false refusals.
-    """
-    words = list(words)
-    while words:
-        if words[0] in WRAPPER_COMMANDS:
-            words.pop(0)
-            continue
-        if words[0] not in ENV_COMMANDS:
-            break
-        words.pop(0)
-        while words and ENV_ASSIGNMENT.fullmatch(words[0]):
-            words.pop(0)
-    return words
-
-
 def _strip_heredocs(command: str) -> str:
     """The command with every heredoc body dropped, keeping the line that introduces it.
 
@@ -438,23 +408,11 @@ def _verb_targets(words: list[str]) -> list[str]:
         # The first operand is the script; the files it rewrites trail it.
         return _operands(rest)[1:]
     if verb == "git":
-        return _git_apply_targets(rest)
+        # `-C <dir>` moves git before it reads a relative path, so the operands resolve there.
+        options, subcommand, args = git_argv.split(rest)
+        if subcommand == "apply":
+            return [os.path.join(git_argv.directory(options), path) for path in _operands(args)]
     return []
-
-
-def _git_apply_targets(args: list[str]) -> list[str]:
-    """The patch files `git apply` names, past global options as in guard-git.
-
-    `-C <dir>` moves git before it reads a relative path, so the operands resolve there.
-    """
-    index, directory = 0, ""
-    while index < len(args) and args[index].startswith("-"):
-        if args[index] == "-C" and index + 1 < len(args):
-            directory = os.path.join(directory, args[index + 1])
-        index += 2 if args[index] in GIT_OPTIONS_WITH_VALUE else 1
-    if args[index : index + 1] != ["apply"]:
-        return []
-    return [os.path.join(directory, operand) for operand in _operands(args[index + 1 :])]
 
 
 def bash_target(command: object, cwd: str) -> str | None:
@@ -470,7 +428,7 @@ def bash_target(command: object, cwd: str) -> str | None:
         words = _words(segment)
         if not words:
             continue
-        for target in _redirect_targets(words) + _verb_targets(_unwrap(words)):
+        for target in _redirect_targets(words) + _verb_targets(unwrap(words)):
             if inside_project(target, cwd):
                 return target
     return None

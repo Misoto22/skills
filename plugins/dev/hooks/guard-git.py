@@ -14,27 +14,16 @@ cannot parse, because a guard that blocks every command is worse than no guard.
 from __future__ import annotations
 
 import json
-import re
 import shlex
 import sys
+from pathlib import Path
 
-SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import git_argv
+from shell_argv import SEGMENT, unwrap
+
 NO_VERIFY_COMMANDS = ("commit", "push", "merge", "rebase")
-ENV_COMMANDS = ("env", "/usr/bin/env", "/bin/env")
-WRAPPER_COMMANDS = ("command", "exec")
-ENV_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
-# Global options git reads before the subcommand that take their value as the next word.
-# Every other leading `-…` word is a flag or carries its value after `=`.
-GLOBAL_OPTIONS_WITH_VALUE = (
-    "-C",
-    "-c",
-    "--git-dir",
-    "--work-tree",
-    "--namespace",
-    "--config-env",
-    "--super-prefix",
-    "--attr-source",
-)
 
 REFUSALS = {
     "force": (
@@ -56,70 +45,32 @@ def _words(segment: str) -> list[str]:
         return segment.split()
 
 
-def _unwrap(words: list[str]) -> list[str]:
-    """Remove shell wrappers that run, rather than merely describe, their command.
-
-    The hook sees shell source, so ``command git`` and ``env KEY=value git`` would
-    otherwise hide the executable from the checks below. Keep this deliberately small:
-    recognising an arbitrary word as a wrapper would turn harmless prose or inspection
-    commands into false refusals.
-    """
-    words = list(words)
-    while words:
-        if words[0] in WRAPPER_COMMANDS:
-            words.pop(0)
-            continue
-        if words[0] not in ENV_COMMANDS:
-            break
-        words.pop(0)
-        while words and ENV_ASSIGNMENT.fullmatch(words[0]):
-            words.pop(0)
-    return words
-
-
-def _is_force(word: str) -> bool:
-    """`--force` or a short cluster carrying `f`; `--force-with-lease` is the sanctioned form."""
-    if word == "--force":
-        return True
-    return word.startswith("-") and not word.startswith("--") and "f" in word[1:]
-
-
-def _subcommand(args: list[str]) -> tuple[str, list[str]]:
-    """The git subcommand and its arguments, past `-C <path>`, `-c <k=v>` and the other globals.
-
-    Taking the first non-dash word instead reads `git -C /repo push` as `git /repo`.
-    """
-    index = 0
-    while index < len(args) and args[index].startswith("-"):
-        index += 2 if args[index] in GLOBAL_OPTIONS_WITH_VALUE else 1
-    if index >= len(args):
-        return "", []
-    return args[index], args[index + 1 :]
-
-
-def _is_forced_push(rest: list[str]) -> bool:
-    """A force flag, or a `+refspec`, which forces that one ref with no flag at all."""
-    return any(_is_force(w) or w.startswith("+") for w in rest)
-
-
 def _has_short(words: list[str], letter: str) -> bool:
     return any(w.startswith("-") and not w.startswith("--") and letter in w[1:] for w in words)
+
+
+def _git_offence(args: list[str]) -> str | None:
+    """The refusal the words after `git` earn, read past its global options."""
+    _, subcommand, rest = git_argv.split(args)
+    if subcommand == "push" and git_argv.is_forced_push(rest):
+        return REFUSALS["force"]
+    if subcommand not in NO_VERIFY_COMMANDS:
+        return None
+    if "--no-verify" in rest or (subcommand == "commit" and _has_short(rest, "n")):
+        return REFUSALS["no-verify"]
+    return None
 
 
 def offence(command: str) -> str | None:
     """The refusal a command earns, or None when it may run."""
     for segment in SEGMENT.split(command):
-        words = _unwrap(_words(segment))
+        words = unwrap(_words(segment))
         if not words:
             continue
         if words[0] == "git":
-            subcommand, rest = _subcommand(words[1:])
-            if subcommand == "push" and _is_forced_push(rest):
-                return REFUSALS["force"]
-            if subcommand in NO_VERIFY_COMMANDS and "--no-verify" in rest:
-                return REFUSALS["no-verify"]
-            if subcommand == "commit" and _has_short(rest, "n"):
-                return REFUSALS["no-verify"]
+            reason = _git_offence(words[1:])
+            if reason is not None:
+                return reason
         elif words[:3] == ["gh", "pr", "merge"] and "--admin" in words:
             return REFUSALS["admin"]
     return None
