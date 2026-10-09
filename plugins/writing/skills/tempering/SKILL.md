@@ -59,7 +59,7 @@ Two things they do not cover:
 
 **Reverse mode is exempt from the filler ban.** Decoding corporate phrasing requires quoting it.
 
-**All three registers, every time.** The register is the sender's call, not yours. Do not recommend one unless asked, except in the cases below.
+**All three registers, every time.** The register is the sender's call, not yours. Do not recommend one unless asked, except in the cases below — and that includes the indirect forms: no "this one works best", no ranking, no closing note on which to send.
 
 ## When softening is the wrong response
 
@@ -87,7 +87,7 @@ When given corporate phrasing and asked what it means, apply the transforms in r
 | Let's evaluate this a bit further | No one is willing to own it |
 | Just flagging this for visibility | A record is being created |
 
-Keep this mode brief. Where a message is straightforwardly polite with nothing underneath, say so — manufacturing subtext is a worse failure than missing it.
+Keep this mode brief. Where a message is straightforwardly polite with nothing underneath, say so in a sentence or two and stop — no rewrite, no reply draft, no action plan. Manufacturing subtext is a worse failure than missing it, and so is padding a plain answer into a report.
 
 ## Composition with other skills
 
