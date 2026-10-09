@@ -1,0 +1,653 @@
+{
+  "angles": [
+    {
+      "degrees_in_sign": 26.52941,
+      "display": "26°32'",
+      "longitude": 146.52941,
+      "name": "ascendant",
+      "sign": "Leo"
+    },
+    {
+      "degrees_in_sign": 23.314092,
+      "display": "23°19'",
+      "longitude": 53.314092,
+      "name": "medium_coeli",
+      "sign": "Tau"
+    },
+    {
+      "degrees_in_sign": 26.52941,
+      "display": "26°32'",
+      "longitude": 326.52941,
+      "name": "descendant",
+      "sign": "Aqu"
+    },
+    {
+      "degrees_in_sign": 23.314092,
+      "display": "23°19'",
+      "longitude": 233.314092,
+      "name": "imum_coeli",
+      "sign": "Sco"
+    },
+    {
+      "degrees_in_sign": 5.088627,
+      "display": "5°05'",
+      "longitude": 275.088627,
+      "name": "vertex",
+      "sign": "Cap"
+    },
+    {
+      "degrees_in_sign": 18.489068,
+      "display": "18°29'",
+      "longitude": 138.489068,
+      "name": "east_point",
+      "sign": "Leo"
+    }
+  ],
+  "aspects": [
+    {
+      "display_orb": "0.00°",
+      "kind": "opposition",
+      "left": "North_Node",
+      "orb": 0.0,
+      "right": "South_Node"
+    },
+    {
+      "display_orb": "0.01°",
+      "kind": "sextile",
+      "left": "Moon",
+      "orb": 0.006089,
+      "right": "Pluto"
+    },
+    {
+      "display_orb": "0.15°",
+      "kind": "semi-sextile",
+      "left": "Sun",
+      "orb": 0.153581,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "0.39°",
+      "kind": "quincunx",
+      "left": "Moon",
+      "orb": 0.387156,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "0.39°",
+      "kind": "quincunx",
+      "left": "Pluto",
+      "orb": 0.393246,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "0.54°",
+      "kind": "opposition",
+      "left": "Moon",
+      "orb": 0.540737,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "0.55°",
+      "kind": "trine",
+      "left": "Pluto",
+      "orb": 0.546826,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "0.60°",
+      "kind": "quincunx",
+      "left": "Lilith",
+      "orb": 0.603703,
+      "right": "Mars"
+    },
+    {
+      "display_orb": "0.63°",
+      "kind": "opposition",
+      "left": "Mercury",
+      "orb": 0.632464,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "0.65°",
+      "kind": "semi-square",
+      "left": "Lilith",
+      "orb": 0.650398,
+      "right": "Neptune"
+    },
+    {
+      "display_orb": "0.97°",
+      "kind": "quintile",
+      "left": "Lilith",
+      "orb": 0.965572,
+      "right": "North_Node"
+    },
+    {
+      "display_orb": "1.01°",
+      "kind": "conjunction",
+      "left": "Jupiter",
+      "orb": 1.014286,
+      "right": "Mercury"
+    },
+    {
+      "display_orb": "1.06°",
+      "kind": "biquintile",
+      "left": "Saturn",
+      "orb": 1.064445,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "1.24°",
+      "kind": "semi-sextile",
+      "left": "North_Node",
+      "orb": 1.244923,
+      "right": "Uranus"
+    },
+    {
+      "display_orb": "1.24°",
+      "kind": "quincunx",
+      "left": "South_Node",
+      "orb": 1.244923,
+      "right": "Uranus"
+    },
+    {
+      "display_orb": "1.65°",
+      "kind": "opposition",
+      "left": "Jupiter",
+      "orb": 1.64675,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "1.94°",
+      "kind": "sextile",
+      "left": "Neptune",
+      "orb": 1.936336,
+      "right": "Pluto"
+    },
+    {
+      "display_orb": "1.94°",
+      "kind": "conjunction",
+      "left": "Moon",
+      "orb": 1.942425,
+      "right": "Neptune"
+    },
+    {
+      "display_orb": "2.33°",
+      "kind": "quincunx",
+      "left": "Neptune",
+      "orb": 2.329581,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "2.48°",
+      "kind": "opposition",
+      "left": "Neptune",
+      "orb": 2.483162,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "2.59°",
+      "kind": "semi-square",
+      "left": "Lilith",
+      "orb": 2.592823,
+      "right": "Moon"
+    },
+    {
+      "display_orb": "4.35°",
+      "kind": "square",
+      "left": "Mars",
+      "orb": 4.351872,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "4.96°",
+      "kind": "sextile",
+      "left": "Lilith",
+      "orb": 4.955576,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "4.98°",
+      "kind": "square",
+      "left": "Mars",
+      "orb": 4.984336,
+      "right": "Mercury"
+    },
+    {
+      "display_orb": "5.26°",
+      "kind": "conjunction",
+      "left": "Jupiter",
+      "orb": 5.264114,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "5.59°",
+      "kind": "trine",
+      "left": "Lilith",
+      "orb": 5.58804,
+      "right": "Mercury"
+    },
+    {
+      "display_orb": "5.80°",
+      "kind": "opposition",
+      "left": "Jupiter",
+      "orb": 5.804851,
+      "right": "Moon"
+    },
+    {
+      "display_orb": "5.81°",
+      "kind": "trine",
+      "left": "Jupiter",
+      "orb": 5.81094,
+      "right": "Pluto"
+    },
+    {
+      "display_orb": "5.86°",
+      "kind": "conjunction",
+      "left": "Neptune",
+      "orb": 5.860893,
+      "right": "Uranus"
+    },
+    {
+      "display_orb": "6.00°",
+      "kind": "square",
+      "left": "Jupiter",
+      "orb": 5.998622,
+      "right": "Mars"
+    },
+    {
+      "display_orb": "6.28°",
+      "kind": "conjunction",
+      "left": "Mercury",
+      "orb": 6.2784,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "6.55°",
+      "kind": "square",
+      "left": "North_Node",
+      "orb": 6.552306,
+      "right": "Pluto"
+    },
+    {
+      "display_orb": "6.55°",
+      "kind": "square",
+      "left": "Pluto",
+      "orb": 6.552306,
+      "right": "South_Node"
+    },
+    {
+      "display_orb": "6.60°",
+      "kind": "trine",
+      "left": "Jupiter",
+      "orb": 6.602326,
+      "right": "Lilith"
+    },
+    {
+      "display_orb": "6.82°",
+      "kind": "opposition",
+      "left": "Mercury",
+      "orb": 6.819137,
+      "right": "Moon"
+    },
+    {
+      "display_orb": "6.83°",
+      "kind": "trine",
+      "left": "Mercury",
+      "orb": 6.825226,
+      "right": "Pluto"
+    },
+    {
+      "display_orb": "6.91°",
+      "kind": "opposition",
+      "left": "Saturn",
+      "orb": 6.910864,
+      "right": "Sun"
+    },
+    {
+      "display_orb": "6.95°",
+      "kind": "trine",
+      "left": "North_Node",
+      "orb": 6.945552,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "6.95°",
+      "kind": "sextile",
+      "left": "South_Node",
+      "orb": 6.945552,
+      "right": "Venus"
+    },
+    {
+      "display_orb": "7.45°",
+      "kind": "conjunction",
+      "left": "Moon",
+      "orb": 7.451601,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "7.46°",
+      "kind": "sextile",
+      "left": "Pluto",
+      "orb": 7.45769,
+      "right": "Saturn"
+    },
+    {
+      "display_orb": "7.75°",
+      "kind": "opposition",
+      "left": "Jupiter",
+      "orb": 7.747276,
+      "right": "Neptune"
+    },
+    {
+      "display_orb": "7.80°",
+      "kind": "sextile",
+      "left": "Pluto",
+      "orb": 7.797229,
+      "right": "Uranus"
+    },
+    {
+      "display_orb": "7.80°",
+      "kind": "conjunction",
+      "left": "Moon",
+      "orb": 7.803318,
+      "right": "Uranus"
+    }
+  ],
+  "checksum": "496d52f945f30ba85b0b7426d52ada7948f034ba37d1cc21ba989055484242c7",
+  "houses": {
+    "cusps": [
+      120.0,
+      150.0,
+      180.0,
+      210.0,
+      240.0,
+      270.0,
+      300.0,
+      330.0,
+      0.0,
+      30.0,
+      60.0,
+      90.0
+    ],
+    "system": "whole-sign"
+  },
+  "limitations": [
+    {
+      "affected_fields": [
+        "positions"
+      ],
+      "code": "ephemeris-fallback",
+      "message": "Moshier calculations were used because Swiss Ephemeris data was unavailable."
+    },
+    {
+      "affected_fields": [
+        "positions.Ceres",
+        "positions.Chiron",
+        "positions.Juno",
+        "positions.Pallas",
+        "positions.Vesta"
+      ],
+      "code": "optional-ephemeris-data-missing",
+      "message": "Optional ephemeris data was unavailable for: Ceres, Chiron, Juno, Pallas, Vesta."
+    }
+  ],
+  "lots": [
+    {
+      "degrees_in_sign": 26.916566,
+      "display": "26°55'",
+      "house": 6,
+      "longitude": 296.916566,
+      "name": "Lot_of_Daughters",
+      "sign": "Cap"
+    },
+    {
+      "degrees_in_sign": 3.981011,
+      "display": "3°59'",
+      "house": 2,
+      "longitude": 153.981011,
+      "name": "Lot_of_Death",
+      "sign": "Vir"
+    },
+    {
+      "degrees_in_sign": 25.988673,
+      "display": "25°59'",
+      "house": 7,
+      "longitude": 325.988673,
+      "name": "Lot_of_Fortune",
+      "sign": "Aqu"
+    },
+    {
+      "degrees_in_sign": 26.375829,
+      "display": "26°23'",
+      "house": 12,
+      "longitude": 116.375829,
+      "name": "Lot_of_Marriage",
+      "sign": "Can"
+    },
+    {
+      "degrees_in_sign": 2.334261,
+      "display": "2°20'",
+      "house": 8,
+      "longitude": 332.334261,
+      "name": "Lot_of_Sons",
+      "sign": "Pis"
+    },
+    {
+      "degrees_in_sign": 27.070147,
+      "display": "27°04'",
+      "house": 7,
+      "longitude": 327.070147,
+      "name": "Lot_of_Spirit",
+      "sign": "Aqu"
+    }
+  ],
+  "methodology": {
+    "aspect_orbs": {
+      "major": 8.0,
+      "minor": 3.0
+    },
+    "derivation_model": "natal-chart-v1",
+    "dignities": "classical rulerships only; modern assignments are a live disagreement",
+    "limits": [
+      "static natal chart",
+      "no transits",
+      "no progressions",
+      "no solar or lunar return",
+      "no dated event",
+      "no forecast"
+    ],
+    "zodiac": "tropical"
+  },
+  "positions": [
+    {
+      "body": "Jupiter",
+      "critical_degree": false,
+      "degrees_in_sign": 20.869451,
+      "dignities": [
+        "exaltation"
+      ],
+      "display": "20°52'",
+      "house": 12,
+      "longitude": 110.869451,
+      "retrograde": false,
+      "sign": "Can",
+      "speed_degrees_per_day": 0.224062
+    },
+    {
+      "body": "Lilith",
+      "critical_degree": false,
+      "degrees_in_sign": 27.471777,
+      "dignities": [],
+      "display": "27°28'",
+      "house": 4,
+      "longitude": 237.471777,
+      "retrograde": false,
+      "sign": "Sco",
+      "speed_degrees_per_day": 0.111961
+    },
+    {
+      "body": "Mars",
+      "critical_degree": false,
+      "degrees_in_sign": 26.868073,
+      "dignities": [
+        "domicile"
+      ],
+      "display": "26°52'",
+      "house": 9,
+      "longitude": 26.868073,
+      "retrograde": false,
+      "sign": "Ari",
+      "speed_degrees_per_day": 0.684744
+    },
+    {
+      "body": "Mercury",
+      "critical_degree": false,
+      "degrees_in_sign": 21.883737,
+      "dignities": [],
+      "display": "21°53'",
+      "house": 12,
+      "longitude": 111.883737,
+      "retrograde": false,
+      "sign": "Can",
+      "speed_degrees_per_day": 2.090231
+    },
+    {
+      "body": "Moon",
+      "critical_degree": false,
+      "degrees_in_sign": 15.0646,
+      "dignities": [
+        "detriment"
+      ],
+      "display": "15°04'",
+      "house": 6,
+      "longitude": 285.0646,
+      "retrograde": false,
+      "sign": "Cap",
+      "speed_degrees_per_day": 12.315529
+    },
+    {
+      "body": "Neptune",
+      "critical_degree": false,
+      "degrees_in_sign": 13.122175,
+      "dignities": [],
+      "display": "13°07'",
+      "house": 6,
+      "longitude": 283.122175,
+      "retrograde": true,
+      "sign": "Cap",
+      "speed_degrees_per_day": -0.026977
+    },
+    {
+      "body": "North_Node",
+      "critical_degree": false,
+      "degrees_in_sign": 8.506205,
+      "dignities": [],
+      "display": "8°30'",
+      "house": 7,
+      "longitude": 308.506205,
+      "retrograde": true,
+      "sign": "Aqu",
+      "speed_degrees_per_day": -0.052921
+    },
+    {
+      "body": "Pluto",
+      "critical_degree": false,
+      "degrees_in_sign": 15.058511,
+      "dignities": [],
+      "display": "15°04'",
+      "house": 4,
+      "longitude": 225.058511,
+      "retrograde": true,
+      "sign": "Sco",
+      "speed_degrees_per_day": -0.009807
+    },
+    {
+      "body": "Saturn",
+      "critical_degree": false,
+      "degrees_in_sign": 22.516201,
+      "dignities": [
+        "domicile"
+      ],
+      "display": "22°31'",
+      "house": 6,
+      "longitude": 292.516201,
+      "retrograde": true,
+      "sign": "Cap",
+      "speed_degrees_per_day": -0.073126
+    },
+    {
+      "body": "South_Node",
+      "critical_degree": false,
+      "degrees_in_sign": 8.506205,
+      "dignities": [],
+      "display": "8°30'",
+      "house": 1,
+      "longitude": 128.506205,
+      "retrograde": true,
+      "sign": "Leo",
+      "speed_degrees_per_day": -0.052921
+    },
+    {
+      "body": "Sun",
+      "critical_degree": false,
+      "degrees_in_sign": 15.605337,
+      "dignities": [],
+      "display": "15°36'",
+      "house": 12,
+      "longitude": 105.605337,
+      "retrograde": false,
+      "sign": "Can",
+      "speed_degrees_per_day": 0.953155
+    },
+    {
+      "body": "Uranus",
+      "critical_degree": false,
+      "degrees_in_sign": 7.261282,
+      "dignities": [],
+      "display": "7°16'",
+      "house": 6,
+      "longitude": 277.261282,
+      "retrograde": true,
+      "sign": "Cap",
+      "speed_degrees_per_day": -0.039956
+    },
+    {
+      "body": "Venus",
+      "critical_degree": false,
+      "degrees_in_sign": 15.451756,
+      "dignities": [],
+      "display": "15°27'",
+      "house": 11,
+      "longitude": 75.451756,
+      "retrograde": false,
+      "sign": "Gem",
+      "speed_degrees_per_day": 1.193376
+    }
+  ],
+  "provenance": {
+    "actual_backend": "moshier",
+    "binding_version": "2.10.03",
+    "requested_backend": "swiss",
+    "software_version": "2.0",
+    "timezone_source": "iana-zoneinfo",
+    "warnings": [
+      "Moshier calculations were used because Swiss Ephemeris data was unavailable.",
+      "Optional ephemeris data was unavailable for: Ceres, Chiron, Juno, Pallas, Vesta."
+    ]
+  },
+  "schema": "astrology.natal-chart",
+  "schema_version": 1,
+  "sect": {
+    "basis": "Sun above the horizon",
+    "diurnal": true
+  },
+  "subject": {
+    "id": "subject",
+    "name": "A"
+  },
+  "time": {
+    "end": "1990-07-08T00:15:00+00:00",
+    "precision_mode": "exact",
+    "start": "1990-07-08T00:15:00+00:00"
+  }
+}

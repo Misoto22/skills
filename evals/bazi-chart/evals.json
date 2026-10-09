@@ -63,20 +63,72 @@
     {
       "id": "boundary-alternate",
       "holdout": true,
-      "prompt": "排盘：A，1990-03-14 23:30，上海。",
+      "prompt": "排盘：A，1990-03-14 23:30，上海。地点已经解析好：评估工作区里的 request.json 是这条出生记录的完整请求（坐标与 IANA 时区已填）。用可用的评估工具完成排盘，产物写在 out/。",
       "expectations": [
         "Uses true solar time before deciding whether the Zi-hour alternate applies.",
         "Keeps primary and alternate charts separate and complete when applicable."
-      ]
+      ],
+      "execution": {
+        "fixture_root": "fixtures/boundary-alternate",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["compute"],
+        "commands": {
+          "compute": {
+            "script": "scripts/compute_chart.py",
+            "args": ["--request", "request.json", "--out", "out", "--language", "zh"]
+          },
+          "validate": {
+            "script": "scripts/validate_artifact.py",
+            "args": ["out/bazi_A.json"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/bazi_A.json"},
+          {"type": "file_exists", "path": "out/bazi_A.md"},
+          {
+            "type": "json_contains",
+            "path": "out/bazi_A.json",
+            "contains": {
+              "sensitivity": {
+                "alternate_day_boundary": true,
+                "alternate_day_boundary_rule": "00:00",
+                "primary_day_boundary": "23:00"
+              }
+            }
+          },
+          {"type": "json_length", "path": "out/bazi_A.json", "key": "pillars", "equals": 2}
+        ]
+      }
     },
     {
       "id": "successful-handoff",
-      "prompt": "八字排盘：A，1990-03-14 07:42，上海。",
+      "prompt": "八字排盘：A，1990-03-14 07:42，上海。地点已经解析好：评估工作区里的 request.json 是这条出生记录的完整请求（坐标与 IANA 时区已填）。用可用的评估工具完成排盘，产物写在 out/。",
       "expectations": [
         "Writes canonical JSON and data-only Markdown and verifies their checksum.",
-        "Automatically invokes bazi-reading with the exact JSON path after success.",
+        "Hands the exact JSON path the calculator printed on to bazi-reading once validation passes, without waiting for a second request.",
         "Does not invoke the reading when calculation fails."
-      ]
+      ],
+      "execution": {
+        "fixture_root": "fixtures/handoff",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["compute", "validate"],
+        "commands": {
+          "compute": {
+            "script": "scripts/compute_chart.py",
+            "args": ["--request", "request.json", "--out", "out", "--language", "zh"]
+          },
+          "validate": {
+            "script": "scripts/validate_artifact.py",
+            "args": ["out/bazi_A.json"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/bazi_A.json"},
+          {"type": "file_exists", "path": "out/bazi_A.md"}
+        ]
+      }
     }
   ]
 }

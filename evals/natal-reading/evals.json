@@ -78,6 +78,7 @@
       "id": "wide-aspect-overclaim",
       "holdout": true,
       "prompt": "我太阳土星对分，是不是一辈子都很压抑？",
+      "artifact": "fixtures/wide-opposition.json",
       "expectations": [
         "Names the orb and treats a wide aspect as background rather than the main thread.",
         "Uses conditional model language and gives an observable rather than a verdict."

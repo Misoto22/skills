@@ -1,0 +1,9 @@
+{
+  "left": {
+    "chart_path": "charts/bazi_A.json"
+  },
+  "right": {
+    "chart_path": "charts/bazi_B.json"
+  },
+  "relationship_type": null
+}

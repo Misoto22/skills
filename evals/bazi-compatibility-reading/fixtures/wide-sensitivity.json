@@ -1,0 +1,267 @@
+{
+  "checksum": "1ffa90c2eb59bacca71cb33d5e87e4175a4f15b4fb551caa101e3680062de37e",
+  "confidence": {
+    "level": "low",
+    "sensitivity_spread": 17.18,
+    "source_levels": [
+      "medium",
+      "medium"
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "element_complementarity",
+      "ledger": [
+        {
+          "combined_percent": 35.825,
+          "deviation": 15.825000000000003,
+          "element": "木",
+          "id": "combined.木",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 11.94,
+          "deviation": 8.06,
+          "element": "火",
+          "id": "combined.火",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 13.045,
+          "deviation": 6.955,
+          "element": "土",
+          "id": "combined.土",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 11.575,
+          "deviation": 8.425,
+          "element": "金",
+          "id": "combined.金",
+          "target_percent": 20.0
+        },
+        {
+          "combined_percent": 27.615,
+          "deviation": 7.614999999999998,
+          "element": "水",
+          "id": "combined.水",
+          "target_percent": 20.0
+        }
+      ],
+      "name": "element complementarity",
+      "score": 70.7,
+      "weight": 25
+    },
+    {
+      "id": "directional_day_master_support",
+      "ledger": [
+        {
+          "day_element": "土",
+          "id": "support.received.left",
+          "owner": "A",
+          "peer_percent": 7.71,
+          "provider": "B",
+          "resource_element": "火",
+          "resource_percent": 16.08,
+          "score": 59.474999999999994
+        },
+        {
+          "day_element": "水",
+          "id": "support.received.right",
+          "owner": "B",
+          "peer_percent": 9.29,
+          "provider": "A",
+          "resource_element": "金",
+          "resource_percent": 9.29,
+          "score": 46.449999999999996
+        }
+      ],
+      "name": "directional day master support",
+      "score": 52.96,
+      "weight": 20
+    },
+    {
+      "id": "stem_branch_interactions",
+      "ledger": [
+        {
+          "amount": 50.0,
+          "id": "interactions.base",
+          "kind": "base"
+        },
+        {
+          "amount": 4.0,
+          "id": "cross.stem_combination.year.month",
+          "kind": "stem_combination",
+          "members": [
+            "乙",
+            "庚"
+          ],
+          "positions": [
+            "left.year",
+            "right.month"
+          ]
+        },
+        {
+          "amount": -9.0,
+          "id": "cross.branch_clash.year.day",
+          "kind": "branch_clash",
+          "members": [
+            "午",
+            "子"
+          ],
+          "positions": [
+            "left.year",
+            "right.day"
+          ]
+        },
+        {
+          "amount": -9.0,
+          "id": "cross.branch_clash.year.hour",
+          "kind": "branch_clash",
+          "members": [
+            "午",
+            "子"
+          ],
+          "positions": [
+            "left.year",
+            "right.hour"
+          ]
+        }
+      ],
+      "name": "stem branch interactions",
+      "score": 36.0,
+      "weight": 20
+    },
+    {
+      "id": "day_pillar_core",
+      "ledger": [
+        {
+          "amount": 40.0,
+          "id": "day_core.stems",
+          "kind": "control_relation",
+          "members": [
+            "己",
+            "壬"
+          ]
+        }
+      ],
+      "name": "day pillar core",
+      "score": 40.0,
+      "weight": 20
+    },
+    {
+      "id": "structural_stability",
+      "ledger": [
+        {
+          "amount": 100.0,
+          "id": "stability.base",
+          "kind": "base"
+        },
+        {
+          "amount": -5.0,
+          "count": 2,
+          "id": "stability.candidate.left",
+          "kind": "candidate",
+          "owner": "A"
+        },
+        {
+          "amount": -16.0,
+          "count": 4,
+          "id": "stability.negative_interaction.left",
+          "kind": "negative_interaction",
+          "owner": "A"
+        },
+        {
+          "amount": -3.5,
+          "id": "stability.confidence.left",
+          "kind": "source_confidence",
+          "level": "medium",
+          "owner": "A"
+        },
+        {
+          "amount": -5.0,
+          "count": 2,
+          "id": "stability.candidate.right",
+          "kind": "candidate",
+          "owner": "B"
+        },
+        {
+          "amount": -4.0,
+          "count": 1,
+          "id": "stability.negative_interaction.right",
+          "kind": "negative_interaction",
+          "owner": "B"
+        },
+        {
+          "amount": -3.5,
+          "id": "stability.confidence.right",
+          "kind": "source_confidence",
+          "level": "medium",
+          "owner": "B"
+        }
+      ],
+      "name": "structural stability",
+      "score": 63.0,
+      "weight": 15
+    }
+  ],
+  "methodology": {
+    "general_weights": {
+      "day_pillar_core": 20,
+      "directional_day_master_support": 20,
+      "element_complementarity": 25,
+      "stem_branch_interactions": 20,
+      "structural_stability": 15
+    },
+    "secondary_evidence_excluded": [
+      "shen_sha"
+    ]
+  },
+  "model_version": "bazi-compatibility-v1",
+  "people": {
+    "left": {
+      "chart_checksum": "4502c2bf4fd8c3effc570d54f998f5f6e8fcdbb931a36f73d5536edf2a1a8a48",
+      "name": "A"
+    },
+    "right": {
+      "chart_checksum": "029ea957bae8eb94a58fb21bcb995ab25e2039b1aaaba6c4df1b9ad0dfe92b6e",
+      "name": "B"
+    }
+  },
+  "relationship_type": null,
+  "schema": "chinese-metaphysics.bazi-compatibility",
+  "schema_version": 1,
+  "score_semantics": "versioned heuristic scores; not probabilities or relationship outcomes",
+  "scores": {
+    "contextual": null,
+    "contextual_profile": null,
+    "general": 52.92
+  },
+  "sensitivity": {
+    "maximum": 70.1,
+    "minimum": 52.92,
+    "spread": 17.18,
+    "variants": [
+      {
+        "general": 52.92,
+        "left": "primary",
+        "right": "primary"
+      },
+      {
+        "general": 66.45,
+        "left": "primary",
+        "right": "alternate"
+      },
+      {
+        "general": 56.37,
+        "left": "alternate",
+        "right": "primary"
+      },
+      {
+        "general": 70.1,
+        "left": "alternate",
+        "right": "alternate"
+      }
+    ]
+  }
+}
