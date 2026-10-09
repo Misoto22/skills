@@ -161,7 +161,17 @@ A suite that was already red is a different report from one this change broke, a
   # run the test command in <tmp>
   git worktree remove <tmp>
   ```
-  Where a fresh checkout would need its dependencies installed again, `git stash push --include-untracked`, run, then `git stash pop`.
+  Where a fresh checkout would need its dependencies installed again, set the change aside in place instead. The stash stack is shared by every worktree of the repository, so another session can push or pop between your two commands and a bare `git stash pop` restores whatever is on top. Tag the entry, restore it by SHA, and drop it by the tag:
+  ```bash
+  tag="ship-baseline-$(date +%s)-$$"
+  git stash push -u -m "$tag"
+  sha=$(git stash list --format='%H %gs' | awk -v t="$tag" 'index($0, t) {print $1; exit}')
+  # run the test command
+  git stash apply "$sha"
+  ref=$(git stash list --format='%gd %gs' | awk -v t="$tag" 'index($0, t) {print $1; exit}')
+  git stash drop "$ref"
+  ```
+  An empty `sha` means nothing was stashed: skip the apply and the drop. If the apply conflicts, stop and keep the entry — it is the only copy of the change.
 - Neither is practical → report the baseline as unknown. That is honest; "unrelated to this change" without a baseline is not.
 
 One baseline run for the whole suite, not one per failing test.
