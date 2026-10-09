@@ -7,6 +7,18 @@ the two heading shapes differ. There is no `## Unreleased` section to keep
 current any more — an unreleased change is described by its own commit subject,
 and the open release pull request always shows what the next release would say.
 
+## [0.18.7](https://github.com/Misoto22/skills/compare/v0.18.6...v0.18.7) (2026-10-09)
+
+
+### Bug Fixes
+
+* **evals:** make behavior cases answerable and fix the tool sandbox ([#131](https://github.com/Misoto22/skills/issues/131)) ([86a265d](https://github.com/Misoto22/skills/commit/86a265d8eaf66ba38e5d87aae1f42f400e3b044a))
+
+
+### Documentation
+
+* **skills:** first scored iteration for bazi-compatibility and repo-polish ([#133](https://github.com/Misoto22/skills/issues/133)) ([2ddc8fe](https://github.com/Misoto22/skills/commit/2ddc8fec9f54785668b99a39f672ab94aff5d733))
+
 ## [0.18.6](https://github.com/Misoto22/skills/compare/v0.18.5...v0.18.6) (2026-10-09)
 
 
