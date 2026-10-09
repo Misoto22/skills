@@ -1,7 +1,8 @@
 version: 2
 
 # Pinning is what makes a CI result reproducible; it is also how a pin silently
-# goes two years stale. This covers the `uses:` actions only.
+# goes two years stale. This covers the `uses:` actions and every skill's own
+# requirements.txt.
 #
 # The CLI pins — @anthropic-ai/claude-code, @openai/codex, skills, and ruff —
 # are declared in .ci-pins.json, which is not a manifest dependabot can read, so
@@ -9,13 +10,33 @@ version: 2
 # the Canary workflow: it runs the same four install routes at @latest every
 # week and opens an issue when one breaks. Install alone cannot, because a
 # pinned route never fails on an upstream change.
+#
+# The pip directories are every skill that ships a requirements.txt; a contract
+# test holds this list to the tree. One group, so a package several skills share
+# — pyswisseph and tzdata — moves in every skill in the same pull request.
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
     commit-message:
       prefix: "ci"
     groups:
       actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directories:
+      - /plugins/astrology/skills/natal-chart
+      - /plugins/astrology/skills/synastry
+      - /plugins/chinese-metaphysics/skills/bazi-chart
+      - /plugins/chinese-metaphysics/skills/bazi-compatibility
+      - /plugins/chinese-metaphysics/skills/ziwei-chart
+      - /plugins/photography/skills/photo-abstract-editorial-native
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "build"
+    groups:
+      skill-requirements:
         patterns: ["*"]

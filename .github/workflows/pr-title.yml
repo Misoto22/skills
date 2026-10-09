@@ -29,4 +29,4 @@ concurrency:
 
 jobs:
   pr-title:
-    uses: Misoto22/ci/.github/workflows/pr-title.yml@b22969212ef7c4f14990458c897950234d6818f4 # v0.8.0
+    uses: Misoto22/ci/.github/workflows/pr-title.yml@cc7dd7f7cf2113627494435195b6d7f2f52f9220 # v0.9.0

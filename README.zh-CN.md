@@ -130,7 +130,7 @@ npx skills add Misoto22/skills
 想跳过这些提问（在 CI 里，或者你已经清楚要什么），把版本钉死，用参数把答案一次给全：
 
 ```bash
-npx --yes skills@1.5.22 add Misoto22/skills --agent '*' --skill '*'
+npx --yes skills@1.7.1 add Misoto22/skills --agent '*' --skill '*'
 ```
 
 要收窄就用 `--skill email --agent cursor`。

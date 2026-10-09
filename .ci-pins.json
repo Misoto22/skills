@@ -3,19 +3,19 @@
     {
       "id": "claude-code",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.220",
+      "version": "2.1.295",
       "documented_in": []
     },
     {
       "id": "codex",
       "package": "@openai/codex",
-      "version": "0.147.0",
+      "version": "0.162.0",
       "documented_in": []
     },
     {
       "id": "skills",
       "package": "skills",
-      "version": "1.5.22",
+      "version": "1.7.1",
       "documented_in": [
         "README.md",
         "README.zh-CN.md"
@@ -24,7 +24,7 @@
     {
       "id": "ruff",
       "package": "ruff",
-      "version": "0.14.6",
+      "version": "0.16.10",
       "match": "RUFF_VERSION: \"{version}\"",
       "documented_in": [
         ".github/workflows/validate.yml"
@@ -33,7 +33,7 @@
     {
       "id": "uv",
       "package": "uv",
-      "version": "0.12.5",
+      "version": "0.12.24",
       "match": "UV_VERSION: \"{version}\"",
       "documented_in": [
         ".github/workflows/evals.yml",
@@ -44,7 +44,7 @@
     {
       "id": "coverage",
       "package": "coverage",
-      "version": "7.15.3",
+      "version": "7.16.2",
       "spec": "{package}=={version}",
       "spec_latest": "{package}",
       "documented_in": []
@@ -52,7 +52,7 @@
     {
       "id": "openai",
       "package": "openai",
-      "version": "3.1.0",
+      "version": "3.26.1",
       "spec": "{package}=={version}",
       "spec_latest": "{package}",
       "documented_in": []
@@ -60,30 +60,24 @@
     {
       "id": "python",
       "package": "python",
-      "version": "3.13",
+      "version": "3.14",
+      "version_file": ".python-version",
       "version_pattern": "\\d+\\.\\d+",
       "match": "python-version: \"{version}\"",
       "spec": "{version}",
       "spec_latest": "{version}",
-      "documented_in": [
-        ".github/workflows/evals.yml",
-        ".github/workflows/install.yml",
-        ".github/workflows/release.yml",
-        ".github/workflows/validate.yml"
-      ]
+      "documented_in": []
     },
     {
       "id": "node",
       "package": "node",
-      "version": "22",
+      "version": "24",
+      "version_file": ".node-version",
       "version_pattern": "\\d+",
       "match": "node-version: {version}",
       "spec": "{version}",
       "spec_latest": "{version}",
-      "documented_in": [
-        ".github/workflows/install.yml",
-        ".github/workflows/validate.yml"
-      ]
+      "documented_in": []
     },
     {
       "id": "evals-model",

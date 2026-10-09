@@ -9,6 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "plugins" / "astrology" / "skills" / "synastry" / "scripts"
 SHARED = ROOT / "plugins" / "astrology" / "shared"
+# The skill's own declaration is the version under test, so a bump there is the
+# only edit a bump needs.
+REQUIREMENTS = SCRIPTS.parent / "requirements.txt"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(SHARED))
 
@@ -29,8 +32,14 @@ class RealBindingTests(unittest.TestCase):
         set_ephemeris_path(None, swe_module=swe)
 
     def test_pinned_runtime_versions_are_installed(self) -> None:
-        self.assertEqual(importlib.metadata.version("pyswisseph"), "2.10.3.2")
-        self.assertEqual(importlib.metadata.version("tzdata"), "2026.3")
+        pinned = dict(
+            line.strip().split("==", 1)
+            for line in REQUIREMENTS.read_text(encoding="utf-8").splitlines()
+            if "==" in line
+        )
+        for package in ("pyswisseph", "tzdata"):
+            with self.subTest(package=package):
+                self.assertEqual(importlib.metadata.version(package), pinned[package])
 
     def test_empty_data_path_has_deterministic_moshier_sun_and_moon(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

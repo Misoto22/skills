@@ -1622,6 +1622,83 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertNotEqual(refused.returncode, 0, pin["id"])
                 self.assertIn("does not match", refused.stderr, pin["id"])
 
+    def test_runtimes_are_declared_once_in_their_version_files(self) -> None:
+        """setup-python, setup-node, uv and nvm read the file, so the workflows must too."""
+
+        pins = {
+            pin["id"]: pin for pin in json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        }
+        for pin_id, relative, setting in (
+            ("python", ".python-version", "python-version-file: .python-version"),
+            ("node", ".node-version", "node-version-file: .node-version"),
+        ):
+            with self.subTest(runtime=pin_id):
+                pin = pins[pin_id]
+                self.assertEqual(pin.get("version_file"), relative)
+                self.assertEqual((ROOT / relative).read_text(encoding="utf-8").strip(), pin["version"])
+                # The literal form is refused by `check`; this is the positive side.
+                self.assertEqual(pin["documented_in"], [])
+                readers = [
+                    path.name
+                    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+                    if setting in path.read_text(encoding="utf-8")
+                ]
+                self.assertTrue(readers, f"no workflow reads {relative}")
+
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(workflow=path.name):
+                self.assertNotRegex(
+                    text, r'python-version: "\d', "a runtime literal bypasses .python-version"
+                )
+                self.assertNotRegex(text, r"node-version: \d", "a runtime literal bypasses .node-version")
+
+    def test_ci_pin_check_refuses_a_version_file_that_disagrees(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            (copied / ".python-version").write_text("3.10\n", encoding="utf-8")
+            (copied / ".node-version").unlink()
+
+            result = subprocess.run(
+                [sys.executable, "scripts/ci-pins.py", "check"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(".python-version: names python 3.10", result.stderr)
+        self.assertIn(
+            ".node-version: node names it as its version_file, but it does not exist", result.stderr
+        )
+
+    def test_ci_pin_bump_rewrites_the_version_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            for pin_id, relative, target in (
+                ("python", ".python-version", "9.9"),
+                ("node", ".node-version", "99"),
+            ):
+                moved = subprocess.run(
+                    [sys.executable, "scripts/ci-pins.py", "bump", pin_id, target],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(moved.returncode, 0, moved.stderr)
+                self.assertEqual((copied / relative).read_text(encoding="utf-8"), f"{target}\n")
+
+            checked = subprocess.run(
+                [sys.executable, "scripts/ci-pins.py", "check"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+
     def test_coverage_floors_the_python_that_ships(self) -> None:
         """A floor nobody runs is a floor that does not exist, so CI has to run it."""
 
@@ -1675,7 +1752,19 @@ class RepositoryContractTests(unittest.TestCase):
                 r"(?m)^concurrency:\n  group: \$\{\{ github\.workflow \}\}",
                 path.name,
             )
-            self.assertRegex("\n".join(lines), r"(?m)^  cancel-in-progress: (true|false)$", path.name)
+            self.assertRegex(
+                "\n".join(lines),
+                r"(?m)^  cancel-in-progress: (true|false|\$\{\{ github\.event_name == 'pull_request' \}\})$",
+                path.name,
+            )
+            # A `pull_request` run is superseded by the next push; a run on main
+            # is not, because each commit there keeps its own result.
+            if re.search(r"(?m)^  pull_request:$", "\n".join(lines)):
+                self.assertIn(
+                    "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                    lines,
+                    f"{path.name} cancels its main runs too, or none of its pull request runs",
+                )
 
             runners = [index for index, line in enumerate(lines) if line.strip().startswith("runs-on:")]
             # A job that only calls a reusable workflow declares no runner, so
@@ -2077,6 +2166,44 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertTrue(declared, "no skill declares a dependency; this test has nothing to hold")
         self.assertEqual(sorted(result.stdout.split()), declared)
+
+    def test_dependabot_watches_every_skill_requirements_file(self) -> None:
+        """A requirements file nothing watches is a pin that goes stale without a signal."""
+
+        dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+        entry = re.search(r"(?ms)^  - package-ecosystem: pip\n(.*?)(?=^  - |\Z)", dependabot)
+        self.assertIsNotNone(entry, "dependabot.yml has no pip entry")
+        listed = re.findall(r"(?m)^      - (/\S+)$", entry.group(1))
+        declared = sorted(
+            "/" + path.parent.relative_to(ROOT).as_posix()
+            for path in PLUGINS.glob("*/skills/*/requirements.txt")
+        )
+
+        self.assertTrue(declared, "no skill declares a dependency; this test has nothing to hold")
+        self.assertEqual(sorted(listed), declared)
+        self.assertIn("interval: weekly", entry.group(1))
+        # One group, so a package several skills share moves everywhere at once.
+        self.assertEqual(len(re.findall(r"(?m)^      [\w-]+:\n        patterns:", entry.group(1))), 1)
+
+    def test_skills_that_share_a_package_pin_the_same_version(self) -> None:
+        """Two skills on two tzdata releases disagree about the same birth time."""
+
+        pins: dict[str, dict[str, str]] = {}
+        for path in sorted(PLUGINS.glob("*/skills/*/requirements.txt")):
+            relative = path.relative_to(ROOT).as_posix()
+            for line in path.read_text(encoding="utf-8").splitlines():
+                requirement = line.split("#", 1)[0].strip()
+                if not requirement:
+                    continue
+                name, separator, version = requirement.partition("==")
+                self.assertEqual(separator, "==", f"{relative}: {requirement!r} is not an exact pin")
+                pins.setdefault(name.strip().lower(), {})[relative] = version.strip()
+
+        shared = {name: files for name, files in pins.items() if len(files) > 1}
+        self.assertIn("pyswisseph", shared, "the ephemeris skills no longer share a package")
+        for name, files in sorted(shared.items()):
+            with self.subTest(package=name):
+                self.assertEqual(len(set(files.values())), 1, f"{name} is pinned differently: {files}")
 
     def test_list_script_prints_only_published_plugins(self) -> None:
         result = subprocess.run(
