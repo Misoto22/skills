@@ -2155,6 +2155,24 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue(declared, "no skill declares a dependency; this test has nothing to hold")
         self.assertEqual(sorted(result.stdout.split()), declared)
 
+    def test_dependabot_watches_every_skill_requirements_file(self) -> None:
+        """A requirements file nothing watches is a pin that goes stale without a signal."""
+
+        dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+        entry = re.search(r"(?ms)^  - package-ecosystem: pip\n(.*?)(?=^  - |\Z)", dependabot)
+        self.assertIsNotNone(entry, "dependabot.yml has no pip entry")
+        listed = re.findall(r"(?m)^      - (/\S+)$", entry.group(1))
+        declared = sorted(
+            "/" + path.parent.relative_to(ROOT).as_posix()
+            for path in PLUGINS.glob("*/skills/*/requirements.txt")
+        )
+
+        self.assertTrue(declared, "no skill declares a dependency; this test has nothing to hold")
+        self.assertEqual(sorted(listed), declared)
+        self.assertIn("interval: weekly", entry.group(1))
+        # One group, so a package several skills share moves everywhere at once.
+        self.assertEqual(len(re.findall(r"(?m)^      [\w-]+:\n        patterns:", entry.group(1))), 1)
+
     def test_list_script_prints_only_published_plugins(self) -> None:
         result = subprocess.run(
             ["bash", "scripts/list-plugins.sh"],
