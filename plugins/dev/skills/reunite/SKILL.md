@@ -58,7 +58,7 @@ The archive flag decides whether the sidebar shows a conversation, so it is sett
 - **An account that held a conversation and no longer does deleted it.** The conversation is removed from every account, and no later run copies it back. If it reappears where the baseline had none of it, the user resumed it, and it is aligned like any other.
 - **An account directory that is gone altogether deletes nothing.** A signed-out account says nothing about one conversation.
 - **With no baseline yet, disagreeing copies settle on archived.** Nothing recorded says which copy is newer, and hiding is the recoverable way to be wrong. A copy an earlier merge created, now missing from disk, still counts as a deletion: that is the only record from before the baseline existed.
-- **A conversation whose transcript is gone is aligned, but archived.** It would open to nothing, so it is kept for the sake of an identical list and never shown.
+- **A conversation whose transcript is gone is aligned, but archived.** It would open to nothing, so it is kept for the sake of an identical list and never shown. The transcripts are read from `$CLAUDE_CONFIG_DIR/projects` (default `~/.claude/projects`), and when none at all are found there nothing is treated as orphaned and the report says orphan detection was skipped.
 
 A report-only run records nothing, so a deletion made between two reports is still seen by the next `--apply`.
 
