@@ -24,20 +24,23 @@ from dataclasses import replace
 from enum import Enum
 from pathlib import Path
 
+from safe_output import (
+    OutputExistsError,
+    SourceIdentityError,
+    existing_regular_file_matches,
+    fsync_directory,
+    quarantine_stdout,
+)
 from validate_reading import (
     ReadingError,
-    _install_prepared_markdown,
+    install_prepared_markdown,
     install_validated_markdown,
     prepare_validated_markdown,
 )
 from validate_synastry import (
     EvidenceLedger,
-    OutputExistsError,
     SchemaError,
-    SourceIdentityError,
-    _existing_regular_file_matches,
-    _ledger_bytes,
-    _quarantine_stdout,
+    ledger_bytes,
     load_ledger,
 )
 
@@ -478,7 +481,7 @@ def _emit(payload: Mapping[str, object]) -> None:
         sys.stdout.write(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
         sys.stdout.flush()
     except (OSError, ValueError):
-        _quarantine_stdout()
+        quarantine_stdout()
         raise
 
 
@@ -558,7 +561,7 @@ def _start(arguments: argparse.Namespace) -> int:
                 stored_source = "source.json"
             else:
                 stored_source = source_value
-            ledger_payload = _ledger_bytes(ledger)
+            ledger_payload = ledger_bytes(ledger)
             _, page_count = _write_ledger_pages(staging, ledger_payload)
             metadata = {
                 "created_at": created_at,
@@ -604,14 +607,6 @@ def _cleanup_claim(root: Path, claimed: Path) -> None:
     _prune_root(root)
 
 
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
 def _prepare_commit(
     claimed: Path,
     token: str,
@@ -637,7 +632,7 @@ def _prepare_commit(
         claimed / _COMMIT_MANIFEST,
         json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8"),
     )
-    _fsync_directory(claimed)
+    fsync_directory(claimed)
 
 
 def _read_private_bytes(path: Path) -> bytes:
@@ -738,7 +733,7 @@ def _require_exact_committed_output(
     target: Path,
     forbidden_identity: tuple[int, int] | None,
 ) -> None:
-    if not _existing_regular_file_matches(
+    if not existing_regular_file_matches(
         target,
         payload,
         forbidden_identity=forbidden_identity,
@@ -778,7 +773,7 @@ def _complete_committing(
     material: tuple[bytes, Path, tuple[int, int] | None] | None = None,
 ) -> None:
     payload, target, forbidden_identity = material or _commit_material(root, committing)
-    _install_prepared_markdown(
+    install_prepared_markdown(
         payload,
         target,
         forbidden_identity=forbidden_identity,
@@ -858,7 +853,7 @@ def _finalize(arguments: argparse.Namespace) -> int:
             with _defer_cleanup_signals():
                 committing = _transition_state(root, arguments.token, "finalizing", "committing")
                 claimed = None
-                _fsync_directory(root)
+                fsync_directory(root)
             _complete_known_commit(payload, target, ledger)
             _best_effort_remove_private_tree(committing)
             with suppress(BaseException):
