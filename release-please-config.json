@@ -122,10 +122,6 @@
         },
         {
           "type": "generic",
-          "path": "plugins/dev/skills/handoff/SKILL.md"
-        },
-        {
-          "type": "generic",
           "path": "plugins/dev/skills/reunite/SKILL.md"
         },
         {

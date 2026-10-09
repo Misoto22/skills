@@ -38,7 +38,7 @@ Report first, always. The report names each account index, its conversation coun
 
 `--from` is the reset for a tree that has drifted past reconciling: name the account whose sidebar is right — usually `current` — and every other account becomes a byte copy of it. Its archive flags win, and a conversation it does not hold is removed from every account. No baseline or mtime is consulted, and the authority's own files are never written. Use it when the user says "keep what this account shows, clean up the rest".
 
-**Something else may be writing the index.** The handoff skill's watcher publishes an entry for every transcript into every account and recreates one that is missing, so a deletion made here comes back on its next pass. Check `launchctl list | grep handoff` before a cleanup, and say so if it is running.
+**Something else may be writing the index.** The retired handoff skill's watcher, where it is still installed, publishes an entry for every transcript into every account and recreates one that is missing, so a deletion made here comes back on its next pass. Check `launchctl list | grep handoff` before a cleanup, and say so if it is running.
 
 **"Signed in" means the desktop app, not the CLI.** They hold separate logins and are routinely on different accounts, so `~/.claude.json` answers a different question — it names the account `claude` authenticates as, not the one whose sidebar is on screen. The app records its own as `lastKnownAccountUuid` in `config.json` beside the index, and that is the index a rename actually lands in. Check it before concluding a rename did not work; it may have worked in the other account.
 

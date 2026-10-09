@@ -31,7 +31,7 @@
 
 ### Skills
 
-七个 plugin，二十四个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+七个 plugin，二十三个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -50,7 +50,6 @@
 - **[cleanup](plugins/dev/skills/cleanup/SKILL.md)**（`/dev:cleanup`）—— 清掉 ship 之后留下的东西：已合并的分支、它们的 worktree，以及移动目录时被 gitignore 挡住、留在原地的残余。每一次删除都拿 GitHub 上的状态核对过，而不是听 git 的。
 - **[retitle](plugins/dev/skills/retitle/SKILL.md)**（`/dev:retitle`）—— 把 agent 的对话名称统一成带日期的 `MMDD｜TYPE｜subject`，默认英文，`--lang=zh` 换回中文词表。每一批改名都先出一张两列表格给你确认；主题实在推不出来的对话，保留原名不猜。
 - **[reunite](plugins/dev/skills/reunite/SKILL.md)**（`/dev:reunite`）—— 让每个登录过的账号持有同一批对话，逐字节一致。桌面端按账号各存一份侧边栏索引，改名、归档、删除都只写进当前账号那一份，所以换账号既会藏起从没删过的历史，也会冒出你早已清理掉的对话。这个技能以最后被动过的那一份为准对齐所有账号，把归档和删除带到每个账号，写完核对结果；新建、覆盖、移除过的每个文件，`--undo` 都能放回去。
-- **[handoff](plugins/dev/skills/handoff/SKILL.md)**（`/dev:handoff`）—— 把正进行的对话实时镜像到另一个 agent 的历史里，让 Claude Code 的会话出现在 Codex、Codex 的对话出现在 Claude Code。两边触发同样的 hook、用同样的方式追加历史，所以这座桥只是一张字段名对照表；它给的是一份可读的记录，不是可续跑的回放。
 - **[steward](plugins/dev/skills/steward/SKILL.md)**（`/dev:steward`）—— 大内总管：把你最近开过会话的每个仓库巡一遍，逐个快进基准分支、清掉已合并的东西、把对话标题理齐，然后汇报哪些分支可以合并、哪些 worktree 还有会话在用。它 forked 运行、为无人值守而设计：子技能本来要停下来问的问题，全部写进报告，而不是卡住一次没人看着的运行。
 
 启用这个 plugin 还会一并注册三个 hook，跟 skill 无关：`retitle` 自带的那个会话命名 hook；`hooks/guard-git.py`，在裸 force-push、`--no-verify`、`gh pr merge --admin` 真正跑起来之前把它们拦下；以及 [hooks/orchestrate.py](plugins/dev/hooks/orchestrate.py) —— 会话跑在 orchestrator 级别的模型上时，它每轮都提醒主线程去分派任务，并拒掉主线程自己往项目里写的动作：`Edit`、`Write`、Codex 的 `apply_patch`，以及一次文件写入常见的那几种 shell 写法。子 agent 和仓库以外的一切都不碰。`orchestrator_models` 这个选项就是它比对的那份名单，默认 `fable,gpt-6`，留空即关掉这个 hook。在 Claude Code 里，hook 通过当前的 `Task` 工具（仍沿用旧名称的客户端则是 `Agent`）把已授权的改动交给跑 Opus 的 [implementer](plugins/dev/agents/implementer.md)，再把检查交给独立、跑 Sonnet 的 [verifier](plugins/dev/agents/verifier.md)。在 Codex 里，它使用 `collaboration.spawn_agent`、`fork_turns: "none"` 和明确的已配置模型：实现读取 `agents.default_subagent_model`，验证优先读取 `review_model`，没有就沿用实现模型。Codex 的 hook 事件不会暴露单次运行使用的 profile 或 `-c` 覆盖值，因此指令读取基础配置，不承诺看得到这些覆盖值。
