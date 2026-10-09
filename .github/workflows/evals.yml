@@ -87,6 +87,9 @@ jobs:
           REPORT: ${{ runner.temp }}/evals.txt
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # The backticks are a literal Markdown code fence in the issue body,
+          # not a command substitution, so they stay single-quoted.
+          # shellcheck disable=SC2016
           body=$(printf 'A scheduled eval run found a routing or behavior regression.\n\n```\n%s\n```\n\nRun: %s\n' \
             "$(tail -c 40000 "$REPORT")" "$RUN_URL")
           existing=$(gh issue list --state open --label evals --limit 1 --json number --jq '.[0].number // empty')
