@@ -338,7 +338,7 @@ raise SystemExit(
                         stack.enter_context(
                             patch.object(
                                 reading_session,
-                                "_ledger_bytes",
+                                "ledger_bytes",
                                 side_effect=InjectedInterruption(stage),
                             )
                         )

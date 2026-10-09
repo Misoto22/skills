@@ -1,0 +1,9 @@
+{
+  "$comment": "The files from the plugin's shared/ this skill uses. scripts/sync-shared.py vendors exactly these into shared/ and deletes the rest.",
+  "include": [
+    "bazi",
+    "rules/chart-v1.json",
+    "rules/compatibility-v1.json",
+    "rules/scoring-v1.json"
+  ]
+}

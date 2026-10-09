@@ -23,6 +23,7 @@ sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
 import reading_session  # type: ignore[import-not-found]
+import safe_output  # type: ignore[import-not-found]
 import validate_synastry  # type: ignore[import-not-found]
 
 from tests.synastry_reading_skill.test_reading_session import source_with, valid_report
@@ -244,7 +245,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             original_unlink(path, missing_ok=missing_ok)
 
         with patch.object(Path, "unlink", fail_temporary_unlink):
-            result = validate_synastry._write_atomic_bytes(
+            result = safe_output.write_atomic_bytes(
                 payload,
                 destination,
                 overwrite=True,
@@ -623,7 +624,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
         commit_manifest.chmod(0o600)
         errors: list[BaseException] = []
         recovery_barrier = threading.Barrier(2)
-        original_install = reading_session._install_prepared_markdown
+        original_install = reading_session.install_prepared_markdown
 
         def synchronized_install(*args: object, **kwargs: object) -> Path:
             recovery_barrier.wait(timeout=5)
@@ -635,7 +636,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
             except BaseException as error:
                 errors.append(error)
 
-        with patch.object(reading_session, "_install_prepared_markdown", synchronized_install):
+        with patch.object(reading_session, "install_prepared_markdown", synchronized_install):
             threads = [threading.Thread(target=sweep) for _ in range(2)]
             for thread in threads:
                 thread.start()
@@ -679,7 +680,7 @@ class ReadingSessionStateMachineTests(unittest.TestCase):
 
         with patch.object(
             reading_session,
-            "_install_prepared_markdown",
+            "install_prepared_markdown",
             return_value=destination,
         ):
             recovered = reading_session._recover_committing(self.session_root, committing)

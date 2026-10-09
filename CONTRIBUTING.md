@@ -58,7 +58,7 @@ Two of those are not habits, they are load-bearing. The held-out cases exist bec
 
 Every installer copies a plugin — or, on most agents, a single skill directory — and nothing above it. A path that climbs out with `../` resolves in this repository and dangles everywhere else, and only Claude Code expands `${CLAUDE_*}`. Both are rejected in published skill content, and `scripts/verify-install.py` checks it against real installed trees rather than against this repository.
 
-Shared material therefore lives in `plugins/<plugin>/shared/`, and `scripts/sync-shared.py` vendors a copy into each skill. Edit the plugin-level copy only; the validator, the packager, and CI all fail on drift.
+Shared material therefore lives in `plugins/<plugin>/shared/`, and `scripts/sync-shared.py` vendors a copy into each skill. Edit the plugin-level copy only; the validator, the packager, and CI all fail on drift. A skill that needs only part of it lists what it uses in `shared.json` beside its `SKILL.md`, and receives only that.
 
 The one place `${CLAUDE_PLUGIN_ROOT}` is allowed is a plugin's `hooks/hooks.json`: a hook only ever runs where the plugin was installed, so the plugin root is guaranteed there and nowhere a skill is copied alone.
 

@@ -17,7 +17,7 @@ SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
 sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
-import validate_synastry  # type: ignore[import-not-found]
+import safe_output  # type: ignore[import-not-found]
 from synastry_schema import attach_integrity  # type: ignore[import-not-found]
 from validate_reading import (  # type: ignore[import-not-found]
     ReadingError,
@@ -821,7 +821,7 @@ class ValidatedWriteTests(unittest.TestCase):
         selected = load_ledger(source)
         destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
-        original_identity = validate_synastry._path_identity
+        original_identity = safe_output.path_identity
         destination_checks = 0
 
         def swap_after_check(path: Path) -> tuple[int, int] | None:
@@ -835,7 +835,7 @@ class ValidatedWriteTests(unittest.TestCase):
             return result
 
         with (
-            patch("validate_synastry._path_identity", side_effect=swap_after_check),
+            patch("safe_output.path_identity", side_effect=swap_after_check),
             self.assertRaisesRegex(ValueError, "source JSON"),
         ):
             write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
@@ -848,7 +848,7 @@ class ValidatedWriteTests(unittest.TestCase):
         destination.write_text("previous reading", encoding="utf-8")
         symlink_target = self.directory / "raced-reading.md"
         symlink_target.write_text("raced reading", encoding="utf-8")
-        original_exchange = validate_synastry._exchange_paths
+        original_exchange = safe_output.exchange_paths
         exchanges = 0
 
         def swap_then_exchange(first: Path, second: Path) -> None:
@@ -860,7 +860,7 @@ class ValidatedWriteTests(unittest.TestCase):
             original_exchange(first, second)
 
         with (
-            patch("validate_synastry._exchange_paths", side_effect=swap_then_exchange),
+            patch("safe_output.exchange_paths", side_effect=swap_then_exchange),
             self.assertRaises(OSError),
         ):
             write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
@@ -876,7 +876,7 @@ class ValidatedWriteTests(unittest.TestCase):
         raced_directory.mkdir()
         sentinel = raced_directory / "keep.txt"
         sentinel.write_text("keep", encoding="utf-8")
-        original_exchange = validate_synastry._exchange_paths
+        original_exchange = safe_output.exchange_paths
         exchanges = 0
 
         def swap_then_exchange(first: Path, second: Path) -> None:
@@ -888,7 +888,7 @@ class ValidatedWriteTests(unittest.TestCase):
             original_exchange(first, second)
 
         with (
-            patch("validate_synastry._exchange_paths", side_effect=swap_then_exchange),
+            patch("safe_output.exchange_paths", side_effect=swap_then_exchange),
             self.assertRaises(OSError),
         ):
             write_validated_markdown(valid_report(), ledger(), destination, "en", (), overwrite=True)
@@ -914,8 +914,8 @@ class ValidatedWriteTests(unittest.TestCase):
         selected = load_ledger(source)
         destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
-        original_identity = validate_synastry._path_identity
-        original_exchange = validate_synastry._exchange_paths
+        original_identity = safe_output.path_identity
+        original_exchange = safe_output.exchange_paths
         destination_checks = 0
         exchanges = 0
 
@@ -937,8 +937,8 @@ class ValidatedWriteTests(unittest.TestCase):
             original_exchange(first, second)
 
         with (
-            patch("validate_synastry._path_identity", side_effect=swap_after_check),
-            patch("validate_synastry._exchange_paths", side_effect=fail_a_rollback),
+            patch("safe_output.path_identity", side_effect=swap_after_check),
+            patch("safe_output.exchange_paths", side_effect=fail_a_rollback),
             self.assertRaisesRegex(ValueError, "source JSON"),
         ):
             write_validated_markdown(valid_report(), selected, destination, "en", (), overwrite=True)
@@ -949,9 +949,9 @@ class ValidatedWriteTests(unittest.TestCase):
     def test_failed_rollback_retains_the_displaced_regular_file(self) -> None:
         destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
-        previous_identity = validate_synastry._path_identity(destination)
-        original_identity = validate_synastry._path_identity
-        original_exchange = validate_synastry._exchange_paths
+        previous_identity = safe_output.path_identity(destination)
+        original_identity = safe_output.path_identity
+        original_exchange = safe_output.exchange_paths
         exchanges = 0
 
         def report_changed_displaced_identity(path: Path) -> tuple[int, int] | None:
@@ -968,8 +968,8 @@ class ValidatedWriteTests(unittest.TestCase):
             original_exchange(first, second)
 
         with (
-            patch("validate_synastry._path_identity", side_effect=report_changed_displaced_identity),
-            patch("validate_synastry._exchange_paths", side_effect=fail_a_second_exchange),
+            patch("safe_output.path_identity", side_effect=report_changed_displaced_identity),
+            patch("safe_output.exchange_paths", side_effect=fail_a_second_exchange),
             patch("validate_synastry.os.replace", side_effect=OSError("forced restore failure")),
             self.assertRaises(OSError),
         ):
@@ -987,8 +987,8 @@ class ValidatedWriteTests(unittest.TestCase):
     def test_failed_recovery_move_restores_the_displaced_file_by_exchange(self) -> None:
         destination = self.directory / "synastry_reading_abc123def456.md"
         destination.write_text("previous reading", encoding="utf-8")
-        previous_identity = validate_synastry._path_identity(destination)
-        original_identity = validate_synastry._path_identity
+        previous_identity = safe_output.path_identity(destination)
+        original_identity = safe_output.path_identity
 
         def report_changed_displaced_identity(path: Path) -> tuple[int, int] | None:
             result = original_identity(path)
@@ -997,7 +997,7 @@ class ValidatedWriteTests(unittest.TestCase):
             return result
 
         with (
-            patch("validate_synastry._path_identity", side_effect=report_changed_displaced_identity),
+            patch("safe_output.path_identity", side_effect=report_changed_displaced_identity),
             patch("validate_synastry.os.replace", side_effect=OSError("forced direct restore failure")),
             patch("validate_synastry.os.rename", side_effect=OSError("forced recovery move failure")),
             self.assertRaises(OSError),
@@ -1012,7 +1012,7 @@ class ValidatedWriteTests(unittest.TestCase):
 
         with (
             patch(
-                "validate_synastry._allocate_recovery_directory",
+                "safe_output._allocate_recovery_directory",
                 side_effect=OSError("forced recovery allocation failure"),
             ),
             self.assertRaises(OSError),
@@ -1028,7 +1028,7 @@ class ValidatedWriteTests(unittest.TestCase):
 
         with (
             patch(
-                "validate_synastry._exchange_paths",
+                "safe_output.exchange_paths",
                 side_effect=OSError("atomic overwrite unsupported"),
             ),
             self.assertRaises(OSError),

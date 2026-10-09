@@ -19,6 +19,7 @@ SKILL = ROOT / "plugins" / "astrology" / "skills" / "synastry-reading"
 sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL / "shared"))
 
+import safe_output  # type: ignore[import-not-found]
 import validate_synastry  # type: ignore[import-not-found]
 from synastry_schema import SchemaError, attach_integrity  # type: ignore[import-not-found]
 from validate_synastry import load_ledger, main  # type: ignore[import-not-found]
@@ -46,7 +47,7 @@ class AtomicPublicationRecorder:
         self.original_open = os.open
         self.original_fsync = os.fsync
         self.original_link = os.link
-        self.original_exchange = validate_synastry._exchange_paths
+        self.original_exchange = safe_output.exchange_paths
         self.stack = ExitStack()
 
     def open(self, path: object, flags: int, *args: object, **kwargs: object) -> int:
@@ -76,7 +77,7 @@ class AtomicPublicationRecorder:
         self.stack.enter_context(patch.object(validate_synastry.os, "open", self.open))
         self.stack.enter_context(patch.object(validate_synastry.os, "fsync", self.fsync))
         self.stack.enter_context(patch.object(validate_synastry.os, "link", self.link))
-        self.stack.enter_context(patch.object(validate_synastry, "_exchange_paths", self.exchange))
+        self.stack.enter_context(patch.object(safe_output, "exchange_paths", self.exchange))
         return self
 
     def __exit__(self, *exc_info: object) -> None:
@@ -201,7 +202,7 @@ class AtomicPublicationTests(unittest.TestCase):
             patch.object(validate_synastry.os, "close", close_then_fail),
             self.assertRaisesRegex(OSError, "close failure"),
         ):
-            validate_synastry._write_atomic_bytes(
+            safe_output.write_atomic_bytes(
                 b"payload",
                 destination,
                 overwrite=False,
@@ -224,7 +225,7 @@ class AtomicPublicationTests(unittest.TestCase):
         recorder = AtomicPublicationRecorder(destination)
 
         with recorder:
-            result = validate_synastry._write_atomic_bytes(
+            result = safe_output.write_atomic_bytes(
                 payload,
                 destination,
                 overwrite=overwrite,
@@ -419,7 +420,7 @@ class SourceValidatorCliTests(unittest.TestCase):
         try:
             for path in special_paths:
                 with self.subTest(path=path), self.assertRaises(OSError):
-                    validate_synastry._path_identity(path)
+                    safe_output.path_identity(path)
         finally:
             if unix_socket is not None:
                 unix_socket.close()

@@ -15,16 +15,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
 
 from astro.astro_math import ASPECT_NAMES
+from safe_output import OutputExistsError, SourceIdentityError, write_atomic_bytes
 from validate_synastry import (
     EvidenceItem,
     EvidenceLedger,
-    OutputExistsError,
     SchemaError,
-    SourceIdentityError,
-    _is_source_path,
-    _source_identity,
-    _write_atomic_bytes,
+    is_source_path,
     load_ledger,
+    source_identity,
 )
 
 _EVIDENCE_TOKEN = re.compile(r"\[E-(?:ASPECT|OVERLAY)-[0-9A-F]{4}\]")
@@ -787,7 +785,7 @@ def _validated_reading_target(
     expected_basename = f"synastry_reading_{ledger.chart_id}.md"
     if target.name != expected_basename:
         raise ValueError("reading destination basename must match the validated chart_id")
-    if _is_source_path(target, ledger):
+    if is_source_path(target, ledger):
         raise SourceIdentityError("reading destination must not replace the source JSON")
     return target
 
@@ -803,16 +801,16 @@ def install_validated_markdown(
     """Atomically install already-validated Markdown bytes."""
 
     target = _validated_reading_target(destination, ledger)
-    return _install_prepared_markdown(
+    return install_prepared_markdown(
         payload,
         target,
         overwrite=overwrite,
-        forbidden_identity=_source_identity(ledger),
+        forbidden_identity=source_identity(ledger),
         accept_identical=accept_identical,
     )
 
 
-def _install_prepared_markdown(
+def install_prepared_markdown(
     payload: bytes,
     destination: Path,
     *,
@@ -822,7 +820,7 @@ def _install_prepared_markdown(
 ) -> Path:
     """Install bytes that were validated before a durable commit transition."""
 
-    return _write_atomic_bytes(
+    return write_atomic_bytes(
         payload,
         destination,
         overwrite=overwrite,
