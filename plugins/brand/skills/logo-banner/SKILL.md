@@ -3,7 +3,7 @@ name: logo-banner
 description: Create cohesive raster logo, app-icon, favicon, and repository-hero systems through ChatGPT Image when a user asks to design or refresh visual identity, a logo, a banner, branding assets, or light and dark brand variants; stop clearly when the host lacks that generator rather than substituting another tool; not for code-drawn SVG icons, general website layout, or ordinary photo retouching.
 license: MIT
 metadata:
-  version: "0.18.2" # x-release-please-version
+  version: "0.18.3" # x-release-please-version
 ---
 
 # Logo Banner
