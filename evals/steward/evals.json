@@ -87,7 +87,7 @@
     },
     {
       "id": "merge-ledger-without-merging",
-      "prompt": "Sweep my repositories. In repo A: feat/x has open PR #12 with green checks and no review requirement; feat/y has open PR #13 with one failing check; feat/z has 4 commits, no pull request, and its last commit was 45 days ago.",
+      "prompt": "Sweep my repositories. In repo A: feat/x has open PR #12 with green checks and no review requirement; feat/y has open PR #13 whose `test (3.13)` check is failing; feat/z has 4 commits, no pull request, and its last commit was 45 days ago.",
       "expectations": [
         "Reports feat/x as ready to merge with the command to run, and does not merge it.",
         "Reports feat/y as blocked by CI and names the failing check.",
@@ -128,7 +128,7 @@
       "expectations": [
         "Sweeps A, B and D fully.",
         "Reports C as failed with the command and what it printed, under Needs you, rather than as synced or clean.",
-        "Does not prompt for authentication in an unattended run."
+        "Does not itself run or wait on an interactive authentication prompt in an unattended run; naming the command for the person to run later is expected."
       ]
     }
   ]
