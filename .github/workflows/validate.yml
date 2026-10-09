@@ -107,6 +107,8 @@ jobs:
           python-version-file: .python-version
       - name: Audit CLI pins
         run: python3 scripts/ci-pins.py check
+      - name: Hold oversized source files to their recorded size
+        run: python3 scripts/check-file-size.py --check
       - name: Audit version declarations
         run: python3 scripts/bump-version.py --audit
       - name: Check evaluation coverage

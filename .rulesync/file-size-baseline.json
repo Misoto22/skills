@@ -1,0 +1,25 @@
+{
+  "limit": 400,
+  "files": {
+    "plugins/astrology/shared/astro/ephemeris.py": 470,
+    "plugins/astrology/shared/astro/request_schema.py": 725,
+    "plugins/astrology/shared/divination-report/templates/ink-wash-poster.html": 557,
+    "plugins/astrology/shared/synastry_schema.py": 900,
+    "plugins/astrology/skills/synastry-reading/scripts/reading_session.py": 986,
+    "plugins/astrology/skills/synastry-reading/scripts/validate_reading.py": 938,
+    "plugins/astrology/skills/synastry-reading/scripts/validate_synastry.py": 703,
+    "plugins/astrology/skills/synastry/scripts/artifact.py": 650,
+    "plugins/chinese-metaphysics/shared/bazi/validation.py": 605,
+    "plugins/chinese-metaphysics/shared/divination-report/templates/ink-wash-poster.html": 557,
+    "plugins/dev/hooks/orchestrate.py": 567,
+    "plugins/dev/skills/steward/scripts/inventory.py": 468,
+    "plugins/writing/skills/email/scripts/email_policy.py": 544,
+    "plugins/writing/skills/email/scripts/validate_message.py": 420,
+    "scripts/build-registry.py": 493,
+    "scripts/evals/runtime.py": 473,
+    "scripts/new-skill.py": 562,
+    "scripts/run-evals-experiment.py": 1023,
+    "scripts/run-evals.py": 1384,
+    "scripts/validate-repository.py": 843
+  }
+}

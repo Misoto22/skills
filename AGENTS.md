@@ -40,4 +40,5 @@
 - Never write a plugin name, a skill name, or the marketplace name into CI. The install workflow derives plugins and skills from the tree with `scripts/list-plugins.sh` and `scripts/list-skills.sh`, reads the marketplace name with `scripts/marketplace-name.sh`, and installs each skill's declared dependencies with `scripts/install-skill-requirements.sh`. A test asserts no published name appears in `install.yml`.
 - Both READMEs state one published count each, held to the tree by `STATED_COUNTS` in the validator and rewritten by `new-skill.py` and `remove-skill.py`. A new translation needs an entry there, or it fails rather than going stale.
 - Run `uvx ruff check .`, `uvx ruff format .`, and `shellcheck scripts/*.sh` before committing; CI enforces all three.
+- A source file under `plugins/` or `scripts/` over the limit `.rulesync/file-size-baseline.json` declares may not grow and no new one may cross it — `python3 scripts/check-file-size.py --check` enforces that in CI, and `--update` only lowers a recorded count after a file shrinks.
 - Do not force-push `main` or `master`.
