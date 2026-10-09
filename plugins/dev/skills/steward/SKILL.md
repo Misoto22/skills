@@ -38,7 +38,7 @@ Two consequences the rest of this skill is written around:
 
 Decide before anything runs, and say which in the report's first line.
 
-- **Attended** — a person is at the keyboard. Sub-skills keep their own stop-and-ask behaviour, and the steward relays each question as it comes, one repository at a time.
+- **Attended** — a person started the sweep and will read the report. The run is still forked, so a question a sub-skill would ask cannot reach them mid-run: it goes into the report under *Needs you*, exactly as unattended. What attended changes is what the passes may do — what the person asked for in the request that started the sweep stands as their answer, such as asking for titles to be renamed (§3).
 - **Unattended** — `--unattended`, or the prompt arrived from a scheduler rather than a person: a scheduled-task run, a cron-fired session, a `claude -p` invocation. Nobody can answer, so **no pass may block on a question**. Every question a sub-skill would have asked is written into the report under *Needs you*, and the pass moves on. Retitle runs without `--apply`, so it proposes and does not write. Cleanup removes only what its own rules remove without asking.
 
 `--dry-run` is stricter than either: inventory and report only. No fetch, no fast-forward, no deletion, no rename — and the report says its branch states are as of the last fetch, whenever that was. Its only writes are the steward's own state: the saved report (§4) and the lock directory (§5). Nothing in any repository, worktree, or session store is touched.
