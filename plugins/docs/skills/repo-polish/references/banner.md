@@ -4,7 +4,7 @@ The hero image is the only piece of visual design GitHub will render for you, an
 
 ## Rules
 
-**Commit the asset.** `assets/hero-light.svg`, or wherever the repository already keeps images. A hotlinked banner — a design tool's share URL, a CDN, someone's blog — is an outage the repository owner does not control and cannot see. It also leaks a referrer for every visitor.
+**Commit the asset.** A hero `brand:logo-banner` produced is already in the repository, as raster files under `assets/brand/` or wherever its asset guide says; commit and use those. Otherwise `assets/hero-light.svg`, or wherever the repository already keeps images. A hotlinked banner — a design tool's share URL, a CDN, someone's blog — is an outage the repository owner does not control and cannot see. It also leaks a referrer for every visitor.
 
 **Serve both themes.** GitHub renders the README against the reader's own theme, and a banner tuned for one is unreadable in the other. `<picture>` with a `prefers-color-scheme` source is the only mechanism that works:
 
@@ -17,7 +17,7 @@ The hero image is the only piece of visual design GitHub will render for you, an
 
 The `<img>` is the light variant and the fallback both. A renderer that ignores `<picture>` still shows something.
 
-**SVG over PNG.** It stays sharp on every display, it diffs as text so a colour change is reviewable, and it is usually smaller. Where the artwork is photographic, PNG at 2× the display width, and keep it under a few hundred kilobytes — the README is often the first request a phone makes.
+**SVG over PNG, for a banner this pass draws itself.** A raster hero from `brand:logo-banner` stays raster — it was generated as an image, and redrawing it in SVG is the substitute that skill forbids; point the `<picture>` sources at its light and dark files and keep the rest of these rules. For a drafted banner, SVG stays sharp on every display, it diffs as text so a colour change is reviewable, and it is usually smaller. Where the artwork is photographic, PNG at 2× the display width, and keep it under a few hundred kilobytes — the README is often the first request a phone makes.
 
 **Set `width`, never `height`.** A width around 820 fills GitHub's content column without overflowing it. Height set alone distorts nothing but guarantees a layout shift while the asset loads.
 
@@ -44,7 +44,7 @@ Drop the `<img>` and the `<br />` after it. Never leave a placeholder in `src` �
 
 The centred block still works without it, and is better than a placeholder graphic. A CLI tool may reasonably open with a fenced sample of its own output instead — one screen, real output, no prompt characters.
 
-Where the artwork needs to be designed rather than laid out, that is a separate job: a logo and banner system, light and dark, is brand work. This pass wires up the `<picture>` block, sizes it, and verifies it renders.
+Where the artwork needs to be designed rather than laid out, that is a separate job: a logo and banner system, light and dark, is brand work for `brand:logo-banner`. This pass wires up the `<picture>` block, sizes it, and verifies it renders.
 
 ## Badges, below the banner
 
