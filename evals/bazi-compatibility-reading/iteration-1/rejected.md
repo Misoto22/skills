@@ -1,0 +1,3 @@
+# BaZi compatibility reading — iteration 1 rejected
+
+- **List what the reader report must not carry, beside the data-card rule.** Tuning 10/12 → 8/11. `reader-first-chinese-report` stayed 0/2 with the failures moving rather than closing — a fourth supporting indicator, the model id still present, a `A ← B` direction — and `corrupt-artifact` dropped 2/2 → 1/2 (one sample interpreted a manually edited comparison instead of refusing). The leakage is not a missing sentence in this SKILL.md: the reader/evidence boundary lives in `shared/report-presentation.md`, which every reading skill shares, and that is where the next attempt belongs.
