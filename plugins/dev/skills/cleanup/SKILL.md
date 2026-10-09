@@ -114,20 +114,29 @@ Local and remote are decided independently. A branch can be deletable on the rem
 
 Directories holding nothing but ignored files, left behind by a move — `shared/git.md` § Ignored files survive a move, and git will not tell you.
 
-```bash
-find . -type d -name __pycache__ -not -path './.git/*'
-find . -type d -empty -not -path './.git/*'
-```
-
-For each candidate, the test is whether **anything tracked still lives under it**:
+Search this checkout only. Every other worktree — each path `git worktree list` names besides this one, and anything under `.claude/worktrees/` — is a separate checkout with its own live `__pycache__`, and descending into it reads that working state as residue here:
 
 ```bash
-git ls-files --error-unmatch <dir> >/dev/null 2>&1
+top=$(git rev-parse --show-toplevel)
+prune=(-path "$top/.git" -o -path "$top/.claude/worktrees")
+while IFS= read -r tree; do
+  [ "$tree" = "$top" ] || prune+=(-o -path "$tree")
+done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
+find "$top" \( "${prune[@]}" \) -prune -o -type d \( -name __pycache__ -o -empty \) -print
 ```
 
-- No tracked files, and every file inside is ignored → residue. Remove.
-- Any tracked file under it → not residue, whatever it looks like. Keep.
-- Ignored files beside tracked ones — a live `__pycache__` next to its `.py`, `node_modules` next to `package.json` — are working state, not residue. Keep.
+For each candidate, the test is whether its **parent directory** still holds anything tracked — never the candidate itself. Git tracks no `__pycache__` and no empty directory, so asking about the candidate classes every one of them as residue, the live ones included:
+
+```bash
+git ls-files -- "$(dirname <dir>)" | head -1        # any output → the parent is live
+git ls-files --others --exclude-standard -- <dir>   # any output → untracked work inside
+```
+
+- Parent holds a tracked file → live working state, whatever it looks like: a `__pycache__` beside its tracked `.py`, `node_modules` beside `package.json`. Keep.
+- Parent holds nothing tracked, and every file inside the candidate is ignored → residue: the move took the source and left this behind. Remove.
+- Anything untracked but not ignored inside it → someone's work, not residue. Keep, and list it.
+
+Removing one can leave its parent empty or holding only ignored files; run the search again until it finds nothing new.
 
 Never remove `.git`, `.venv`, `node_modules`, or anything named in `.gitignore` that sits beside tracked files. Deleting a build cache costs a rebuild; deleting `.venv` costs an afternoon. If a directory is large and expensive to recreate, list it and ask instead.
 
