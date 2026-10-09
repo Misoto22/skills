@@ -23,6 +23,18 @@ NO_VERIFY_COMMANDS = ("commit", "push", "merge", "rebase")
 ENV_COMMANDS = ("env", "/usr/bin/env", "/bin/env")
 WRAPPER_COMMANDS = ("command", "exec")
 ENV_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
+# Global options git reads before the subcommand that take their value as the next word.
+# Every other leading `-…` word is a flag or carries its value after `=`.
+GLOBAL_OPTIONS_WITH_VALUE = (
+    "-C",
+    "-c",
+    "--git-dir",
+    "--work-tree",
+    "--namespace",
+    "--config-env",
+    "--super-prefix",
+    "--attr-source",
+)
 
 REFUSALS = {
     "force": (
@@ -72,6 +84,24 @@ def _is_force(word: str) -> bool:
     return word.startswith("-") and not word.startswith("--") and "f" in word[1:]
 
 
+def _subcommand(args: list[str]) -> tuple[str, list[str]]:
+    """The git subcommand and its arguments, past `-C <path>`, `-c <k=v>` and the other globals.
+
+    Taking the first non-dash word instead reads `git -C /repo push` as `git /repo`.
+    """
+    index = 0
+    while index < len(args) and args[index].startswith("-"):
+        index += 2 if args[index] in GLOBAL_OPTIONS_WITH_VALUE else 1
+    if index >= len(args):
+        return "", []
+    return args[index], args[index + 1 :]
+
+
+def _is_forced_push(rest: list[str]) -> bool:
+    """A force flag, or a `+refspec`, which forces that one ref with no flag at all."""
+    return any(_is_force(w) or w.startswith("+") for w in rest)
+
+
 def _has_short(words: list[str], letter: str) -> bool:
     return any(w.startswith("-") and not w.startswith("--") and letter in w[1:] for w in words)
 
@@ -83,9 +113,8 @@ def offence(command: str) -> str | None:
         if not words:
             continue
         if words[0] == "git":
-            subcommand = next((w for w in words[1:] if not w.startswith("-")), "")
-            rest = words[words.index(subcommand) + 1 :] if subcommand else []
-            if subcommand == "push" and any(_is_force(w) for w in rest):
+            subcommand, rest = _subcommand(words[1:])
+            if subcommand == "push" and _is_forced_push(rest):
                 return REFUSALS["force"]
             if subcommand in NO_VERIFY_COMMANDS and "--no-verify" in rest:
                 return REFUSALS["no-verify"]

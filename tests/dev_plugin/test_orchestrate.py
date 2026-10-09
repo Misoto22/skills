@@ -504,6 +504,9 @@ class BashDetectorTests(unittest.TestCase):
             "touch src/new.py",
             "ln -s a b",
             "git apply fix.patch",
+            "git -C sub apply fix.patch",
+            "git -c core.whitespace=fix apply fix.patch",
+            "git --no-pager --git-dir .git apply fix.patch",
             "pytest && sed -i 's/a/b/' src/x.py",
         ):
             with self.subTest(command=command):
@@ -524,6 +527,9 @@ class BashDetectorTests(unittest.TestCase):
             "cat src/x.py",
             'sed -i "s/a/b/ src/x.py',
             "git apply --stat",
+            "git -C sub status",
+            "git -C apply status",
+            "git -C /tmp/elsewhere apply fix.patch",
             "",
             "   ",
         ):
