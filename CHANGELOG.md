@@ -7,6 +7,13 @@ the two heading shapes differ. There is no `## Unreleased` section to keep
 current any more — an unreleased change is described by its own commit subject,
 and the open release pull request always shows what the next release would say.
 
+## [0.18.0](https://github.com/Misoto22/skills/compare/v0.17.1...v0.18.0) (2026-10-09)
+
+
+### Features
+
+* **reunite:** align every account index and retire handoff ([#116](https://github.com/Misoto22/skills/issues/116)) ([a37738b](https://github.com/Misoto22/skills/commit/a37738b53e1bc4a10f60e812a27228b087ffe67c))
+
 ## 0.17.1 — 2026-09-12
 
 - Added a continuous local handoff runtime with native Codex import/readback, Claude indexes for every existing local account, branch preservation, retry journals, and an observable macOS watcher. Both bounded wording evaluation gates passed; see `docs/session-sync.md` and `evals/handoff/iteration-2/benchmark-summary.md`.
