@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "description": "Development workflow skills.",
   "author": {
     "name": "skills contributors"
@@ -18,7 +18,7 @@
     "session_title_lang": {
       "type": "string",
       "title": "Session title language",
-      "description": "Vocabulary the session-naming hook injects: en for MMDD|TYPE|subject, zh for MMDD|\u7c7b\u578b|\u4e3b\u9898. A locale tag such as zh-CN also resolves; anything else falls back to en.",
+      "description": "Vocabulary the session-naming hook injects: en for MMDD|TYPE|subject, zh for MMDD|类型|主题. A locale tag such as zh-CN also resolves; anything else falls back to en.",
       "default": "en"
     },
     "orchestrator_models": {
