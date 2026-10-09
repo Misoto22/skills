@@ -335,6 +335,39 @@ class ToolSandboxTests(unittest.TestCase):
             finally:
                 sandbox.close()
 
+    def test_a_second_command_in_one_case_runs(self) -> None:
+        """Compute-then-validate is two commands; the scratch directory must survive the first."""
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "fixture"
+            source.mkdir()
+            sandbox = ToolSandbox(source, {"noop": [sys.executable, "-c", "pass"]})
+            try:
+                sandbox.call("run_command", {"command": "noop"})
+                sandbox.call("run_command", {"command": "noop"})
+            finally:
+                sandbox.close()
+
+    def test_commands_run_in_the_runner_environment_not_the_base_interpreter(self) -> None:
+        """A venv's python is a symlink; resolving it drops the venv's installed packages."""
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "fixture"
+            source.mkdir()
+            sandbox = ToolSandbox(
+                source,
+                {
+                    "prefix": [
+                        sys.executable,
+                        "-c",
+                        "import sys; from pathlib import Path; Path('prefix.txt').write_text(sys.prefix)",
+                    ]
+                },
+            )
+            try:
+                sandbox.call("run_command", {"command": "prefix"})
+                self.assertEqual(sandbox.call("read_file", {"path": "prefix.txt"}), sys.prefix)
+            finally:
+                sandbox.close()
+
     def test_command_output_redacts_the_machine_local_sandbox_path(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "fixture"

@@ -146,11 +146,14 @@ class ToolSandbox:
         allowed_executables = {Path(sys.executable).resolve()}
         if not executable_path.is_absolute() or executable_path.resolve() not in allowed_executables:
             raise ValueError("declared executable is outside the fixed allowlist")
-        executable = str(executable_path.resolve())
+        # Run the runner's own interpreter path, not its resolved target: a venv's python
+        # is a symlink to the base interpreter, and only the unresolved path keeps the
+        # venv's site-packages — the skill requirements a declared command imports.
+        executable = sys.executable
         environment = {
             "HOME": str(self.home),
             "TMPDIR": str(Path(self._temporary.name) / "tmp"),
-            "PATH": os.pathsep.join((str(Path(sys.executable).resolve().parent), "/usr/bin", "/bin")),
+            "PATH": os.pathsep.join((str(Path(sys.executable).parent), "/usr/bin", "/bin")),
             "LANG": "C.UTF-8",
             "PYTHONDONTWRITEBYTECODE": "1",
         }
@@ -161,7 +164,7 @@ class ToolSandbox:
                 if any(marker in key for marker in ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")):
                     raise ValueError("declared environment may not contain credential variables")
                 environment[key] = str(self._path(relative))
-        Path(environment["TMPDIR"]).mkdir()
+        Path(environment["TMPDIR"]).mkdir(exist_ok=True)
         result = subprocess.run(
             [executable, *argv[1:]],
             cwd=self.root,
