@@ -27,7 +27,7 @@ concurrency:
 # setup-uv takes its version as an input, the same shape as ruff-action, so this
 # is a pin no script can resolve. `ci-pins.py check` holds it to .ci-pins.json.
 env:
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.24"
   # See validate.yml: a runner has no virtual environment, and this is where that
   # is declared rather than baked into a script contributors also run.
   UV_SYSTEM_PYTHON: 1

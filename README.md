@@ -132,7 +132,7 @@ Asks which skills, which agents, project or global, and symlink or copy. Symlink
 To skip the questions — in CI, or when you already know — pin the version and answer them as flags:
 
 ```bash
-npx --yes skills@1.5.22 add Misoto22/skills --agent '*' --skill '*'
+npx --yes skills@1.7.1 add Misoto22/skills --agent '*' --skill '*'
 ```
 
 Narrow it with `--skill email --agent cursor`.

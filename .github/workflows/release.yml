@@ -32,7 +32,7 @@ on:
         required: true
 
 env:
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.24"
   # A runner has no virtual environment, and uv refuses to install without one
   # rather than quietly writing into the interpreter. Saying so here is the
   # declaration; a script that named an interpreter instead would carry the same
