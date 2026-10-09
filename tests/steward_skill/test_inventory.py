@@ -275,6 +275,90 @@ class InventoryTests(unittest.TestCase):
         self.assertIn(("live-1", True), {(s["id"], s["live"]) for s in linked["sessions"]})
         self.assertEqual(self.run_inventory()["sources"]["claude_code"]["live"], "unavailable")
 
+    def desktop_index(self, name: str, entries: dict[str, list[dict]]) -> Path:
+        """A desktop session index: {account: [local_*.json payloads]} under one org each."""
+
+        root = self.base / name
+        for account, payloads in entries.items():
+            org = root / account / "org"
+            org.mkdir(parents=True)
+            for payload in payloads:
+                (org / f"local_{payload['sessionId']}.json").write_text(json.dumps(payload), encoding="utf-8")
+        (root / "not-an-account.json").write_text("{}", encoding="utf-8")
+        return root
+
+    def test_an_open_desktop_session_occupies_its_worktree_however_idle(self) -> None:
+        """`claude agents --json` lists background agents only; an idle desktop tab is not one."""
+
+        outsider = make_repository(self.base / "outsider")
+        idle = {
+            "sessionId": "desk-idle",
+            "cwd": str(self.alpha_wt / "sub"),
+            "worktreePath": str(self.alpha_wt),
+            "lastActivityAt": (time.time() - 30 * DAY) * 1000,
+        }
+        archived = {"sessionId": "desk-archived", "cwd": str(self.beta), "isArchived": True}
+        elsewhere = {"sessionId": "desk-outsider", "cwd": str(outsider)}
+        root = self.desktop_index(
+            "desktop-index", {"account-a": [idle, archived, elsewhere], "account-b": [idle]}
+        )
+
+        report = self.run_inventory(desktop_sessions_root=root)
+
+        self.assertEqual(report["sources"]["claude_desktop"], 2)
+        alpha = self.repository(report, self.alpha)
+        linked = self.worktree(alpha, self.alpha_wt)
+        self.assertTrue(linked["occupied"], "an open conversation holds its worktree")
+        desktop = [s for s in linked["sessions"] if s["client"] == "claude-desktop"]
+        self.assertEqual([(s["id"], s["open"]) for s in desktop], [("desk-idle", True)])
+        self.assertFalse(
+            any(s["client"] == "claude-desktop" for s in self.worktree(alpha, self.alpha)["sessions"]),
+            "a linked worktree nested in a checkout's path belongs to the deepest match",
+        )
+        beta = self.repository(report, self.beta)
+        self.assertFalse(beta["worktrees"][0]["occupied"], "an archived conversation holds nothing")
+        self.assertNotIn(
+            str(outsider),
+            [r["primary"] for r in report["repositories"]],
+            "an open conversation marks occupancy; it does not widen the sweep",
+        )
+
+    def test_no_desktop_index_is_reported_not_raised(self) -> None:
+        report = self.run_inventory(desktop_sessions_root=self.base / "nowhere")
+
+        self.assertEqual(report["sources"]["claude_desktop"], "unavailable")
+        self.assertEqual(self.run_inventory()["sources"]["claude_desktop"], "unavailable")
+
+    def test_cli_reads_the_desktop_index_from_its_override(self) -> None:
+        root = self.desktop_index(
+            "desktop-cli", {"account": [{"sessionId": "desk-cli", "worktreePath": str(self.alpha_wt)}]}
+        )
+        env = {
+            **os.environ,
+            "HOME": str(self.base / "home"),
+            "CLAUDE_CONFIG_DIR": str(self.config),
+            "CODEX_HOME": str(self.codex),
+            "CLAUDE_DESKTOP_SESSIONS_DIR": str(root),
+        }
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--no-live",
+                f"--roots={self.repos}",
+                "--ignore-under",
+                str(self.ephemeral),
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertTrue(self.worktree(self.repository(report, self.alpha), self.alpha_wt)["occupied"])
+
     def test_no_codex_catalogue_is_reported_not_raised(self) -> None:
         report = self.run_inventory(codex_home=self.base / "nowhere")
 
