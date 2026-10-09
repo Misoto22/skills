@@ -34,40 +34,17 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import desktop_sessions
+from session_trace import Session, iso
+
 DEFAULT_SINCE_DAYS = 14.0
 DEFAULT_OCCUPIED_HOURS = 24.0
 # How far into a transcript to look for its working directory. Nearly every entry
 # carries one, but the first lines of a resumed session can be bookkeeping records.
 TRANSCRIPT_HEAD_LINES = 200
 SUBPROCESS_TIMEOUT_SECONDS = 20
-# The same root and override reunite reads: one index file per conversation per account.
-DESKTOP_SESSIONS_ENV = "CLAUDE_DESKTOP_SESSIONS_DIR"
-DEFAULT_DESKTOP_SESSIONS = "~/Library/Application Support/Claude/claude-code-sessions"
-
-
-@dataclass
-class Session:
-    """One trace of a session: which client, where it ran, and when it last moved."""
-
-    client: str
-    id: str
-    cwd: str
-    last_activity: float
-    live: bool = False
-    kind: str | None = None
-    # Listed, unarchived, in the desktop app's sidebar: it holds its worktree however idle.
-    open: bool = False
-
-    def as_json(self) -> dict:
-        return {
-            "client": self.client,
-            "id": self.id,
-            "cwd": self.cwd,
-            "last_activity": _iso(self.last_activity),
-            "live": self.live,
-            "kind": self.kind,
-            "open": self.open,
-        }
 
 
 @dataclass
@@ -80,16 +57,8 @@ class Skipped:
     unresolved: int = 0
 
 
-def _iso(timestamp: float) -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(timestamp))
-
-
 def claude_config_dir() -> Path:
     return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-
-
-def desktop_sessions_dir() -> Path:
-    return Path(os.environ.get(DESKTOP_SESSIONS_ENV) or DEFAULT_DESKTOP_SESSIONS).expanduser()
 
 
 def codex_home_dir() -> Path:
@@ -184,42 +153,6 @@ def claude_live_sessions(binary: str, now: float, cutoff: float) -> list[Session
             Session("claude-code", identifier, agent["cwd"], last, live=live, kind=agent.get("kind"))
         )
     return found
-
-
-def desktop_sessions(root: Path) -> list[Session] | None:
-    """Every unarchived conversation in the desktop app's index; None when there is none.
-
-    `claude agents --json` lists background agents only, so a desktop or terminal tab
-    left open and idle has no process the CLI reports. The sidebar index is where that
-    session is still visible. Each account keeps its own copy of a conversation, so one
-    is read once per conversation and path, and both `worktreePath` and `cwd` count.
-    """
-
-    if not root.is_dir():
-        return None
-    found: dict[tuple[str, str], Session] = {}
-    for path in sorted(root.glob("*/*/local_*.json")):
-        try:
-            entry = json.loads(path.read_text(encoding="utf-8"))
-            modified = path.stat().st_mtime
-        except (OSError, ValueError):
-            continue
-        if not isinstance(entry, dict) or entry.get("isArchived"):
-            continue
-        identifier = str(entry.get("sessionId") or path.stem.removeprefix("local_"))
-        stamp = entry.get("lastActivityAt")
-        last = float(stamp) / 1000 if isinstance(stamp, (int, float)) and stamp else modified
-        for cwd in (entry.get("worktreePath"), entry.get("cwd")):
-            if isinstance(cwd, str) and cwd and (identifier, cwd) not in found:
-                found[(identifier, cwd)] = Session("claude-desktop", identifier, cwd, last, open=True)
-    return list(found.values())
-
-
-def _deepest_worktree(path: str, worktrees: list[str]) -> str | None:
-    """The worktree a path sits in: the longest root containing it, since worktrees nest."""
-
-    containing = [root for root in worktrees if _is_under(path, [root])]
-    return max(containing, key=len, default=None)
 
 
 def codex_threads(codex_home: Path, cutoff: float) -> list[Session] | None:
@@ -379,7 +312,7 @@ def _worktree_entry(
         "exists": exists,
         "dirty": dirty_count(worktree["path"]) if exists else None,
         "sessions": [session.as_json() for session in sessions],
-        "last_activity": _iso(last) if last is not None else None,
+        "last_activity": iso(last) if last is not None else None,
         "occupied": occupied,
     }
     return last, entry
@@ -392,15 +325,10 @@ def _repository(
         {"path": primary, "branch": None, "head": None, "detached": False, "prunable": False}
     ]
     reals = [os.path.realpath(worktree["path"]) for worktree in listed]
-    # Keyed by conversation: its `worktreePath` and `cwd` usually land in the same worktree.
-    held: dict[str, dict[str, Session]] = {}
-    for session in desktop:
-        owner = _deepest_worktree(os.path.realpath(session.cwd), reals)
-        if owner is not None:
-            held.setdefault(owner, {}).setdefault(session.id, session)
+    held = desktop_sessions.held_by_worktree(desktop, reals)
     entries: list[tuple[float | None, dict]] = []
     for worktree, real in zip(listed, reals, strict=True):
-        sessions = by_worktree.get(real, []) + list(held.get(real, {}).values())
+        sessions = by_worktree.get(real, []) + held.get(real, [])
         entries.append(_worktree_entry(worktree, sessions, occupied_after))
     primary_real = os.path.realpath(primary)
     # The primary checkout first, then by how recently a session touched each.
@@ -408,7 +336,7 @@ def _repository(
     latest = max((last for last, _ in entries if last is not None), default=None)
     repository = {
         "primary": primary,
-        "last_activity": _iso(latest) if latest is not None else None,
+        "last_activity": iso(latest) if latest is not None else None,
         "worktrees": [entry for _, entry in entries],
     }
     return latest, repository
@@ -435,7 +363,7 @@ def inventory(
     live = claude_live_sessions(claude_binary, now, cutoff) if claude_binary else None
     threads = codex_threads(codex_home, cutoff)
     sessions = transcripts + (live or []) + (threads or [])
-    desktop = desktop_sessions(desktop_sessions_root) if desktop_sessions_root else None
+    desktop = desktop_sessions.open_sessions(desktop_sessions_root) if desktop_sessions_root else None
 
     ignored_real = [os.path.realpath(path) for path in ignored]
     grouped = _group_by_primary(sessions, ignored_real, skipped)
@@ -451,7 +379,7 @@ def inventory(
     ]
     repositories.sort(key=lambda item: -(item[0] or 0))
     return {
-        "generated_at": _iso(now),
+        "generated_at": iso(now),
         "since_days": since_days,
         "occupied_hours": occupied_hours,
         "sources": {
@@ -517,7 +445,7 @@ def main(argv: list[str] | None = None) -> int:
         occupied_hours=args.occupied_hours,
         ignored=args.ignore_under if args.ignore_under else default_ignored(),
         claude_binary=None if args.no_live else shutil.which("claude"),
-        desktop_sessions_root=desktop_sessions_dir(),
+        desktop_sessions_root=desktop_sessions.sessions_root(),
     )
     json.dump(report, sys.stdout, indent=2, ensure_ascii=False)
     sys.stdout.write("\n")
