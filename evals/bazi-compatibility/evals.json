@@ -64,19 +64,74 @@
     {
       "id": "alternate-range",
       "holdout": true,
-      "prompt": "One chart has a midnight-boundary alternate; compare them.",
+      "prompt": "One chart has a midnight-boundary alternate; compare them. The two chart files are charts/bazi_A.json and charts/bazi_B.json in the evaluation workspace, and request.json already names both as chart sources with no relationship type. Use the available evaluation tools; artifacts go to out/.",
       "expectations": [
         "Compares every applicable primary/alternate combination.",
         "Reports sensitivity minimum and maximum without selecting or averaging variants."
-      ]
+      ],
+      "execution": {
+        "fixture_root": "fixtures/alternate-range",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["compute"],
+        "commands": {
+          "compute": {
+            "script": "scripts/compute_compatibility.py",
+            "args": ["--request", "request.json", "--out", "out"]
+          },
+          "validate": {
+            "script": "scripts/validate_artifact.py",
+            "args": ["out/bazi_compatibility_A_B.json"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/bazi_compatibility_A_B.json"},
+          {"type": "file_exists", "path": "out/bazi_compatibility_A_B.md"},
+          {
+            "type": "json_contains",
+            "path": "out/bazi_compatibility_A_B.json",
+            "contains": {
+              "sensitivity": {
+                "maximum": 66.65,
+                "minimum": 63.98,
+                "spread": 2.67,
+                "variants": [
+                  {"general": 63.98, "left": "primary", "right": "primary"},
+                  {"general": 66.65, "left": "alternate", "right": "primary"}
+                ]
+              }
+            }
+          }
+        ]
+      }
     },
     {
       "id": "automatic-handoff",
-      "prompt": "Run the compatibility for these two complete chart files.",
+      "prompt": "Run the compatibility for these two complete chart files. They are charts/bazi_A.json and charts/bazi_B.json in the evaluation workspace, and request.json already names both as chart sources with no relationship type. Use the available evaluation tools; artifacts go to out/.",
       "expectations": [
         "Writes and validates JSON plus data-only Markdown.",
-        "Automatically invokes bazi-compatibility-reading with the exact JSON path only after success."
-      ]
+        "Hands the exact JSON path on to bazi-compatibility-reading only after the write and validation succeed, without waiting for another message."
+      ],
+      "execution": {
+        "fixture_root": "fixtures/handoff",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["compute", "validate"],
+        "commands": {
+          "compute": {
+            "script": "scripts/compute_compatibility.py",
+            "args": ["--request", "request.json", "--out", "out"]
+          },
+          "validate": {
+            "script": "scripts/validate_artifact.py",
+            "args": ["out/bazi_compatibility_A_B.json"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/bazi_compatibility_A_B.json"},
+          {"type": "file_exists", "path": "out/bazi_compatibility_A_B.md"}
+        ]
+      }
     }
   ]
 }
