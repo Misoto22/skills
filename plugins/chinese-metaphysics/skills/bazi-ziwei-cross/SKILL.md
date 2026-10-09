@@ -34,7 +34,7 @@ Exit 0 prints the person and both checksums to record. Exit 2 means stop: it nam
 
 ### The two charts must describe the same person and the same moment
 
-That same run checks each chart alone and then the pair — the resolved Gregorian date, birth time, timezone, coordinates, name, and whether both charts carry a boundary alternate or neither does. This is the half no single artifact can carry: two impeccable charts cast for different moments produce a cross-reading that looks authoritative and means nothing.
+That same run checks each chart alone and then the pair — the resolved Gregorian date, birth time, timezone, coordinates, name, and whether both charts carry a boundary alternate or neither does. This is the half no single artifact can carry: two impeccable charts cast for different moments produce a cross-reading that looks authoritative and means nothing. When the pair fails, refuse the whole reading and name each field that differs with both values — `birth time: 08:30 (BaZi) vs 20:30 (Zi Wei)` — rather than "the inputs don't match"; do not compare the fields that do match and carry on.
 
 ## The year-pillar difference is expected, not an error
 
