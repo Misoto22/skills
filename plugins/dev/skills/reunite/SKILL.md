@@ -44,7 +44,7 @@ Report first, always. The report names each account index, its conversation coun
 
 ## One conversation, one file, every account
 
-Every change the app makes — a rename, a star, an archive, a model switch — writes only the signed-in account's copy. A union that only adds missing entries leaves the rest diverged, and the other accounts keep showing the old name, the unarchived row, the conversation already deleted.
+Every change the app makes — a rename, a star, an archive, a model switch — writes only the signed-in account's copy. A union that only adds missing entries cannot fix that: the entry is already present in the other accounts, so a union skips it, and they keep showing the old name, the unarchived row, the conversation already deleted. Running reunite again is the fix — not renaming a second time under the other account.
 
 So each run picks, per conversation, the copy written most recently: the one the user last touched. Its bytes become every account's copy, overwriting stale ones and creating missing ones, and every written file takes its mtime, so the copies are identical down to the timestamp and only a later change by the user can make one of them newest. After writing, the run rescans and checks that every conversation is byte-identical across the aligned accounts; it exits non-zero and names the ones that are not.
 
@@ -65,7 +65,7 @@ A report-only run records nothing, so a deletion made between two reports is sti
 ## What makes it safe
 
 - **Everything it changes can be put back.** Each file it creates is listed in `.session-merge-manifest.json`; the original of each file it overwrites or removes is gzipped into `.session-merge-backup/` first, keeping only the earliest so a later run cannot replace it with something this script wrote. `--undo` removes the created files, restores every original with its mtime, and forgets the baseline. It is cumulative: it reverses every run since the manifest was started, not only the last. Manifests from before whole files were mirrored — a bare path list, or per-field title records — are still read.
-- **It never deletes on request.** The only removals are the copies of a conversation the user already deleted under one account. Tidying the sidebar is not one of them.
+- **It never deletes on request.** The only removals are the copies of a conversation the user already deleted under one account. Tidying the sidebar is not one of them: when rows a run added are unwanted, offer `--undo`, which takes back exactly what earlier runs wrote, and otherwise point the user at deleting in the app, which the next run carries to every account.
 - **It never touches a transcript.** Everything it writes is under the index root.
 - **It is idempotent.** A second run with nothing new plans no writes. Run it again after every stretch of work under one account: new conversations, names and archives only land in that account's copy.
 

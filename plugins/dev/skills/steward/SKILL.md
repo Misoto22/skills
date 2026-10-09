@@ -158,7 +158,7 @@ One report, in the language the person writes in, after every repository has run
 >
 > | Repository | Base | Synced | Cleaned | Merge | Needs you |
 > |---|---|---|---|---|---|
-> | `<name>` | `main` | ff 3 · up to date · skipped: dirty | 2 branches, 1 worktree · nothing | 1 ready · 1 blocked | 2 |
+> | `<name>` | `main` | ff 3 · up to date · skipped: dirty · failed: gh unauthenticated | 2 branches, 1 worktree · nothing | 1 ready · 1 blocked | 2 |
 >
 > **Merge**
 >
