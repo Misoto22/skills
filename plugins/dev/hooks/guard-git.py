@@ -34,6 +34,11 @@ REFUSALS = {
         "Refused: --no-verify. A hook that refuses is the project talking: fix what it "
         "names and run the command again, or stop and say the hook itself is broken."
     ),
+    "hooks-path": (
+        "Refused: core.hooksPath override. Pointing the hooks elsewhere for one command skips "
+        "them as surely as --no-verify: fix what the hook names and run the command again, "
+        "or stop and say the hook itself is broken."
+    ),
     "admin": "Refused: gh pr merge --admin. A merge that needs it is one a human should look at.",
 }
 
@@ -51,13 +56,15 @@ def _has_short(words: list[str], letter: str) -> bool:
 
 def _git_offence(args: list[str]) -> str | None:
     """The refusal the words after `git` earn, read past its global options."""
-    _, subcommand, rest = git_argv.split(args)
+    options, subcommand, rest = git_argv.split(args)
     if subcommand == "push" and git_argv.is_forced_push(rest):
         return REFUSALS["force"]
     if subcommand not in NO_VERIFY_COMMANDS:
         return None
     if "--no-verify" in rest or (subcommand == "commit" and _has_short(rest, "n")):
         return REFUSALS["no-verify"]
+    if git_argv.overrides_hooks(options):
+        return REFUSALS["hooks-path"]
     return None
 
 

@@ -53,6 +53,28 @@ class DirectoryTests(unittest.TestCase):
         self.assertEqual(git_argv.directory([("-c", "x=y")]), "")
 
 
+class HooksPathTests(unittest.TestCase):
+    def test_every_spelling_of_a_hooks_path_override_is_seen(self) -> None:
+        for args in (
+            ["-c", "core.hooksPath=/dev/null", "commit"],
+            ["-c", "CORE.HOOKSPATH=x", "push"],
+            ["-c", "core.hooksPath", "merge"],
+            ["--config-env=core.hooksPath=HOOKS", "rebase"],
+            ["--config-env", "core.hooksPath=HOOKS", "commit"],
+        ):
+            with self.subTest(args=args):
+                self.assertTrue(git_argv.overrides_hooks(git_argv.split(args)[0]))
+
+    def test_other_settings_and_later_words_are_not_overrides(self) -> None:
+        for args in (
+            ["-c", "core.editor=true", "commit"],
+            ["-c", "core.hooksPathology=x", "commit"],
+            ["commit", "-c", "core.hooksPath=x"],
+        ):
+            with self.subTest(args=args):
+                self.assertFalse(git_argv.overrides_hooks(git_argv.split(args)[0]))
+
+
 class ForceTests(unittest.TestCase):
     def test_force_flags_and_plus_refspecs_force_a_push(self) -> None:
         for rest in (["--force"], ["-f"], ["-fu", "origin", "x"], ["origin", "+main"]):

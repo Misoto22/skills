@@ -57,6 +57,12 @@ REFUSED = [
     "git push origin +main",
     "git push origin +HEAD:refs/heads/feature/x",
     "git -C /repo push origin feature/a +feature/b",
+    # Redirecting core.hooksPath for one command skips the hooks like --no-verify does.
+    "git -c core.hooksPath=/dev/null commit -m x",
+    "git -c core.hooksPath= push origin feature/x",
+    "git -C /repo -c CORE.HOOKSPATH=/tmp/none merge feature/x",
+    "git --config-env=core.hooksPath=HOOKS rebase main",
+    "git --config-env core.hooksPath=HOOKS commit -m x",
 ]
 
 ALLOWED = [
@@ -78,6 +84,9 @@ ALLOWED = [
     "git -c core.editor=true commit -m 'a +b'",
     "git push origin feature/x:feature/x",
     "git --no-pager log -n 5",
+    "git -c core.hooksPath=/tmp/x status",
+    "git config core.hooksPath",
+    "git -c core.editor=true commit -m 'set core.hooksPath later'",
 ]
 
 
@@ -127,6 +136,16 @@ class GuardProcessTests(unittest.TestCase):
         result = self.run_guard(json.dumps(event))
         self.assertEqual(result.returncode, 2)
         self.assertIn("--force-with-lease", result.stderr)
+
+    def test_a_hooks_path_override_is_refused_like_no_verify(self) -> None:
+        for command in (
+            "git -c core.hooksPath=/dev/null commit -m x",
+            "git --config-env=core.hooksPath=H push",
+        ):
+            with self.subTest(command=command):
+                result = self.run_guard(json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}))
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("core.hooksPath", result.stderr)
 
     def test_a_sanctioned_command_stays_silent(self) -> None:
         event = {"tool_name": "Bash", "tool_input": {"command": "git push --force-with-lease"}}

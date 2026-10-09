@@ -24,6 +24,8 @@ OPTIONS_WITH_VALUE = (
     "--super-prefix",
     "--attr-source",
 )
+# Pointing this at another directory for one command skips the repository's hooks.
+HOOKS_PATH_KEY = "core.hookspath"
 
 
 def split(args: list[str]) -> tuple[list[tuple[str, str | None]], str, list[str]]:
@@ -47,6 +49,29 @@ def split(args: list[str]) -> tuple[list[tuple[str, str | None]], str, list[str]
 def directory(options: list[tuple[str, str | None]]) -> str:
     """Where `-C` moves git before it reads a relative path; empty for where it started."""
     return os.path.join("", *(value for option, value in options if option == "-C" and value))
+
+
+def config_keys(options: list[tuple[str, str | None]]) -> list[str]:
+    """The config keys `-c` and `--config-env` set for this one command, lowercased.
+
+    Section and key names are case-insensitive to git, so `core.hooksPath` and
+    `CORE.HOOKSPATH` are the same setting.
+    """
+    keys = []
+    for option, value in options:
+        if option in ("-c", "--config-env") and value is not None:
+            setting = value
+        elif option.startswith("--config-env="):
+            setting = option.removeprefix("--config-env=")
+        else:
+            continue
+        keys.append(setting.split("=", 1)[0].lower())
+    return keys
+
+
+def overrides_hooks(options: list[tuple[str, str | None]]) -> bool:
+    """Whether the command redirects `core.hooksPath`, which skips hooks like --no-verify."""
+    return HOOKS_PATH_KEY in config_keys(options)
 
 
 def is_force(word: str) -> bool:
