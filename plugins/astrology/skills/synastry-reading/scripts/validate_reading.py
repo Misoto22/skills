@@ -12,6 +12,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
+
+from astro.astro_math import ASPECT_KINDS
 from validate_synastry import (
     EvidenceItem,
     EvidenceLedger,
@@ -94,21 +97,7 @@ _WORD_HOUSES = {
     "eleventh": 11,
     "twelfth": 12,
 }
-_ASPECT_KINDS = frozenset(
-    {
-        "conjunction",
-        "opposition",
-        "trine",
-        "square",
-        "sextile",
-        "semi-sextile",
-        "semi-square",
-        "quintile",
-        "sesquiquadrate",
-        "biquintile",
-        "quincunx",
-    }
-)
+_ASPECT_KINDS = frozenset(kind.name for kind in ASPECT_KINDS)
 _BODY_NAMES = frozenset(
     {
         "sun",

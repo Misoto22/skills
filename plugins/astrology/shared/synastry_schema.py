@@ -10,11 +10,13 @@ import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
+from astro.astro_math import ASPECT_KINDS, SIGNS
 from astro.request_schema import (
     ASPECT_PROFILE,
     CALCULATION_PROFILE,
     DERIVED_PROFILE,
     EVIDENCE_POLICY,
+    HOUSE_SYSTEMS,
     SCHEMA_VERSION,
 )
 
@@ -37,16 +39,13 @@ _TOP_LEVEL_FIELDS = frozenset(
         "integrity",
     }
 )
-_MAJOR_ASPECTS = frozenset({"conjunction", "opposition", "trine", "square", "sextile"})
-_MINOR_ASPECTS = frozenset(
-    {"semi-sextile", "semi-square", "quintile", "sesquiquadrate", "biquintile", "quincunx"}
-)
+_MAJOR_ASPECTS = frozenset(kind.name for kind in ASPECT_KINDS if kind.major)
+_MINOR_ASPECTS = frozenset(kind.name for kind in ASPECT_KINDS if not kind.major)
 _ASPECTS = _MAJOR_ASPECTS | _MINOR_ASPECTS
 _ANGLE_NAMES = frozenset({"ascendant", "medium_coeli", "descendant", "imum_coeli", "vertex", "east_point"})
 _DIGNITIES = frozenset({"domicile", "exaltation", "detriment", "fall"})
-_SIGNS = ("Ari", "Tau", "Gem", "Can", "Leo", "Vir", "Lib", "Sco", "Sag", "Cap", "Aqu", "Pis")
-_SIGN_SET = frozenset(_SIGNS)
-_HOUSE_SYSTEMS = frozenset({"placidus", "koch", "campanus", "regiomontanus", "equal", "whole-sign"})
+_SIGN_SET = frozenset(SIGNS)
+_HOUSE_SYSTEMS = frozenset(HOUSE_SYSTEMS)
 _BIRTH_NORMALIZED_FIELDS = frozenset(
     {
         "mode",
@@ -577,7 +576,7 @@ def _validate_exact_position(value: object, where: str) -> bool:
     if not isinstance(position["retrograde"], bool):
         raise SchemaError(f"{where}.retrograde: expected a boolean")
     sign = _enum(position["sign"], _SIGN_SET, f"{where}.sign")
-    expected_sign = _SIGNS[int(longitude // 30)]
+    expected_sign = SIGNS[int(longitude // 30)]
     if sign != expected_sign:
         raise SchemaError(f"{where}.sign: {sign!r} does not match longitude {longitude:g} ({expected_sign})")
     if "house" in position:
@@ -869,7 +868,7 @@ def _utc_timestamp(value: object, where: str) -> datetime:
 def _longitude_range_signs(start: float, end: float, wraps_zero: bool) -> set[str]:
     segments = ((start, 360.0), (0.0, end)) if wraps_zero else ((start, end),)
     result: set[str] = set()
-    for index, sign in enumerate(_SIGNS):
+    for index, sign in enumerate(SIGNS):
         sign_start = index * 30.0
         sign_end = sign_start + 30.0
         if any(

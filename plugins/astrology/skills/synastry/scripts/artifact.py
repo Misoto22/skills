@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
 
 from astro.astro_math import (
+    SIGNS,
     circular_range,
     dignities,
     find_aspects,
@@ -348,11 +349,10 @@ def _uncertain_position(samples: PositionSamples) -> dict[str, object]:
 
 
 def _range_signs(start: float, end: float, wraps_zero: bool) -> list[str]:
-    signs = ("Ari", "Tau", "Gem", "Can", "Leo", "Vir", "Lib", "Sco", "Sag", "Cap", "Aqu", "Pis")
     segments = ((start, 360.0), (0.0, end)) if wraps_zero else ((start, end),)
     return [
         sign
-        for index, sign in enumerate(signs)
+        for index, sign in enumerate(SIGNS)
         if any(
             segment_start < (index + 1) * 30.0 and segment_end >= index * 30.0
             for segment_start, segment_end in segments

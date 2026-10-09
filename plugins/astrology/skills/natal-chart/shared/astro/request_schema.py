@@ -22,7 +22,18 @@ EVIDENCE_POLICY = "editorial-v1"
 _DATE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
 _TIME = re.compile(r"\A\d{2}:\d{2}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-_HOUSE_SYSTEMS = frozenset({"placidus", "koch", "campanus", "regiomontanus", "equal", "whole-sign"})
+# Every house system a request may name, with the Swiss Ephemeris code it resolves
+# to. One table, so a system cannot be accepted here without the ephemeris knowing
+# how to cast it, and the artifact schema accepts exactly the same names.
+HOUSE_SYSTEMS: Mapping[str, bytes] = {
+    "placidus": b"P",
+    "koch": b"K",
+    "campanus": b"C",
+    "regiomontanus": b"R",
+    "equal": b"E",
+    "whole-sign": b"W",
+}
+_HOUSE_SYSTEMS = frozenset(HOUSE_SYSTEMS)
 _LANGUAGES = frozenset({"en", "zh"})
 _EPHEMERIS_POLICIES = frozenset({"swiss-only", "allow-moshier"})
 _PRIVACY_MODES = frozenset({"minimal", "full"})
