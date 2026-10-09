@@ -52,12 +52,45 @@
   "behaviors": [
     {
       "id": "late-zi-alternate",
-      "prompt": "排紫微：A，女，1985-06-10 23:30，北京。",
+      "prompt": "排紫微：A，女，1985-06-10 23:30，北京。地点已经解析好：评估工作区里的 request.json 是这条出生记录的完整请求（坐标、IANA 时区与性别已填）。用可用的评估工具完成排盘，产物写在 out/。",
       "expectations": [
         "Places the chart and emits a complete 00:00-boundary alternate.",
         "Says the alternate shifts the lunar day, which moves 紫微 and every star anchored to it.",
         "Does not average the two charts or pick the more flattering one."
-      ]
+      ],
+      "execution": {
+        "fixture_root": "fixtures/late-zi-alternate",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["place"],
+        "commands": {
+          "place": {
+            "script": "scripts/compute_ziwei.py",
+            "args": ["--request", "request.json", "--out", "out", "--language", "zh"]
+          },
+          "validate": {
+            "script": "scripts/validate_artifact.py",
+            "args": ["out/ziwei_A.json"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/ziwei_A.json"},
+          {"type": "file_exists", "path": "out/ziwei_A.md"},
+          {"type": "json_length", "path": "out/ziwei_A.json", "key": "chart", "equals": 2},
+          {
+            "type": "json_contains",
+            "path": "out/ziwei_A.json",
+            "contains": {
+              "sensitivity": {
+                "alternate_day_boundary": true,
+                "alternate_day_boundary_rule": "00:00",
+                "note": "A 23:00-23:59 birth shifts the lunar day, which moves 紫微 and every star anchored to it. Read the two charts separately; never average them.",
+                "primary_day_boundary": "23:00"
+              }
+            }
+          }
+        ]
+      }
     },
     {
       "id": "gender-declined",

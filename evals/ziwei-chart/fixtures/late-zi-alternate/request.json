@@ -1,0 +1,11 @@
+{
+  "name": "A",
+  "birth_place": "北京",
+  "birth_date": "1985-06-10",
+  "birth_time": "23:30",
+  "calendar": "gregorian",
+  "timezone": "Asia/Shanghai",
+  "latitude": 39.9042,
+  "longitude": 116.4074,
+  "gender": "female"
+}
