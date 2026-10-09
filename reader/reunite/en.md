@@ -1,4 +1,4 @@
-`sessions` answers the moment you sign in with your other account and the sidebar is suddenly almost empty. Nothing was deleted. Claude's desktop app keeps a separate conversation index for each account it has been signed in as, and it shows you only the one belonging to whoever is signed in now. This unions those indexes, so whichever account you use, you see the whole history.
+`reunite` answers the moment you sign in with your other account and the sidebar is suddenly almost empty — or the moment you archive or delete a conversation under one account and it is still sitting in the other one's sidebar. Claude's desktop app keeps a separate conversation index for each account it has been signed in as, shows you only the one belonging to whoever is signed in now, and writes every change into that one only. This makes every account hold the same conversations, in the same state, byte for byte.
 
 ## Nothing was lost, and you can prove it
 
@@ -8,44 +8,38 @@ The conversation itself — every message, every tool call — is a JSONL file u
 
 What the sidebar reads is a second, much smaller set of files: one index entry per conversation, stored under a path that begins with your account's identifier. Sign in as a different account and the app reads a different directory. The conversations are still on disk, in full, untouched.
 
-So the fix is much smaller than the symptom. Nothing needs recovering; the lists need merging.
+So the fix is much smaller than the symptom. Nothing needs recovering; the lists need aligning.
 
 ## What it does
 
-It copies each account's index entries into every other account's index.
+For each conversation it takes the copy you touched last and makes it every account's copy — creating it where an account has none, overwriting it where an account's copy is stale.
 
 ```
-Session index ~/Library/Application Support/Claude/claude-code-sessions
-  account bc95701b…    36 conversations  lands in ee9e5ec5…
-  account cb24d9c9…   358 conversations  lands in c04cc789…
-  account d58bde8d…    81 conversations  lands in 2618534f…  <- signed in
-
-Plan: 720 entries to copy into 3 account index(es), +114.3MB
-  skipped 224 whose transcript is gone
+Plan: align 5 account index(es)
+  891 copies to create, +47.6MB
+  6912 copies to overwrite with the canonical copy
+      103 change title
+     2702 change isArchived
+       17 change isStarred
+     5536 change other fields only the app reads
+  0 copies to remove — 0 conversations deleted under one account
+  110 conversations have no transcript left; they are kept, archived
 ```
 
-That report is the whole of a default run. It writes nothing until you pass `--apply`, because 114MB and three directories is not a decision to make on someone's behalf without showing them the number first.
+That report is the whole of a default run. It writes nothing until you pass `--apply`, because thousands of rewritten files is not a decision to make on someone's behalf without showing them the numbers first. After writing, it rescans and checks that every conversation really is identical in every account, and says so — or names the ones that are not.
 
-## Renaming, and why one run is not enough
+## Archives and deletions travel too
 
-A rename writes one index file. Once a conversation exists in three indexes, renaming it under one account leaves the other two holding the old name — and copying cannot fix that, because the entry is already there.
+Archiving decides what the sidebar shows, so it is not left to "whichever copy is newest". Every run records what each account held and what was archived; the next run compares against that. An archive or unarchive you made under one account reaches the others. A conversation you deleted under one account is removed from all of them, and is never copied back — which is what used to happen, and why a cleaned-up sidebar kept refilling.
 
-So each run also reconciles titles. Where copies of one conversation disagree, the most recently written file wins and its name is written into the others. Only the title moves; everything else in those files is that account's own record of the conversation.
+The first time it runs there is no record to compare against, so copies that disagree settle on archived. Hiding is the recoverable way to be wrong. Entries whose transcript is gone are kept so the lists match, but archived, because they would open to nothing.
 
-The report lists every one it is about to change, because the signal is not infallible — file mtime is the only timestamp a rename actually moves, and an unrelated rewrite of a stale copy can make it the newest. `--no-titles` turns the pass off entirely.
+## Everything it changes can be put back
 
-This is what makes a naming sweep worth running at all: rename under one account, run this, and the names reach the others.
-
-## What it refuses to do
-
-**It never deletes.** Every run only adds files, and it records each one it added. `--undo` removes exactly those paths — not files the app wrote, not entries a previous merge already reconciled.
-
-**It skips entries whose conversation is gone.** An index entry can outlive its transcript. Copied around, it becomes a row in your sidebar that opens to nothing, which is worse than not being there. Those are counted in the report and left behind unless you ask for them.
-
-**It runs again cleanly.** New conversations only land in the index of the account you were signed in as, so this is a thing you re-run, not a thing you do once. A second run with nothing to do plans zero copies and says so.
+Each file it creates is listed; the original of each file it overwrites or removes is backed up first. `--undo` removes what it created and restores every original, timestamps included. It never touches a transcript, and it never deletes anything you did not already delete yourself.
 
 ## The restart
 
-A merge does not appear until the desktop app restarts. The app reads this index when it starts and does not look at the directory again while it is running.
+A run does not appear until the desktop app restarts. The app reads this index when it starts and does not look at the directory again while it is running.
 
 That matters more than it sounds, because restarting interrupts whatever conversations are still running. The run tells you to restart rather than doing anything about it, and checking what is live first is worth the ten seconds.

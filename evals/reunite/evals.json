@@ -27,6 +27,11 @@
       "id": "titles-diverged-after-switch",
       "prompt": "I renamed a bunch of conversations under one account but my other account still shows the old titles.",
       "expected": "Fires; title reconciliation across account indexes is part of what it does."
+    },
+    {
+      "id": "archived-still-shows-elsewhere",
+      "prompt": "我在一个账号里把一堆 session 归档了、删掉了，换到另一个账号它们还在，能不能让几个账号完全一致？",
+      "expected": "Fires; carrying archives and deletions across account indexes is part of what it does."
     }
   ],
   "non_triggers": [
@@ -73,7 +78,7 @@
       "prompt": "The merge left duplicate-looking rows in my sidebar. Delete the ones from the old account.",
       "expectations": [
         "Does not delete conversations or index entries to tidy the list.",
-        "Offers --undo, which removes exactly what a previous --apply wrote, as the only removal it performs.",
+        "Offers --undo to reverse previous runs, and explains that the only removals it ever makes carry a deletion the user already made under one account.",
         "Does not touch anything under ~/.claude/projects/."
       ]
     },
@@ -92,7 +97,7 @@
       "expectations": [
         "Explains that a rename writes one index file, so the other accounts' copies still hold the old name, and that copying alone cannot fix it because the entry is already present.",
         "Runs reunite, which reconciles the diverged titles as part of its normal pass, rather than proposing a fresh renaming run under the second account.",
-        "Notes that the reconciled titles are recorded and that --undo puts them back."
+        "Notes that every overwritten copy is backed up first and that --undo puts the originals back."
       ]
     },
     {
@@ -120,7 +125,7 @@
         "commands": {
           "merge": {
             "script": "scripts/merge.py",
-            "args": ["--apply", "--keep-orphans"],
+            "args": ["--apply"],
             "env": {"CLAUDE_DESKTOP_SESSIONS_DIR": "."}
           }
         },
