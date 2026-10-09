@@ -69,9 +69,9 @@
   "behaviors": [
     {
       "id": "unattended-proposes-titles-only",
-      "prompt": "Run the steward unattended. The Codex catalogue has 40 titles outside the MMDD｜类型｜主题 scheme, 28 of them older than the 30-day window.",
+      "prompt": "Run the steward unattended. The Codex catalogue has 40 titles outside the MMDD｜类型｜主题 scheme.",
       "expectations": [
-        "Runs retitle up to its two-column table and writes no title, because a scheduler is not a confirmation.",
+        "Runs retitle without --apply, up to its two-column table, and writes no title, because a scheduler is not a confirmation.",
         "Puts the proposed renames, or their count and where the table was written, into the report.",
         "Does not check whether the session-naming hook is installed — the dev plugin registers it — and reports only a hand-installed duplicate if one is still registered in the agent's settings."
       ]

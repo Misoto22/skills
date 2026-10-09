@@ -61,7 +61,7 @@ Nothing is written until it is printed. One markdown table, never a fixed-width 
 > | Pass | Target | Finding | Action |
 > |---|---|---|---|
 > | readme | `README.md` | 412 lines, no runnable Getting Started | rewrite |
-> | banner | `assets/hero-*.svg` | absent | draft · skip: reason |
+> | banner | `assets/brand/` hero, else `assets/hero-*.svg` | absent | wire up · draft · skip: reason |
 > | license | `LICENSE` | absent; `package.json` says `MIT` | add MIT |
 > | security | `SECURITY.md` | absent | add |
 > | contributing | `CONTRIBUTING.md` | names `npm run check`, which is gone | fix |
@@ -86,7 +86,9 @@ The hero image is the only real design surface GitHub gives you, and the only on
 
 Two rules override everything else there. **Commit the asset**; a hotlinked banner is someone else's uptime. **Drop the element when there is no asset**; a broken-image icon at the top of the page is worse than a page with no image, and worse than any placeholder you were tempted to leave in `src`.
 
-Where the artwork itself has to be made rather than laid out, that is a brand job and a different skill — this pass sizes it, wires up the `<picture>` block, and checks it renders.
+Where the artwork itself has to be made rather than laid out, that is a brand job and a different skill, `brand:logo-banner` — this pass sizes it, wires up the `<picture>` block, and checks it renders.
+
+Look for that skill's output before drafting anything. A light and dark raster hero under `assets/brand/`, or wherever its asset guide says the project keeps images, counts as present: wire it up as delivered and never redraw it as SVG. Only when no such hero exists does this pass draft its own `assets/hero-light.svg` and `assets/hero-dark.svg`.
 
 ## 3. Licence
 

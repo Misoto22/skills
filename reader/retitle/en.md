@@ -40,7 +40,7 @@ A title that already conforms in either language is left alone, so switching the
 
 ## Naming new sessions as they start
 
-Renaming by hand does not keep up with how fast a client opens new sessions, so the scheme is applied where sessions begin: a `UserPromptSubmit` hook the `dev` plugin registers the moment it is enabled. Codex discovers that hook through the plugin's native manifest; its language is the plugin's `session_title_lang` option, `en` unless you set `zh`; a skill copied on its own, without the plugin, installs the hook by hand from the reference the skill points at.
+Renaming by hand does not keep up with how fast a client opens new sessions, so the scheme is applied where sessions begin: a `UserPromptSubmit` hook the `dev` plugin registers the moment it is enabled. Codex discovers that hook through the plugin's native manifest; its language is the plugin's `session_title_lang` option, `en` unless you set `zh` — except under Codex, which does not pass plugin options to hooks, so there `SESSION_TITLE_LANG=zh` goes in Codex's own environment; a skill copied on its own, without the plugin, installs the hook by hand from the reference the skill points at.
 
 Codex reviews a plugin hook by its exact hash before it runs. After installing the plugin, or after an update that changes the hook, open `/hooks`, inspect the displayed command and source, and trust it. “Installed” or “enabled” alone does not mean the hook is active.
 
@@ -58,7 +58,7 @@ The release check runs the installed Codex plugin hook and verifies its first-pr
 /dev:retitle
 ```
 
-It prints a two-column table first (original name, new name), acts only after you confirm, and backs up the store before writing to it. That order holds whatever flags were passed — several hundred titles rewritten in a store you cannot easily diff is not a place to skip the preview.
+It prints a two-column table (original name, new name) and stops there: on its own it proposes and writes nothing. `/dev:retitle --apply` prints the same table and then renames exactly those rows, backing up the store before writing to it. The table comes first whatever flags were passed — several hundred titles rewritten in a store you cannot easily diff is not a place to skip the preview.
 
 A conversation whose subject cannot be recovered keeps its name and is counted as skipped rather than guessed at.
 

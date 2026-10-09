@@ -106,7 +106,7 @@ State the resolved zone in the report. A run that does not name its timezone can
 | Claude Code | the harness's session API (`list_sessions`, `get_session`, `set_session_title`) | Yes, any session by id — section 7 |
 | Anything else | whatever list the client exposes | Propose only — section 5 |
 
-With no `--client`, detect: the Codex database existing makes Codex a target; a session-title tool being available makes the current Claude Code session a target. Report which clients were found and which were skipped.
+With no `--client`, detect: the Codex database existing makes Codex a target; the Claude Code session API being available makes Claude Code a target — every session it lists, per section 7, not only the one this run is in. Report which clients were found and which were skipped.
 
 ## 4. Read the threads
 
@@ -146,7 +146,7 @@ Under `--lang=zh` it is `| 原名称 | 新名称 |`, and so is everything else b
 
 One row per conversation that would change. Conversations that keep their name are not rows — they are a count under the table, with their reasons. A table padded with unchanged rows hides the changes inside it.
 
-Then stop. Applying without showing this table is the one thing this skill must not do, whatever `--apply` was passed: 317 titles rewritten in a store the user cannot easily diff is not something a preview can be skipped for.
+Print it before anything is written, whatever was passed: 317 titles rewritten in a store the user cannot easily diff is not something a preview can be skipped for.
 
 Below the table:
 
@@ -168,9 +168,16 @@ Under `--lang=zh`:
 语言   zh
 ```
 
+What happens after the table is decided by `--apply`, and by nothing else:
+
+- **Without `--apply`, the run proposes only.** The table and the summary below it are the deliverable; nothing is written, backed up, or sent to an app server. This is the default, and the mode any unattended caller uses.
+- **With `--apply`, the run renames after the table is printed** — through section 6 for Codex and section 7 for Claude Code — and only the rows that table shows. Every other rule still holds: the backup, the cloud-hosted and missing exclusions, the kept titles, the batching, and the read-back. `--apply` does not reach a client section 8 covers; there the table stays the whole deliverable.
+
+A person who reads a table from a run without `--apply` and asks for it to be applied has passed `--apply` for that table; apply those rows rather than re-deriving them. `--apply` governs this batch run only. The hook in section 7 names the one session it fires in and takes no flag.
+
 ## 6. Apply — Codex
 
-Only after the table is confirmed.
+Only with `--apply`, and only after the section 5 table has been printed.
 
 **Do not write `local_thread_catalog.display_title`.** That table is a derived read-model: Codex rebuilds `display_title` from the conversation's first user message, and a title written straight into it is reverted the next time the scanner reconciles that thread. Measured on one machine, 156 such writes held for exactly as long as the scanner ignored them — every thread it later observed went back to its old name, with `observation_sequence` bumped as the fingerprint.
 
@@ -216,7 +223,7 @@ The log is append-only and keyed by last write, so restoring means putting that 
 
 ## 7. Apply — Claude Code
 
-Claude Code's session API addresses **any** session by id, so this half is a batch like Codex's:
+Claude Code's session API addresses **any** session by id, so this half is a batch like Codex's, behind the same gate: only with `--apply`, and only after the section 5 table has been printed.
 
 | Call | Use |
 |---|---|
@@ -241,6 +248,8 @@ claude plugin install dev@<marketplace> --config session_title_lang=zh
 ```
 
 `/plugin configure` sets the same option interactively. A locale tag works as well (`zh-CN`, `zh_Hans`), and an unrecognised value falls back to English rather than failing — a rule in the wrong language still names the session, and a hook that refuses to emit one does not.
+
+Under Codex the option is inert: codex-cli does not pass `CLAUDE_PLUGIN_OPTION_*` to a plugin hook, so set `SESSION_TITLE_LANG=zh` in the environment Codex itself runs in — the hook reads that variable first on either client.
 
 A machine that installed the hook by hand before the plugin carried it now runs two copies. Remove the `UserPromptSubmit` entry from `settings.json` and the script from `~/.claude/scripts/`; the plugin's copy takes over on the next prompt.
 
@@ -277,6 +286,8 @@ For any other client, the table from section 5 is the deliverable. Do not reach 
 
 ## Reporting
 
+With `--apply`:
+
 ```
 Retitled <client>.
   scheme     MMDD｜TYPE｜subject, timezone <zone>
@@ -287,7 +298,18 @@ Retitled <client>.
   attention  <threads that did not take, or none>
 ```
 
-Under `--lang=zh`:
+Without `--apply` nothing was written, so the report says so instead of claiming a rename:
+
+```
+Proposed titles for <client>.
+  scheme     MMDD｜TYPE｜subject, timezone <zone>
+  proposed   <M>
+  renamed    0 — run with --apply to write them
+  kept       <N> — <reasons>
+  excluded   <N> — <cloud-hosted | missing>
+```
+
+Under `--lang=zh`, with `--apply`:
 
 ```
 已重命名 <client>。
@@ -299,4 +321,15 @@ Under `--lang=zh`:
   注意     <没有落地的会话，或 none>
 ```
 
-Every number comes from a read-back, not from the count of statements issued. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.
+Under `--lang=zh`, without `--apply`:
+
+```
+已为 <client> 提出改名方案。
+  规范     MMDD｜类型｜主题，时区 <zone>
+  提案     <M>
+  已改名   0 —— 加 --apply 才会写入
+  保留     <N> —— <原因>
+  排除     <N> —— <云端来源 | 已不在目录中>
+```
+
+With `--apply`, every number comes from a read-back, not from the count of statements issued; without it, the counts are the proposal's and nothing was read back. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.

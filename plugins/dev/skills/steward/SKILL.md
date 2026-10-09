@@ -5,7 +5,7 @@ license: MIT
 context: fork
 metadata:
   version: "0.18.0" # x-release-please-version
-argument-hint: "[--roots=<dir,…>] [--since=<days>] [--only=<sync|cleanup|retitle|report>] [--dry-run] [--unattended]"
+argument-hint: "[--roots=<dir,…>] [--since=<days>] [--occupied-hours=<hours>] [--stale=<days>] [--only=<sync|cleanup|retitle|report>] [--dry-run] [--unattended]"
 ---
 
 # Steward
@@ -20,7 +20,7 @@ This skill owns three things the skills it delegates to cannot see: **which repo
 |---|---|---|
 | fast-forward the base | `/dev:sync` | runs it in every repository |
 | merged branches, worktrees, residue | `/dev:cleanup` | the occupancy list — worktrees it must keep |
-| conversation titles | `/dev:retitle` | unattended runs propose and never write |
+| conversation titles | `/dev:retitle` | invoked without `--apply`, so it proposes and writes nothing, unless an attended person asked for the renames |
 | landing a branch | nobody | reported as ready, with the command; `/dev:ship` is the person's to run |
 
 It never merges, rebases, resolves a conflict, deletes anything cleanup would keep, or renames a title without the two-column table.
@@ -38,12 +38,12 @@ Two consequences the rest of this skill is written around:
 
 Decide before anything runs, and say which in the report's first line.
 
-- **Attended** — a person is at the keyboard. Sub-skills keep their own stop-and-ask behaviour, and the steward relays each question as it comes, one repository at a time.
-- **Unattended** — `--unattended`, or the prompt arrived from a scheduler rather than a person: a scheduled-task run, a cron-fired session, a `claude -p` invocation. Nobody can answer, so **no pass may block on a question**. Every question a sub-skill would have asked is written into the report under *Needs you*, and the pass moves on. Retitle proposes and does not write. Cleanup removes only what its own rules remove without asking.
+- **Attended** — a person started the sweep and will read the report. The run is still forked, so a question a sub-skill would ask cannot reach them mid-run: it goes into the report under *Needs you*, exactly as unattended. What attended changes is what the passes may do — what the person asked for in the request that started the sweep stands as their answer, such as asking for titles to be renamed (§3).
+- **Unattended** — `--unattended`, or the prompt arrived from a scheduler rather than a person: a scheduled-task run, a cron-fired session, a `claude -p` invocation. Nobody can answer, so **no pass may block on a question**. Every question a sub-skill would have asked is written into the report under *Needs you*, and the pass moves on. Retitle runs without `--apply`, so it proposes and does not write. Cleanup removes only what its own rules remove without asking.
 
-`--dry-run` is stricter than either: inventory and report only. No fetch, no fast-forward, no deletion, no rename — and the report says its branch states are as of the last fetch, whenever that was.
+`--dry-run` is stricter than either: inventory and report only. No fetch, no fast-forward, no deletion, no rename — and the report says its branch states are as of the last fetch, whenever that was. Its only writes are the steward's own state: the saved report (§4) and the lock directory (§5). Nothing in any repository, worktree, or session store is touched.
 
-`--only=<pass>` runs one pass. `report` runs the inventory and the branch ledger with no writes at all, which is `--dry-run` under another name.
+`--only=<pass>` runs one pass. `report` runs the inventory and the branch ledger and writes only the saved report and the lock, which is `--dry-run` under another name.
 
 Identify this run's home worktree before it moves anywhere, per `shared/git.md` § The home worktree. It is kept whatever any pass below concludes about its branch.
 
@@ -145,7 +145,7 @@ Two things, and the second is the one that needs a person.
 
 **The session scan** comes from step 1's JSON and costs nothing more: per repository, how many sessions in the window, which worktrees they stand in, and which worktrees have *no* session inside the window — those are the ones cleanup can take once their branch merges, and the ones to name when a worktree count is climbing.
 
-**Titles** are `/dev:retitle`'s. Attended, run it as written: the two-column proposal table, confirmation, then the write. Unattended, run it up to the table and stop — it shows the table before writing for a reason, and a scheduler is not a confirmation. Put the table in the report, or the count and where the table was written when it runs long. The hook that keeps new sessions named needs no installation check. Installed as the `dev` plugin, `hooks/hooks.json` registers it on every `UserPromptSubmit`, and disabling the plugin unregisters it. What is worth reporting is the opposite case: a machine that installed it by hand before the plugin carried it now runs two copies, and the second one is a `UserPromptSubmit` entry in the agent's settings pointing at a copied script. Report that as a duplicate to remove; report nothing when the plugin is the only registrar.
+**Titles** are `/dev:retitle`'s, and its `--apply` flag is the only switch between proposing and renaming. Invoke `/dev:retitle` without `--apply` by default: it prints the two-column table and writes nothing. Pass `--apply` only on an attended run whose person asked the steward to rename the titles, not just to sweep; retitle then prints the same table and renames those rows. Unattended, never pass it — a scheduler is not a confirmation. Put the table in the report, or the count and where the table was written when it runs long. The hook that keeps new sessions named needs no installation check. Installed as the `dev` plugin, `hooks/hooks.json` registers it on every `UserPromptSubmit`, and disabling the plugin unregisters it. What is worth reporting is the opposite case: a machine that installed it by hand before the plugin carried it now runs two copies, and the second one is a `UserPromptSubmit` entry in the agent's settings pointing at a copied script. Report that as a duplicate to remove; report nothing when the plugin is the only registrar.
 
 Where the skill was copied on its own — `npx skills add`, skills.sh, any client that installs a skill directory rather than a plugin — no plugin exists to register it, and retitle's `references/hook-install.md` is the manual route.
 
@@ -178,7 +178,7 @@ One report, in the language the person writes in, after every repository has run
 > |---|---|---|
 > | `<name>` | `.claude/worktrees/foo` | occupied — session `<id>` is live |
 >
-> **Titles** proposed N · renamed N · deferred N (30-day window) · hook installed
+> **Titles** proposed N · renamed N · duplicate hook: yes/no
 > **Skipped** temporary N · vanished N · not a repository N · unresolved N
 
 Rules the report is held to:
@@ -215,8 +215,8 @@ Never register a schedule the person did not ask for, and never a second one: re
 - `--since=<days>` — the activity window that makes a repository active. Default 14.
 - `--occupied-hours=<hours>` — how recent a session's activity must be for its worktree to count as occupied. Default 24.
 - `--stale=<days>` — how old an unshipped branch's last commit must be before it is reported stale. Default 30.
-- `--only=<sync|cleanup|retitle|report>` — one pass. `report` writes nothing.
-- `--dry-run` — inventory and report from what is already fetched. Nothing is written anywhere.
+- `--only=<sync|cleanup|retitle|report>` — one pass. `report` writes only the saved report and the lock.
+- `--dry-run` — inventory and report from what is already fetched. The saved report and the lock are the only writes; no repository, worktree, or session store is touched.
 - `--unattended` — no pass may ask; every question goes into the report. Implied when the prompt came from a scheduler.
 
 ## Reporting failures

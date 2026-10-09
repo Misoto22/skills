@@ -22,6 +22,9 @@ answer between two of them, and refuses its writes into the project, Codex's
 `apply_patch` and the common shell forms of a file write included, leaving the scratchpad
 and everything outside the repository alone. The `orchestrator_models` option
 is the list it matches on, `fable,gpt-6` by default and empty to switch the hook off.
+Under Codex it and retitle's `session_title_lang` are inert — codex-cli does not pass
+`CLAUDE_PLUGIN_OPTION_*` to plugin hooks — so set `ORCHESTRATOR_MODELS` or
+`SESSION_TITLE_LANG` in Codex's own environment instead.
 In Claude Code it uses `Task` (`Agent` on clients that still use that name) to send the
 change to `agents/implementer` on Opus, then the checks to the independent,
 read-only `agents/verifier` on Sonnet. In Codex it uses `collaboration.spawn_agent` with
