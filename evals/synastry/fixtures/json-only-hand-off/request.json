@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "people": [
+    {
+      "id": "subject-1",
+      "birth": {
+        "date": "1990-03-14",
+        "time_mode": "exact",
+        "time": "07:42",
+        "time_accuracy_minutes": 0,
+        "timezone": "Asia/Shanghai",
+        "latitude": 31.2304,
+        "longitude": 121.4737
+      }
+    },
+    {
+      "id": "subject-2",
+      "birth": {
+        "date": "1992-06-08",
+        "time_mode": "exact",
+        "time": "14:20",
+        "time_accuracy_minutes": 0,
+        "timezone": "Asia/Shanghai",
+        "latitude": 22.5431,
+        "longitude": 114.0579
+      }
+    }
+  ],
+  "options": {
+    "language": "en",
+    "house_system": "whole-sign",
+    "major_orb": 8.0,
+    "minor_orb": 3.0,
+    "ephemeris_policy": "allow-moshier",
+    "calculation_profile": "western-tropical-v1",
+    "aspect_profile": "ptolemaic-minor-v1",
+    "include_derived": false,
+    "privacy": "minimal"
+  },
+  "relationship_context": {
+    "description": "unspecified",
+    "requested_domains": []
+  }
+}

@@ -69,13 +69,33 @@
     },
     {
       "id": "json-only-hand-off",
-      "prompt": "Calculate the supplied valid v2 request and continue the configured workflow.",
+      "prompt": "Calculate the supplied valid v2 request and continue the configured workflow. The request is request.json in the evaluation workspace; both subjects are exact, and I explicitly accepted the recorded Moshier limitation, so it sets ephemeris_policy to allow-moshier. Use the available evaluation tools; the artifact goes to out/.",
       "expectations": [
         "Writes exactly one synastry_<labels>_<chart-id>.json calculation artifact.",
         "Does not create a TXT companion or include interpretive prose in the JSON.",
-        "Immediately invokes synastry-reading with the exact JSON path after a successful write.",
-        "Reports the JSON and validated Markdown paths after the hand-off."
-      ]
+        "Hands the exact JSON path the calculator printed straight on to synastry-reading after the successful write, without asking whether an interpretation is wanted.",
+        "Reports the JSON path, and neither interprets the chart inline nor claims a validated Markdown report that the reader has not produced."
+      ],
+      "execution": {
+        "fixture_root": "fixtures/json-only-hand-off",
+        "allowed_tools": ["read_file", "run_command"],
+        "required_tools": ["run_command"],
+        "required_commands": ["calculate"],
+        "commands": {
+          "calculate": {
+            "script": "scripts/compute_synastry.py",
+            "args": ["--request", "request.json", "--out", "out"]
+          }
+        },
+        "checks": [
+          {"type": "file_exists", "path": "out/synastry_subject-1_subject-2_c8ce17aed155.json"},
+          {
+            "type": "json_contains",
+            "path": "out/synastry_subject-1_subject-2_c8ce17aed155.json",
+            "contains": {"kind": "synastry-chart", "schema_version": "2.0", "chart_id": "c8ce17aed155"}
+          }
+        ]
+      }
     }
   ]
 }
