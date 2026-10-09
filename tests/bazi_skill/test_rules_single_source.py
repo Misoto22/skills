@@ -110,5 +110,40 @@ class DimensionsTests(unittest.TestCase):
                 self.assertNotIn(f'"{dimension}"', source)
 
 
+class ProseTests(unittest.TestCase):
+    """The rules file is what an agent quotes; a table copied into prose is a second source."""
+
+    PLUGIN = ROOT / "plugins" / "chinese-metaphysics"
+    SKILL = PLUGIN / "skills" / "bazi-compatibility" / "SKILL.md"
+
+    def published_prose(self) -> list[Path]:
+        skills = self.PLUGIN / "skills"
+        own = sorted(path for path in skills.rglob("*.md") if "shared" not in path.relative_to(skills).parts)
+        return sorted(SHARED.rglob("*.md")) + own
+
+    def test_the_skill_points_at_the_rules_file_it_resolves(self) -> None:
+        text = self.SKILL.read_text(encoding="utf-8")
+        reference = "shared/rules/compatibility-v1.json"
+        self.assertIn(reference, text)
+        self.assertTrue((self.SKILL.parent / reference).is_file(), "the pointer must resolve from the skill")
+
+    def test_no_prose_restates_a_compatibility_weight(self) -> None:
+        rules = DECLARED["compatibility-v1.json"]
+        weights = set(rules["general_weights"].values())
+        for profile in rules["relationship_profiles"].values():
+            weights |= set(profile.values())
+        pattern = r"\b(?:" + "|".join(str(value) for value in sorted(weights)) + r")\s?%"
+        for path in self.published_prose():
+            with self.subTest(file=str(path.relative_to(self.PLUGIN))):
+                self.assertNotRegex(path.read_text(encoding="utf-8"), pattern)
+
+    def test_the_retired_method_notes_stay_retired(self) -> None:
+        """They restated weights, multipliers and thresholds, and nothing read them."""
+
+        for name in ("compatibility-method.md", "scoring-method.md"):
+            with self.subTest(note=name):
+                self.assertEqual(list(self.PLUGIN.rglob(name)), [])
+
+
 if __name__ == "__main__":
     unittest.main()
