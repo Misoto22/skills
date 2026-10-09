@@ -96,7 +96,7 @@
       "prompt": "The naming sweep renamed 40 conversations while I was signed in as my personal account. I just switched to my work account and they still show the old names.",
       "expectations": [
         "Explains that a rename writes one index file, so the other accounts' copies still hold the old name, and that copying alone cannot fix it because the entry is already present.",
-        "Runs reunite, which reconciles the diverged titles as part of its normal pass, rather than proposing a fresh renaming run under the second account.",
+        "Runs reunite (its scripts/merge.py), which reconciles the diverged titles as part of its normal pass, rather than proposing a fresh renaming run under the second account.",
         "Notes that every overwritten copy is backed up first and that --undo puts the originals back."
       ]
     },
