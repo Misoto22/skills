@@ -8,6 +8,7 @@ would have named two different versions of itself, with nothing comparing them.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 import sys
@@ -55,35 +56,45 @@ class NoLiteralsTests(unittest.TestCase):
                     )
 
 
+@functools.cache
+def produced_artifacts() -> tuple[dict, dict]:
+    """Build one BaZi and one Zi Wei artifact, once per run, for every class that reads them.
+
+    Each class asks for them itself, so a class run alone or in any order gets the
+    same artifacts, and a missing ephemeris skips the class instead of erroring.
+    """
+
+    try:
+        from bazi.ephemeris import EphemerisUnavailable, SwissEphemeris
+    except ImportError:  # pragma: no cover
+        raise unittest.SkipTest("shared engine unavailable") from None
+    try:
+        ephemeris = SwissEphemeris()
+    except EphemerisUnavailable:
+        raise unittest.SkipTest("pyswisseph is not installed") from None
+
+    from bazi.engine import build_chart
+    from ziwei.engine import build_chart as build_ziwei
+
+    request = {
+        "name": "Subject A",
+        "birth_place": "Shanghai, China",
+        "birth_date": "1988-04-11",
+        "birth_time": "09:15",
+        "calendar": "gregorian",
+        "timezone": "Asia/Shanghai",
+        "latitude": 31.23,
+        "longitude": 121.47,
+    }
+    return build_chart(dict(request), ephemeris), build_ziwei(dict(request) | {"gender": "male"}, ephemeris)
+
+
 class ProducedArtifactTests(unittest.TestCase):
     """The ids in a real artifact must trace back to the rules that produced it."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        try:
-            from bazi.ephemeris import EphemerisUnavailable, SwissEphemeris
-        except ImportError:  # pragma: no cover
-            raise unittest.SkipTest("shared engine unavailable") from None
-        try:
-            ephemeris = SwissEphemeris()
-        except EphemerisUnavailable:
-            raise unittest.SkipTest("pyswisseph is not installed") from None
-
-        from bazi.engine import build_chart
-        from ziwei.engine import build_chart as build_ziwei
-
-        request = {
-            "name": "Subject A",
-            "birth_place": "Shanghai, China",
-            "birth_date": "1988-04-11",
-            "birth_time": "09:15",
-            "calendar": "gregorian",
-            "timezone": "Asia/Shanghai",
-            "latitude": 31.23,
-            "longitude": 121.47,
-        }
-        cls.bazi = build_chart(dict(request), ephemeris)
-        cls.ziwei = build_ziwei(dict(request) | {"gender": "male"}, ephemeris)
+        cls.bazi, cls.ziwei = produced_artifacts()
 
     def test_the_bazi_artifact_names_the_rules_that_built_it(self) -> None:
         methodology = self.bazi["methodology"]
@@ -147,7 +158,7 @@ class SchemaIdentityTests(unittest.TestCase):
 
         from bazi.artifacts import SCHEMAS, validate_envelope
 
-        for envelope in (ProducedArtifactTests.bazi, ProducedArtifactTests.ziwei):
+        for envelope in produced_artifacts():
             with self.subTest(schema=envelope["schema"]):
                 self.assertEqual(envelope["schema_version"], SCHEMAS[envelope["schema"]])
                 validate_envelope(envelope)
