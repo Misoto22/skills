@@ -1,0 +1,9 @@
+{
+  "$comment": "The files from the plugin's shared/ this skill uses. scripts/sync-shared.py vendors exactly these into shared/ and deletes the rest.",
+  "include": [
+    "LICENSE",
+    "astro/__init__.py",
+    "astro/natal_envelope.py",
+    "divination-report"
+  ]
+}

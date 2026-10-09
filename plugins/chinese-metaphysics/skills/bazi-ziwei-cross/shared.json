@@ -1,0 +1,13 @@
+{
+  "$comment": "The files from the plugin's shared/ this skill uses. scripts/sync-shared.py vendors exactly these into shared/ and deletes the rest.",
+  "include": [
+    "bazi/__init__.py",
+    "bazi/artifacts.py",
+    "bazi/models.py",
+    "bazi/rules.py",
+    "bazi/validation.py",
+    "divination-report",
+    "report-presentation.md",
+    "rules/compatibility-v1.json"
+  ]
+}

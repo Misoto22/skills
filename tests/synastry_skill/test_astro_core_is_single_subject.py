@@ -94,13 +94,21 @@ class AstroCoreTests(unittest.TestCase):
         self.assertIn("square", kinds, "sun at 10° and moon at 100° are square")
 
     def test_it_is_vendored_into_every_skill_that_ships_it(self) -> None:
-        """A skill is copied out alone; a shared module has to travel with it."""
+        """A skill is copied out alone; a shared module has to travel with it.
+
+        Each skill's shared.json names the modules it imports, and
+        tests/test_shared_includes.py holds that list to the import graph. What
+        is checked here is that every copy a skill does carry is the plugin's.
+        """
 
         for skill in ("synastry", "synastry-reading", "natal-chart", "natal-reading"):
             vendored = ROOT / "plugins" / "astrology" / "skills" / skill / "shared" / "astro"
             with self.subTest(skill=skill):
                 self.assertTrue(vendored.is_dir(), f"{skill} did not receive shared/astro")
-                for name in (*MODULES, *CONTRACTS):
+                names = sorted(path.stem for path in vendored.glob("*.py"))
+                self.assertIn("__init__", names, f"{skill} vendors astro without its package marker")
+                for name in names:
+                    self.assertIn(name, (*MODULES, *CONTRACTS, "__init__"))
                     self.assertEqual(
                         (vendored / f"{name}.py").read_bytes(),
                         (CORE / f"{name}.py").read_bytes(),
