@@ -10,12 +10,15 @@ import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
+from astro.request_schema import (
+    ASPECT_PROFILE,
+    CALCULATION_PROFILE,
+    DERIVED_PROFILE,
+    EVIDENCE_POLICY,
+    SCHEMA_VERSION,
+)
+
 KIND = "synastry-chart"
-SCHEMA_VERSION = "2.0"
-CALCULATION_PROFILE = "western-tropical-v1"
-ASPECT_PROFILE = "ptolemaic-minor-v1"
-DERIVED_PROFILE = "classical-derived-v1"
-EVIDENCE_POLICY = "editorial-v1"
 
 _DIGEST = re.compile(r"\A[0-9a-f]{64}\Z")
 _CHART_ID = re.compile(r"\A[0-9a-f]{12}\Z")

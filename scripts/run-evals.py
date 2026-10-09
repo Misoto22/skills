@@ -565,9 +565,14 @@ def _schema_module(skill: str) -> object:
     module = importlib.util.module_from_spec(spec)
     previous = sys.dont_write_bytecode
     sys.dont_write_bytecode = True
+    # The schema imports its contract identity from the skill's own vendored
+    # `shared/`, so that directory resolves imports while it loads and no longer.
+    shared_root = str(Path(schema).parent)
+    sys.path.insert(0, shared_root)
     try:
         spec.loader.exec_module(module)
     finally:
+        sys.path.remove(shared_root)
         sys.dont_write_bytecode = previous
     return module
 

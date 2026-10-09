@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+# The v2 contract's identity, declared here and nowhere else. The synastry artifact
+# schema and the natal calculator both import these: an artifact echoes the
+# profiles its request named, so a second copy would let the writer and the
+# validator disagree the first time one of them moved.
 SCHEMA_VERSION = "2.0"
 CALCULATION_PROFILE = "western-tropical-v1"
 ASPECT_PROFILE = "ptolemaic-minor-v1"
