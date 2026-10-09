@@ -54,7 +54,7 @@ Read what is already there before adding. Most stale repositories are over-decor
 
 ## Print the plan, then work
 
-Nothing is written until it is printed. One markdown table, never a fixed-width block — findings are written in the reader's language and any column width computed here is wrong in their terminal.
+Nothing is written until it is printed, and the table opens the reply — no prose about individual passes before it. One markdown table, never a fixed-width block — findings are written in the reader's language and any column width computed here is wrong in their terminal.
 
 > **Polish `<repo>` — 7 passes**
 >

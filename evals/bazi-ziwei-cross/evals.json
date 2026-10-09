@@ -27,8 +27,7 @@
     {
       "id": "raw-birth-details",
       "prompt": "我 1990-03-15 早上八点半上海出生，女，八字和紫微都帮我算了吧。",
-      "routes_to": "ziwei-chart",
-      "expected": "Does not fire; both charts must be placed first."
+      "expected": "Does not fire; both charts must be placed first, and either chart skill is a correct first step."
     },
     {
       "id": "single-system",

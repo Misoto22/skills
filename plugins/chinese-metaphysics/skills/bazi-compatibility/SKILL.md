@@ -23,7 +23,7 @@ Accept chart + chart, raw birth + raw birth, or chart + raw birth. Prefer reusab
 
 A chart source must be schema `chinese-metaphysics.bazi-chart`, version 1, with a valid checksum and complete primary facts and score ledgers. If it declares a boundary alternate, that alternate must also be complete.
 
-A raw source has the same exact requirements as `bazi-chart`: name, unambiguous place, exact date and minute, declared Gregorian or lunar calendar, IANA zone, latitude, longitude, and an explicit leap-month flag for lunar input. Resolve ambiguous places before running. Never infer a minute, place, leap month, gender, DST fold, or historical offset.
+A raw source has the same exact requirements as `bazi-chart`: name, unambiguous place, exact date and minute, declared Gregorian or lunar calendar, IANA zone, latitude, longitude, and an explicit leap-month flag for lunar input. Resolve ambiguous places before running. Never infer a minute, place, leap month, gender, DST fold, or historical offset. A time given only to the hour — 早上七点, 7am — is not an exact minute: ask for it rather than reading it as 07:00.
 
 Birth data and chart artifacts are sensitive. Keep them in the user-selected output directory and do not transmit them elsewhere.
 
@@ -41,7 +41,7 @@ Do not infer romance from two names, genders, or a vague “do we match?” requ
 
 ## Numeric model contract
 
-`bazi-compatibility-v1` always calculates five general dimensions: element complementarity, directional day-master support, cross-chart stem/branch interactions, day-pillar core, and structural stability. Their exact weights, the contextual profiles, and every adjustment live in `shared/rules/compatibility-v1.json`, and each artifact echoes the weights it used under `methodology.general_weights`. Quote them from there; never restate them from memory.
+`bazi-compatibility-v1` always calculates five general dimensions: element complementarity, directional day-master support, cross-chart stem/branch interactions, day-pillar core, and structural stability. Their exact weights, the contextual profiles, and every adjustment live in [`shared/rules/compatibility-v1.json`](shared/rules/compatibility-v1.json), and each artifact echoes the weights it used under `methodology.general_weights`. Quote them from there; never restate them from memory.
 
 Every dimension carries positive and negative ledger entries. Preserve ownership for directional support: “A supplies B” is not interchangeable with “B supplies A.” Swapping left and right must preserve all numeric scores while reversing directional owners.
 
