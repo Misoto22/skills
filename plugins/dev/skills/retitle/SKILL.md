@@ -332,4 +332,4 @@ Under `--lang=zh`, without `--apply`:
   排除     <N> —— <云端来源 | 已不在目录中>
 ```
 
-Every number comes from a read-back, not from the count of statements issued. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.
+With `--apply`, every number comes from a read-back, not from the count of statements issued; without it, the counts are the proposal's and nothing was read back. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.
