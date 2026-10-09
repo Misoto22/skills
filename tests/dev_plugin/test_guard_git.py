@@ -63,6 +63,12 @@ REFUSED = [
     "git -C /repo -c CORE.HOOKSPATH=/tmp/none merge feature/x",
     "git --config-env=core.hooksPath=HOOKS rebase main",
     "git --config-env core.hooksPath=HOOKS commit -m x",
+    # The same override through the environment, bare or behind `env`.
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/dev/null'\" git commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'other.key'='1' 'CORE.HOOKSPATH'\" git push origin feature/x",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git merge x",
+    "env GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_1=core.hooksPath GIT_CONFIG_VALUE_1= git rebase main",
+    "A=1 git commit --no-verify -m x",
 ]
 
 ALLOWED = [
@@ -85,6 +91,10 @@ ALLOWED = [
     "git push origin feature/x:feature/x",
     "git --no-pager log -n 5",
     "git -c core.hooksPath=/tmp/x status",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='x'\" git status",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.editor GIT_CONFIG_VALUE_0=true git commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPathology'='x'\" git commit -m x",
+    "git commit -m x GIT_CONFIG_KEY_0=core.hooksPath",
     "git config core.hooksPath",
     "git -c core.editor=true commit -m 'set core.hooksPath later'",
 ]
@@ -141,6 +151,7 @@ class GuardProcessTests(unittest.TestCase):
         for command in (
             "git -c core.hooksPath=/dev/null commit -m x",
             "git --config-env=core.hooksPath=H push",
+            "env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=x git commit -m y",
         ):
             with self.subTest(command=command):
                 result = self.run_guard(json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}))

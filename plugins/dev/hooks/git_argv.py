@@ -11,6 +11,7 @@ hook and is registered nowhere.
 from __future__ import annotations
 
 import os
+import re
 
 # Global options that take their value as the next word. Every other leading `-…` word is
 # a flag, or carries its value after `=`.
@@ -26,6 +27,10 @@ OPTIONS_WITH_VALUE = (
 )
 # Pointing this at another directory for one command skips the repository's hooks.
 HOOKS_PATH_KEY = "core.hookspath"
+# `GIT_CONFIG_PARAMETERS` holds space-separated, single-quoted entries: `'key'='value'`,
+# `'key=value'` or a bare `'key'`. git reads a key only where a quoted entry begins.
+PARAMETERS_HOOKS_PATH = re.compile(r"(?:^|\s)'core\.hookspath(?:'|=)", re.IGNORECASE)
+CONFIG_KEY_VARIABLE = re.compile(r"GIT_CONFIG_KEY_\d+")
 
 
 def split(args: list[str]) -> tuple[list[tuple[str, str | None]], str, list[str]]:
@@ -72,6 +77,20 @@ def config_keys(options: list[tuple[str, str | None]]) -> list[str]:
 def overrides_hooks(options: list[tuple[str, str | None]]) -> bool:
     """Whether the command redirects `core.hooksPath`, which skips hooks like --no-verify."""
     return HOOKS_PATH_KEY in config_keys(options)
+
+
+def env_overrides_hooks(environment: dict[str, str]) -> bool:
+    """Whether variables set for the command redirect `core.hooksPath`, as `-c` would.
+
+    A `GIT_CONFIG_KEY_<n>` naming it counts whatever `GIT_CONFIG_COUNT` says here, since
+    the count can already be exported in the shell.
+    """
+    if PARAMETERS_HOOKS_PATH.search(environment.get("GIT_CONFIG_PARAMETERS", "")):
+        return True
+    return any(
+        CONFIG_KEY_VARIABLE.fullmatch(name) and value.lower() == HOOKS_PATH_KEY
+        for name, value in environment.items()
+    )
 
 
 def is_force(word: str) -> bool:

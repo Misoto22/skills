@@ -493,6 +493,7 @@ class BashDetectorTests(unittest.TestCase):
             "sed -i.bak 's/a/b/' src/x.py",
             "perl -pi -e 's/a/b/' src/x.py",
             "env FOO=1 sed -i 's/x/y/' notes.py",
+            "FOO=1 sed -i 's/x/y/' notes.py",
             "cat > out.txt",
             "cat >out.txt",
             "printf 'x' >> README.md",

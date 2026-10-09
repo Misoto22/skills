@@ -75,6 +75,30 @@ class HooksPathTests(unittest.TestCase):
                 self.assertFalse(git_argv.overrides_hooks(git_argv.split(args)[0]))
 
 
+class EnvironmentHooksPathTests(unittest.TestCase):
+    def test_every_environment_spelling_of_a_hooks_path_override_is_seen(self) -> None:
+        for environment in (
+            {"GIT_CONFIG_PARAMETERS": "'core.hooksPath'='/dev/null'"},
+            {"GIT_CONFIG_PARAMETERS": "'a.b'='1' 'CORE.HOOKSPATH'"},
+            {"GIT_CONFIG_PARAMETERS": "'core.hooksPath=/dev/null'"},
+            {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": ""},
+            {"GIT_CONFIG_KEY_3": "Core.HooksPath"},
+        ):
+            with self.subTest(environment=environment):
+                self.assertTrue(git_argv.env_overrides_hooks(environment))
+
+    def test_other_variables_and_settings_are_not_overrides(self) -> None:
+        for environment in (
+            {},
+            {"GIT_CONFIG_PARAMETERS": "'core.hooksPathology'='x'"},
+            {"GIT_CONFIG_PARAMETERS": "'core.editor'='echo core.hooksPath'"},
+            {"GIT_CONFIG_KEY_0": "core.editor", "GIT_CONFIG_VALUE_0": "core.hooksPath"},
+            {"GIT_CONFIG_KEY": "core.hooksPath"},
+        ):
+            with self.subTest(environment=environment):
+                self.assertFalse(git_argv.env_overrides_hooks(environment))
+
+
 class ForceTests(unittest.TestCase):
     def test_force_flags_and_plus_refspecs_force_a_push(self) -> None:
         for rest in (["--force"], ["-f"], ["-fu", "origin", "x"], ["origin", "+main"]):

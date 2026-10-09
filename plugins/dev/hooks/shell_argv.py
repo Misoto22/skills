@@ -20,22 +20,28 @@ WRAPPER_COMMANDS = ("command", "exec")
 ENV_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
 
 
-def unwrap(words: list[str]) -> list[str]:
-    """Remove shell wrappers that run, rather than merely describe, their command.
+def unwrap_env(words: list[str]) -> tuple[dict[str, str], list[str]]:
+    """The variables a command line sets for its command, and the command's own words.
 
-    ``command git``, ``exec tee`` and ``env KEY=value sed`` would otherwise hide the
-    executable from the checks after this. Kept deliberately small: recognising an
-    arbitrary word as a wrapper turns harmless prose or inspection commands into false
-    refusals.
+    ``KEY=value git``, ``command git``, ``exec tee`` and ``env KEY=value sed`` would
+    otherwise hide the executable from the checks after this, and the assignments are
+    returned because some of them change what the command does. Kept deliberately small:
+    recognising an arbitrary word as a wrapper turns harmless prose or inspection
+    commands into false refusals.
     """
+    environment: dict[str, str] = {}
     words = list(words)
     while words:
-        if words[0] in WRAPPER_COMMANDS:
+        if ENV_ASSIGNMENT.fullmatch(words[0]):
+            key, _, value = words.pop(0).partition("=")
+            environment[key] = value
+        elif words[0] in WRAPPER_COMMANDS or words[0] in ENV_COMMANDS:
             words.pop(0)
-            continue
-        if words[0] not in ENV_COMMANDS:
+        else:
             break
-        words.pop(0)
-        while words and ENV_ASSIGNMENT.fullmatch(words[0]):
-            words.pop(0)
-    return words
+    return environment, words
+
+
+def unwrap(words: list[str]) -> list[str]:
+    """The command's own words, past every leading assignment and wrapper."""
+    return unwrap_env(words)[1]

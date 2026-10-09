@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import git_argv
-from shell_argv import SEGMENT, unwrap
+from shell_argv import SEGMENT, unwrap_env
 
 NO_VERIFY_COMMANDS = ("commit", "push", "merge", "rebase")
 
@@ -54,8 +54,8 @@ def _has_short(words: list[str], letter: str) -> bool:
     return any(w.startswith("-") and not w.startswith("--") and letter in w[1:] for w in words)
 
 
-def _git_offence(args: list[str]) -> str | None:
-    """The refusal the words after `git` earn, read past its global options."""
+def _git_offence(args: list[str], environment: dict[str, str]) -> str | None:
+    """The refusal the words after `git` earn, read past its options and its environment."""
     options, subcommand, rest = git_argv.split(args)
     if subcommand == "push" and git_argv.is_forced_push(rest):
         return REFUSALS["force"]
@@ -63,7 +63,7 @@ def _git_offence(args: list[str]) -> str | None:
         return None
     if "--no-verify" in rest or (subcommand == "commit" and _has_short(rest, "n")):
         return REFUSALS["no-verify"]
-    if git_argv.overrides_hooks(options):
+    if git_argv.overrides_hooks(options) or git_argv.env_overrides_hooks(environment):
         return REFUSALS["hooks-path"]
     return None
 
@@ -71,11 +71,11 @@ def _git_offence(args: list[str]) -> str | None:
 def offence(command: str) -> str | None:
     """The refusal a command earns, or None when it may run."""
     for segment in SEGMENT.split(command):
-        words = unwrap(_words(segment))
+        environment, words = unwrap_env(_words(segment))
         if not words:
             continue
         if words[0] == "git":
-            reason = _git_offence(words[1:])
+            reason = _git_offence(words[1:], environment)
             if reason is not None:
                 return reason
         elif words[:3] == ["gh", "pr", "merge"] and "--admin" in words:
