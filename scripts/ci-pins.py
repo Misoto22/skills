@@ -15,6 +15,12 @@ model an unattended evaluation bills against is not a version at all — both us
 to sit as literals in four workflows and a script, where nothing compared them.
 A pin declares its own `version_pattern` when the default semver does not fit.
 
+A runtime is also read by tools that never open this file: setup-python and
+setup-node take `.python-version` and `.node-version`, and so do uv, pyenv and
+nvm on a contributor's machine. Such a pin names that file as its
+`version_file`; `check` fails when the two disagree and `bump` moves both, so
+the runtime is still declared once and every other mention agrees with it.
+
 `CI_CHANNEL=latest` makes `spec` resolve to the floating form, which is how the
 canary reaches the same install routes as the pinned run without a second copy
 of them. A pin that cannot float says so by declaring a `spec_latest` that
@@ -155,7 +161,23 @@ def check(config: dict) -> list[str]:
                 )
         for relative in sorted(documented - {relative for relative, _ in found}):
             errors.append(f"{relative}: declared as naming {pin['id']}, but no version is there")
+        errors.extend(_version_file_errors(pin))
     return errors
+
+
+def _version_file_errors(pin: dict) -> list[str]:
+    """Hold a runtime pin to the file the setup actions and local tools read."""
+
+    relative = pin.get("version_file")
+    if not relative:
+        return []
+    path = ROOT / relative
+    if not path.is_file():
+        return [f"{relative}: {pin['id']} names it as its version_file, but it does not exist"]
+    written = path.read_text(encoding="utf-8").strip()
+    if written != pin["version"]:
+        return [f"{relative}: names {pin['id']} {written}, but .ci-pins.json declares {pin['version']}"]
+    return []
 
 
 def bump(config: dict, pin: dict, new: str) -> list[str]:
@@ -168,6 +190,10 @@ def bump(config: dict, pin: dict, new: str) -> list[str]:
         if updated != text:
             path.write_text(updated, encoding="utf-8")
             changed.append(relative)
+
+    if pin.get("version_file"):
+        (ROOT / pin["version_file"]).write_text(f"{new}\n", encoding="utf-8")
+        changed.append(pin["version_file"])
 
     pin["version"] = new
     CONFIG.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")

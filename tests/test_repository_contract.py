@@ -1622,6 +1622,83 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertNotEqual(refused.returncode, 0, pin["id"])
                 self.assertIn("does not match", refused.stderr, pin["id"])
 
+    def test_runtimes_are_declared_once_in_their_version_files(self) -> None:
+        """setup-python, setup-node, uv and nvm read the file, so the workflows must too."""
+
+        pins = {
+            pin["id"]: pin for pin in json.loads((ROOT / ".ci-pins.json").read_text(encoding="utf-8"))["pins"]
+        }
+        for pin_id, relative, setting in (
+            ("python", ".python-version", "python-version-file: .python-version"),
+            ("node", ".node-version", "node-version-file: .node-version"),
+        ):
+            with self.subTest(runtime=pin_id):
+                pin = pins[pin_id]
+                self.assertEqual(pin.get("version_file"), relative)
+                self.assertEqual((ROOT / relative).read_text(encoding="utf-8").strip(), pin["version"])
+                # The literal form is refused by `check`; this is the positive side.
+                self.assertEqual(pin["documented_in"], [])
+                readers = [
+                    path.name
+                    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+                    if setting in path.read_text(encoding="utf-8")
+                ]
+                self.assertTrue(readers, f"no workflow reads {relative}")
+
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(workflow=path.name):
+                self.assertNotRegex(
+                    text, r'python-version: "\d', "a runtime literal bypasses .python-version"
+                )
+                self.assertNotRegex(text, r"node-version: \d", "a runtime literal bypasses .node-version")
+
+    def test_ci_pin_check_refuses_a_version_file_that_disagrees(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            (copied / ".python-version").write_text("3.10\n", encoding="utf-8")
+            (copied / ".node-version").unlink()
+
+            result = subprocess.run(
+                [sys.executable, "scripts/ci-pins.py", "check"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(".python-version: names python 3.10", result.stderr)
+        self.assertIn(
+            ".node-version: node names it as its version_file, but it does not exist", result.stderr
+        )
+
+    def test_ci_pin_bump_rewrites_the_version_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            copied = copy_repository_fixture(Path(temporary))
+            for pin_id, relative, target in (
+                ("python", ".python-version", "9.9"),
+                ("node", ".node-version", "99"),
+            ):
+                moved = subprocess.run(
+                    [sys.executable, "scripts/ci-pins.py", "bump", pin_id, target],
+                    cwd=copied,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(moved.returncode, 0, moved.stderr)
+                self.assertEqual((copied / relative).read_text(encoding="utf-8"), f"{target}\n")
+
+            checked = subprocess.run(
+                [sys.executable, "scripts/ci-pins.py", "check"],
+                cwd=copied,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+
     def test_coverage_floors_the_python_that_ships(self) -> None:
         """A floor nobody runs is a floor that does not exist, so CI has to run it."""
 
