@@ -10,45 +10,26 @@ becomes a paragraph about structure the chart does not have.
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT / "shared"))
 
-from bazi.validation import ZIWEI, ArtifactDefect, validate
+from bazi.gate import cli_main
+from bazi.validation import ZIWEI
 
 ROUTE_TO = "ziwei-chart"
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", help="the Zi Wei artifact .json, or - for a JSON object on stdin")
-    arguments = parser.parse_args(argv)
-
-    try:
-        raw = (
-            sys.stdin.read()
-            if arguments.source == "-"
-            else Path(arguments.source).read_text(encoding="utf-8")
-        )
-        envelope = json.loads(raw)
-        if not isinstance(envelope, dict):
-            raise ArtifactDefect("expected one JSON object")
-        validated = validate(envelope, ZIWEI)
-    except (ArtifactDefect, json.JSONDecodeError, OSError) as error:
-        print(f"error: {error}", file=sys.stderr)
-        print(f"stop: name this defect and route the source back to `{ROUTE_TO}`", file=sys.stderr)
-        return 2
-
-    print(f"valid: {_subject(validated)}, checksum {validated['checksum']}")
-    return 0
-
-
-def _subject(envelope: dict) -> str:
-    return envelope["input"]["name"]
+    return cli_main(
+        ZIWEI,
+        route_to=ROUTE_TO,
+        description=__doc__,
+        source_help="the Zi Wei artifact .json, or - for a JSON object on stdin",
+        argv=argv,
+    )
 
 
 if __name__ == "__main__":
