@@ -61,7 +61,7 @@
   "behaviors": [
     {
       "id": "chinese-request-english-repository",
-      "prompt": "帮我把这个仓库的 readme 重写一下",
+      "prompt": "帮我把这个仓库的 readme 重写一下。我已经读过仓库：现有 README.md、代码注释和最近 50 条提交信息全部是英文；package.json 的 name 是 tidewatch，description 是 \"Offline tide and swell tables for small-boat sailors\"，license 是 MIT，engines.node 是 \">=24\"，scripts 有 dev: \"vite\"、build: \"vite build\"、test: \"vitest run\"；源码在 src/，CI 只有 .github/workflows/ci.yml，运行 npm ci 和 npm test。",
       "expectations": [
         "Replies in Chinese, matching the user.",
         "Writes the README in English when the repository's existing prose, comments, and history are English.",
@@ -89,7 +89,7 @@
     },
     {
       "id": "forge-write-confirmation",
-      "prompt": "装修一下这个仓库，全套",
+      "prompt": "装修一下这个仓库，全套。仓库情况：远程是 github.com/example/tidewatch；package.json 的 description 是 \"Offline tide and swell tables for small-boat sailors\"，license 是 MIT，依赖有 vite、vitest 和 workbox；README.md 只有一行标题；有 LICENSE（MIT），没有 SECURITY.md 和 CONTRIBUTING.md；我在网页上看过，GitHub 上 About 为空，topics 为 0 个。这个环境里没有 gh，也连不上 GitHub。",
       "expectations": [
         "Puts the plan table before any write.",
         "Shows the exact description and topic values and asks before sending them to the forge.",
