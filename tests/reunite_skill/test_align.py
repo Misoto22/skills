@@ -37,6 +37,8 @@ class AlignRunTests(unittest.TestCase):
         env = patch.dict(os.environ, {"HOME": str(self.home), merge.SESSIONS_ROOT_ENV: str(self.root)})
         env.start()
         self.addCleanup(env.stop)
+        # The real environment may name another config dir; these tests own ~/.claude.
+        os.environ.pop(merge.CONFIG_DIR_ENV, None)
 
     def path(self, account: str, sid: str) -> Path:
         return self.root / account / ORG / f"local_{sid}.json"
@@ -183,6 +185,46 @@ class AlignRunTests(unittest.TestCase):
         self.assertIn("1 conversations have no transcript left", report)
         self.assertTrue(self.field(B, "ghost", "isArchived"))
         self.assert_identical("ghost")
+
+    def test_no_transcripts_at_all_skips_orphan_detection(self) -> None:
+        """An empty transcript store says nothing about any one conversation."""
+        projects = self.home / ".claude" / "projects"
+        self.session(A, "s1", transcript=False)
+        self.session(B, "s2", transcript=False)
+
+        report = self.run_merge("--apply")
+
+        self.assertIn(f"orphan detection skipped: no transcripts found under {projects}", report)
+        self.assertNotIn("no transcript left", report)
+        for account in (A, B):
+            self.assertIsNone(self.field(account, "s1", "isArchived"))
+            self.assertIsNone(self.field(account, "s2", "isArchived"))
+
+    def test_a_missing_transcript_store_skips_orphan_detection(self) -> None:
+        projects = self.home / ".claude" / "projects"
+        (projects / "proj").rmdir()
+        projects.rmdir()
+        self.session(A, "s1", transcript=False)
+
+        report = self.run_merge("--apply")
+
+        self.assertIn(f"orphan detection skipped: no transcripts found under {projects}", report)
+        self.assertIsNone(self.field(B, "s1", "isArchived"))
+
+    def test_transcripts_are_read_from_claude_config_dir_when_set(self) -> None:
+        config = self.home / "alt-config"
+        (config / "projects" / "proj").mkdir(parents=True)
+        (config / "projects" / "proj" / "cli-live.jsonl").write_text("{}")
+        # A transcript only under ~/.claude must not count once the config dir moved.
+        self.session(A, "ghost")
+        self.session(B, "live", transcript=False)
+
+        with patch.dict(os.environ, {merge.CONFIG_DIR_ENV: str(config)}):
+            report = self.run_merge("--apply")
+
+        self.assertIn("1 conversations have no transcript left", report)
+        self.assertTrue(self.field(A, "ghost", "isArchived"))
+        self.assertIsNone(self.field(A, "live", "isArchived"))
 
     def test_an_account_missing_from_the_tree_deletes_nothing(self) -> None:
         """A signed-out or wiped account is not a statement about any one conversation."""

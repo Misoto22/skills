@@ -493,6 +493,7 @@ class BashDetectorTests(unittest.TestCase):
             "sed -i.bak 's/a/b/' src/x.py",
             "perl -pi -e 's/a/b/' src/x.py",
             "env FOO=1 sed -i 's/x/y/' notes.py",
+            "FOO=1 sed -i 's/x/y/' notes.py",
             "cat > out.txt",
             "cat >out.txt",
             "printf 'x' >> README.md",
@@ -504,6 +505,9 @@ class BashDetectorTests(unittest.TestCase):
             "touch src/new.py",
             "ln -s a b",
             "git apply fix.patch",
+            "git -C sub apply fix.patch",
+            "git -c core.whitespace=fix apply fix.patch",
+            "git --no-pager --git-dir .git apply fix.patch",
             "pytest && sed -i 's/a/b/' src/x.py",
         ):
             with self.subTest(command=command):
@@ -524,6 +528,9 @@ class BashDetectorTests(unittest.TestCase):
             "cat src/x.py",
             'sed -i "s/a/b/ src/x.py',
             "git apply --stat",
+            "git -C sub status",
+            "git -C apply status",
+            "git -C /tmp/elsewhere apply fix.patch",
             "",
             "   ",
         ):

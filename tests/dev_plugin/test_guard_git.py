@@ -44,6 +44,31 @@ REFUSED = [
     "command gh pr merge 12 --admin --squash",
     "git add -A && git commit --no-verify -m x",
     "git fetch; git push --force origin feature/x",
+    # Global options sit between `git` and the subcommand and must not hide it.
+    "git -C /repo push --force",
+    "git -c k=v commit --no-verify -m x",
+    "git -C /repo -c color.ui=never commit -n -m x",
+    "git --git-dir /repo/.git push -f origin feature/x",
+    "git --git-dir=/repo/.git --work-tree=/repo push --force",
+    "git --no-pager -P push --force origin feature/x",
+    "git --namespace ns --bare push --force",
+    "git -C push push --force",
+    # A `+` refspec forces that ref whatever the flags say.
+    "git push origin +main",
+    "git push origin +HEAD:refs/heads/feature/x",
+    "git -C /repo push origin feature/a +feature/b",
+    # Redirecting core.hooksPath for one command skips the hooks like --no-verify does.
+    "git -c core.hooksPath=/dev/null commit -m x",
+    "git -c core.hooksPath= push origin feature/x",
+    "git -C /repo -c CORE.HOOKSPATH=/tmp/none merge feature/x",
+    "git --config-env=core.hooksPath=HOOKS rebase main",
+    "git --config-env core.hooksPath=HOOKS commit -m x",
+    # The same override through the environment, bare or behind `env`.
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='/dev/null'\" git commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'other.key'='1' 'CORE.HOOKSPATH'\" git push origin feature/x",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git merge x",
+    "env GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_1=core.hooksPath GIT_CONFIG_VALUE_1= git rebase main",
+    "A=1 git commit --no-verify -m x",
 ]
 
 ALLOWED = [
@@ -59,6 +84,19 @@ ALLOWED = [
     "echo 'git push --force' > notes.txt",
     "git log --oneline -n 5",
     "git push origin --delete feature/x",
+    "git -C /repo push --force-with-lease origin feature/x",
+    "git -c push.default=current push origin feature/x",
+    "git -C push status",
+    "git -c core.editor=true commit -m 'a +b'",
+    "git push origin feature/x:feature/x",
+    "git --no-pager log -n 5",
+    "git -c core.hooksPath=/tmp/x status",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath'='x'\" git status",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.editor GIT_CONFIG_VALUE_0=true git commit -m x",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPathology'='x'\" git commit -m x",
+    "git commit -m x GIT_CONFIG_KEY_0=core.hooksPath",
+    "git config core.hooksPath",
+    "git -c core.editor=true commit -m 'set core.hooksPath later'",
 ]
 
 
@@ -95,6 +133,30 @@ class GuardProcessTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("Refused", result.stderr)
         self.assertEqual(result.stdout, "")
+
+    def test_global_options_do_not_hide_the_subcommand(self) -> None:
+        for command in ("git -C /repo push --force origin main", "git -c a=b commit --no-verify -m x"):
+            with self.subTest(command=command):
+                result = self.run_guard(json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}))
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("Refused", result.stderr)
+
+    def test_a_plus_refspec_is_refused_as_a_force_push(self) -> None:
+        event = {"tool_name": "Bash", "tool_input": {"command": "git push origin +main"}}
+        result = self.run_guard(json.dumps(event))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--force-with-lease", result.stderr)
+
+    def test_a_hooks_path_override_is_refused_like_no_verify(self) -> None:
+        for command in (
+            "git -c core.hooksPath=/dev/null commit -m x",
+            "git --config-env=core.hooksPath=H push",
+            "env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=x git commit -m y",
+        ):
+            with self.subTest(command=command):
+                result = self.run_guard(json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}))
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("core.hooksPath", result.stderr)
 
     def test_a_sanctioned_command_stays_silent(self) -> None:
         event = {"tool_name": "Bash", "tool_input": {"command": "git push --force-with-lease"}}

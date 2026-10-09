@@ -58,7 +58,8 @@ python3 scripts/inventory.py --since 14 --roots <dir,…>
 | Source | What it yields | Where |
 |---|---|---|
 | Claude Code transcripts | every session's working directory and when it was last written to | `projects/*/*.jsonl` under the config directory |
-| Claude Code live sessions | sessions with a process attached right now | `claude agents --json`, when the CLI is on `PATH`; `--no-live` skips it |
+| Claude Code background agents | background agents the CLI is running — not an open but idle desktop or terminal session | `claude agents --json`, when the CLI is on `PATH`; `--no-live` skips it |
+| Desktop session index | every unarchived conversation's `worktreePath` and `cwd` — occupancy only, it adds no repository | `*/*/local_*.json` under `~/Library/Application Support/Claude/claude-code-sessions`, or `CLAUDE_DESKTOP_SESSIONS_DIR` |
 | Codex thread catalogue | each thread's working directory and last update | `sqlite/codex*.db` under the Codex home, opened read-only |
 | `--roots` | every child directory holding a `.git` | named by you — repositories nobody opened a session in |
 
@@ -82,7 +83,7 @@ A markdown table, for the reason cleanup gives: paths and branch names run long,
 
 ### Occupied means hands off
 
-A worktree is occupied when a session has a process attached to it right now, or when any session wrote to it within `--occupied-hours` (default 24). **An occupied worktree is never removed, and its branch is never deleted, by anything this run does** — merged or not, clean or not. A session resumed into a directory that is gone breaks every command that follows, and cleanup cannot see the session from git; this list is how it finds out. Pass it to cleanup as keeps, and list each one under *Kept* with the session that holds it.
+A worktree is occupied when a background agent the CLI lists is attached to it right now, when an unarchived conversation in the desktop session index names it as its `worktreePath` or `cwd` — open and idle is still open, and `claude agents --json` does not list it — or when any session wrote to it within `--occupied-hours` (default 24). **An occupied worktree is never removed, and its branch is never deleted, by anything this run does** — merged or not, clean or not. A session resumed into a directory that is gone breaks every command that follows, and cleanup cannot see the session from git; this list is how it finds out. Pass it to cleanup as keeps, and list each one under *Kept* with the session that holds it.
 
 `shared/git.md` § The home worktree is the one case of this a running session can settle with certainty rather than infer — its own. Occupancy is the general rule, and the home worktree is its one instance that needs no evidence.
 

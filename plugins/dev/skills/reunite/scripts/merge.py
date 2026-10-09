@@ -7,7 +7,8 @@ Claude's desktop app keeps one conversation index per signed-in account under
 
 so signing in as a second account hides the first account's conversations from the
 sidebar, and a rename, archive or deletion made under one account never reaches the
-others. The transcripts themselves live in ~/.claude/projects/ keyed by working
+others. The transcripts themselves live in ~/.claude/projects/ (under CLAUDE_CONFIG_DIR
+when that is set) keyed by working
 directory and carry no account field at all, which is why `claude --resume` still
 lists every one of them. Only the index is partitioned.
 
@@ -38,6 +39,7 @@ import mirror
 from manifest import BACKUP_DIR, MANIFEST_NAME, index_path, read_manifest, restore_backups, write_manifest
 
 SESSIONS_ROOT_ENV = "CLAUDE_DESKTOP_SESSIONS_DIR"
+CONFIG_DIR_ENV = "CLAUDE_CONFIG_DIR"
 DEFAULT_ROOT = "~/Library/Application Support/Claude/claude-code-sessions"
 DESKTOP_CONFIG = "~/Library/Application Support/Claude/config.json"
 TITLE_FIELDS = ("title", "titleSource", "previousTitles")
@@ -104,9 +106,13 @@ def flatten(tree: dict[str, dict[str, list[Entry]]]) -> list[Entry]:
     return [e for orgs in tree.values() for entries in orgs.values() for e in entries]
 
 
-def transcript_ids() -> set[str]:
-    """Every CLI session id that still has a transcript under ~/.claude/projects/."""
-    projects = Path("~/.claude/projects").expanduser()
+def transcripts_dir() -> Path:
+    """Where the CLI keeps transcripts: CLAUDE_CONFIG_DIR's projects/, else ~/.claude/projects/."""
+    return Path(os.environ.get(CONFIG_DIR_ENV) or Path.home() / ".claude") / "projects"
+
+
+def transcript_ids(projects: Path) -> set[str]:
+    """Every CLI session id that still has a transcript under the projects directory."""
     if not projects.is_dir():
         return set()
     found: set[str] = set()
@@ -170,7 +176,7 @@ def report_state(root: Path, tree: dict[str, dict[str, list[Entry]]], current: s
 
 
 def report_plan(
-    plan: mirror.MirrorPlan, life: lifecycle.LifecyclePlan, targets: list[str], orphans: int
+    plan: mirror.MirrorPlan, life: lifecycle.LifecyclePlan, targets: list[str], orphans: int | None
 ) -> None:
     """Print what --apply would write, broken down by the fields a sidebar shows."""
     created = [w for w in plan.writes if w.created]
@@ -186,7 +192,9 @@ def report_plan(
     print(f"    {other:>5} change other fields only the app reads")
     deleted = len(life.newly_deleted)
     print(f"  {len(plan.removals)} copies to remove — {deleted} conversations deleted under one account")
-    if orphans:
+    if orphans is None:
+        print(f"  orphan detection skipped: no transcripts found under {transcripts_dir()}")
+    elif orphans:
         print(f"  {orphans} conversations have no transcript left; archived unless --from says otherwise")
     titled = [w for w in updated if "title" in w.fields]
     for write in titled[:10]:
@@ -285,8 +293,10 @@ def resolve_targets(tree: dict[str, dict[str, list[Entry]]], into: str, current:
 def plan_run(root: Path, tree, targets: list[str], authority: str | None = None):
     """Settle archive state and deletions, then plan the writes that align the targets."""
     entries = flatten(tree)
-    live = transcript_ids()
-    orphans = {e.session_id for e in entries if e.cli_session_id not in live}
+    live = transcript_ids(transcripts_dir())
+    # No transcripts at all means the store is elsewhere or unreadable, not that every
+    # conversation lost its own; archiving all of them on that evidence would be wrong.
+    orphans = {e.session_id for e in entries if e.cli_session_id not in live} if live else set()
     sessions = lifecycle.copies_by_session(entries)
     copied_before = read_manifest(root, root / MANIFEST_NAME)[0]
     if authority:
@@ -301,7 +311,7 @@ def plan_run(root: Path, tree, targets: list[str], authority: str | None = None)
         )
     landing = {a: root / a / org for a in targets if (org := landing_org(tree[a])) is not None}
     plan = mirror.plan_mirror(sessions, landing, targets, life, authority)
-    return plan, life, len(orphans), set(copied_before)
+    return plan, life, len(orphans) if live else None, set(copied_before)
 
 
 def main() -> int:
