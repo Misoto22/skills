@@ -40,7 +40,7 @@ AUDIT 和 STUDY 都是「看完出报告、不建东西」，分界在看的是�
 
 ## 新会话自动命名
 
-手动改名追不上客户端开新会话的速度，所以规范落在会话诞生的地方——一个 `UserPromptSubmit` hook，随 `dev` 插件启用即注册。Codex 通过插件原生 manifest 发现它；语言由插件的 `session_title_lang` 选项决定，默认 `en`，设成 `zh` 即中文；不经插件、单独复制这个技能时，按技能指向的参考文档手动装 hook。
+手动改名追不上客户端开新会话的速度，所以规范落在会话诞生的地方——一个 `UserPromptSubmit` hook，随 `dev` 插件启用即注册。Codex 通过插件原生 manifest 发现它；语言由插件的 `session_title_lang` 选项决定，默认 `en`，设成 `zh` 即中文——Codex 例外，它不会把插件选项传给 hook，所以要在 Codex 自身的运行环境里设 `SESSION_TITLE_LANG=zh`；不经插件、单独复制这个技能时，按技能指向的参考文档手动装 hook。
 
 Codex 会先按精确 hash 审核插件 hook，审核通过前不会运行。安装插件后，或升级改动了 hook 后，打开 `/hooks`，检查显示的命令和源码并信任它；插件显示「已安装」或「已启用」本身不代表 hook 已经生效。
 

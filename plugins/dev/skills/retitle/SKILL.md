@@ -249,6 +249,8 @@ claude plugin install dev@<marketplace> --config session_title_lang=zh
 
 `/plugin configure` sets the same option interactively. A locale tag works as well (`zh-CN`, `zh_Hans`), and an unrecognised value falls back to English rather than failing — a rule in the wrong language still names the session, and a hook that refuses to emit one does not.
 
+Under Codex the option is inert: codex-cli does not pass `CLAUDE_PLUGIN_OPTION_*` to a plugin hook, so set `SESSION_TITLE_LANG=zh` in the environment Codex itself runs in — the hook reads that variable first on either client.
+
 A machine that installed the hook by hand before the plugin carried it now runs two copies. Remove the `UserPromptSubmit` entry from `settings.json` and the script from `~/.claude/scripts/`; the plugin's copy takes over on the next prompt.
 
 Where the skill was copied on its own — `npx skills add`, skills.sh, or any client that installs a skill directory rather than a plugin — there is no plugin to register it. [references/hook-install.md](references/hook-install.md) installs it by hand.
