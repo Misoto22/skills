@@ -286,6 +286,8 @@ For any other client, the table from section 5 is the deliverable. Do not reach 
 
 ## Reporting
 
+With `--apply`:
+
 ```
 Retitled <client>.
   scheme     MMDD｜TYPE｜subject, timezone <zone>
@@ -296,7 +298,18 @@ Retitled <client>.
   attention  <threads that did not take, or none>
 ```
 
-Under `--lang=zh`:
+Without `--apply` nothing was written, so the report says so instead of claiming a rename:
+
+```
+Proposed titles for <client>.
+  scheme     MMDD｜TYPE｜subject, timezone <zone>
+  proposed   <M>
+  renamed    0 — run with --apply to write them
+  kept       <N> — <reasons>
+  excluded   <N> — <cloud-hosted | missing>
+```
+
+Under `--lang=zh`, with `--apply`:
 
 ```
 已重命名 <client>。
@@ -306,6 +319,17 @@ Under `--lang=zh`:
   排除     <N> —— <云端来源 | 已不在目录中>
   备份     <路径，没有备份的客户端写 none>
   注意     <没有落地的会话，或 none>
+```
+
+Under `--lang=zh`, without `--apply`:
+
+```
+已为 <client> 提出改名方案。
+  规范     MMDD｜类型｜主题，时区 <zone>
+  提案     <M>
+  已改名   0 —— 加 --apply 才会写入
+  保留     <N> —— <原因>
+  排除     <N> —— <云端来源 | 已不在目录中>
 ```
 
 Every number comes from a read-back, not from the count of statements issued. `attention` names each thread that was proposed and did not land — silently dropping one is how a rename that half-happened gets reported as done.
