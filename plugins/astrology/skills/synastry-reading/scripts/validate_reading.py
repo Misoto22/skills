@@ -12,6 +12,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
+
+from astro.astro_math import ASPECT_NAMES
 from validate_synastry import (
     EvidenceItem,
     EvidenceLedger,
@@ -94,21 +97,6 @@ _WORD_HOUSES = {
     "eleventh": 11,
     "twelfth": 12,
 }
-_ASPECT_KINDS = frozenset(
-    {
-        "conjunction",
-        "opposition",
-        "trine",
-        "square",
-        "sextile",
-        "semi-sextile",
-        "semi-square",
-        "quintile",
-        "sesquiquadrate",
-        "biquintile",
-        "quincunx",
-    }
-)
 _BODY_NAMES = frozenset(
     {
         "sun",
@@ -714,7 +702,7 @@ def _validate_claims(
         if _WORD_HOUSES[house.casefold()] not in allowed_houses:
             measurement_mismatch = True
     for aspect in re.findall(r"\b[\w-]+\b", text.casefold()):
-        if aspect in _ASPECT_KINDS and aspect not in {item.casefold() for item in allowed_aspects}:
+        if aspect in ASPECT_NAMES and aspect not in {item.casefold() for item in allowed_aspects}:
             claim_mismatch = True
         if aspect in _BODY_NAMES and aspect not in {body.casefold() for _, body in allowed_pairs}:
             claim_mismatch = True

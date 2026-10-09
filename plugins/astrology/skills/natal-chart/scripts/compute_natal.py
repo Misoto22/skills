@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(SKILL_ROOT / "shared"))
 
 from astro.ephemeris import EphemerisError, ResolvedChart, resolve_subject, set_ephemeris_path
+from astro.profiles import ASPECT_PROFILE, CALCULATION_PROFILE, SCHEMA_VERSION
 from astro.request_schema import CalculationOptions, RequestError, Subject, parse_request
 from natal_artifact import NatalArtifactError, build_artifact, write_artifact_pair
 
@@ -31,7 +32,7 @@ Resolver = Callable[[Subject, CalculationOptions], ResolvedChart]
 # the artifact.
 def _as_pair(person: dict[str, Any], options: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "2.0",
+        "schema_version": SCHEMA_VERSION,
         "people": [
             {"id": "subject", "birth": person},
             {"id": "unused", "birth": person},
@@ -47,8 +48,8 @@ DEFAULT_OPTIONS = {
     "major_orb": 8.0,
     "minor_orb": 3.0,
     "ephemeris_policy": "swiss-only",
-    "calculation_profile": "western-tropical-v1",
-    "aspect_profile": "ptolemaic-minor-v1",
+    "calculation_profile": CALCULATION_PROFILE,
+    "aspect_profile": ASPECT_PROFILE,
     "include_derived": False,
     "privacy": "minimal",
 }

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 from .artifacts import ALTERNATE_DAY_BOUNDARY, CHART_SCHEMA, DAY_BOUNDARY, SCHEMAS, add_checksum
@@ -13,10 +10,9 @@ from .ephemeris import Ephemeris
 from .models import BirthInput
 from .pillars import FourPillars, Pillar, alternate_midnight_pillars, calculate_pillars
 from .relations import derive_chart_facts
+from .rules import CHART_RULES, load_rules, scoring_rules
 from .scoring import score_chart
 from .timekeeping import apply_true_solar_time, resolve_civil_time
-
-SHARED_ROOT = Path(__file__).resolve().parents[1]
 
 
 def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]:
@@ -29,13 +25,13 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
     normalized = apply_true_solar_time(resolved, civil, ephemeris.equation_of_time(jd))
     primary = calculate_pillars(resolved, normalized, ephemeris)
     alternate = alternate_midnight_pillars(resolved, normalized, ephemeris)
-    chart_rules = _load_rules("chart-v1.json")
-    scoring_rules = _load_rules("scoring-v1.json")
+    chart_rules = load_rules(CHART_RULES)
+    score_rules = scoring_rules()
     primary_facts = derive_chart_facts(primary, chart_rules)
-    primary_scores = score_chart(primary, primary_facts, scoring_rules)
+    primary_scores = score_chart(primary, primary_facts, score_rules)
     alternate_facts = derive_chart_facts(alternate, chart_rules) if alternate else None
     alternate_scores = (
-        score_chart(alternate, alternate_facts, scoring_rules)
+        score_chart(alternate, alternate_facts, score_rules)
         if alternate is not None and alternate_facts is not None
         else None
     )
@@ -77,7 +73,7 @@ def build_chart(payload: dict[str, Any], ephemeris: Ephemeris) -> dict[str, Any]
             # twice. A literal here would keep reporting v1 after the rules moved
             # to v2, and the artifact would name two different models for itself.
             "calendar_model": chart_rules["model_id"],
-            "scoring_model": scoring_rules["model_id"],
+            "scoring_model": score_rules["model_id"],
             "ephemeris": type(ephemeris).__name__,
             "score_semantics": "versioned heuristics, not probabilities",
             "limits": ["static natal chart", "no Da Yun", "no annual forecast", "no event timing"],
@@ -130,8 +126,3 @@ def _serialize_pillar(pillar: Pillar) -> dict[str, Any]:
         "branch_index": pillar.branch_index,
         "cycle_index": pillar.cycle_index,
     }
-
-
-@lru_cache(maxsize=4)
-def _load_rules(filename: str) -> dict[str, Any]:
-    return json.loads((SHARED_ROOT / "rules" / filename).read_text(encoding="utf-8"))

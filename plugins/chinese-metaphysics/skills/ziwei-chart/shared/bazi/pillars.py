@@ -9,9 +9,12 @@ from .artifacts import ALTERNATE_DAY_BOUNDARY, DAY_BOUNDARY
 from .calendar import solar_term_instant
 from .ephemeris import Ephemeris
 from .models import BirthInput, NormalizedMoment
+from .rules import CHART_RULES, load_rules
 
-STEMS = tuple("甲乙丙丁戊己庚辛壬癸")
-BRANCHES = tuple("子丑寅卯辰巳午未申酉戌亥")
+# The sexagenary cycle is written once, in the chart rules, and read here. BaZi
+# counts pillars and Zi Wei counts palaces against these same two tuples.
+STEMS: tuple[str, ...] = tuple(load_rules(CHART_RULES)["stems"])
+BRANCHES: tuple[str, ...] = tuple(load_rules(CHART_RULES)["branches"])
 DAY_ANCHOR = date(2000, 1, 7)
 JIE = (
     (315.0, 2, "立春"),

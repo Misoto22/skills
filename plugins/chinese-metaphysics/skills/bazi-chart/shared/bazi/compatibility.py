@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
-import json
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 from .artifacts import CHART_SCHEMA, COMPATIBILITY_SCHEMA, SCHEMAS, add_checksum, validate_envelope
+from .rules import CHART_RULES, COMPATIBILITY_RULES, element_tables, load_rules
 from .validation import CHART, POSITIONS
 from .validation import defects as artifact_defects
 
-SHARED_ROOT = Path(__file__).resolve().parents[1]
+# Each relation this comparison scores, mapped to the chart-rules table that
+# defines its members. The chart rules are the one place a pairing is written;
+# this file owns only how much each one moves a score.
+RELATION_SOURCES = {
+    "stem_combination": "stem_combination",
+    "branch_combination": "branch_six_combination",
+    "branch_clash": "branch_clash",
+    "branch_harm": "branch_harm",
+    "branch_break": "branch_break",
+}
 
 
 class CompatibilityError(ValueError):
@@ -180,14 +188,14 @@ def _cross_interactions(left: dict[str, Any], right: dict[str, Any], rules: dict
     ledger = [{"id": "interactions.base", "amount": 50.0, "kind": "base"}]
     adjustments = rules["interaction_adjustments"]
     pairs = (
-        ("stem_combination", rules["stem_combinations"], "stem"),
-        ("branch_combination", rules["branch_combinations"], "branch"),
-        ("branch_clash", rules["branch_clashes"], "branch"),
-        ("branch_harm", rules["branch_harms"], "branch"),
-        ("branch_break", rules["branch_breaks"], "branch"),
+        ("stem_combination", "stem"),
+        ("branch_combination", "branch"),
+        ("branch_clash", "branch"),
+        ("branch_harm", "branch"),
+        ("branch_break", "branch"),
     )
-    for relation, definitions, field in pairs:
-        definition_sets = [set(item) for item in definitions]
+    for relation, field in pairs:
+        definition_sets = [set(item) for item in rules["relation_pairs"][relation]]
         for left_position in POSITIONS:
             for right_position in POSITIONS:
                 members = {
@@ -237,11 +245,9 @@ def _day_core(left: dict[str, Any], right: dict[str, Any], rules: dict[str, Any]
         }
     ]
     branch_pair = {left_day["branch"], right_day["branch"]}
-    branch_rules = (
-        ("branch_combination", rules["branch_combinations"]),
-        ("branch_clash", rules["branch_clashes"]),
-        ("branch_harm", rules["branch_harms"]),
-        ("branch_break", rules["branch_breaks"]),
+    branch_rules = tuple(
+        (relation, rules["relation_pairs"][relation])
+        for relation in ("branch_combination", "branch_clash", "branch_harm", "branch_break")
     )
     if left_day["branch"] == right_day["branch"]:
         amount = float(config["same_branch"])
@@ -365,4 +371,17 @@ def _clamp(value: float) -> float:
 
 @lru_cache(maxsize=1)
 def _rules() -> dict[str, Any]:
-    return json.loads((SHARED_ROOT / "rules" / "compatibility-v1.json").read_text(encoding="utf-8"))
+    """Return the compatibility weights joined with the chart tables they score."""
+
+    relations = load_rules(CHART_RULES)["relations"]
+    return (
+        element_tables()
+        | load_rules(COMPATIBILITY_RULES)
+        | {"relation_pairs": {name: _members(relations[source]) for name, source in RELATION_SOURCES.items()}}
+    )
+
+
+def _members(definitions: list[Any]) -> list[list[str]]:
+    """Return each definition's members, whether written bare or with its element."""
+
+    return [item["members"] if isinstance(item, dict) else item for item in definitions]

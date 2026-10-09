@@ -21,11 +21,11 @@ sys.path.insert(0, str(SHARED))
 
 # The astronomy proper: hoisted out of synastry, and held below to knowing
 # nothing about a second person.
-MODULES = ("request_schema", "astro_math", "ephemeris")
+MODULES = ("request_schema", "astro_math", "ephemeris", "houses")
 # Artifact contracts two skills must agree on byte for byte. They belong here for
 # the same reason — neither skill may import the other — but they are not
 # astronomy, so the single-subject checks below do not apply to them.
-CONTRACTS = ("natal_envelope",)
+CONTRACTS = ("natal_envelope", "profiles")
 
 
 class AstroCoreTests(unittest.TestCase):

@@ -556,19 +556,19 @@ def _fixture_path(skill: str, fixture: object) -> Path:
 
 @cache
 def _schema_module(skill: str) -> object:
-    """Load one skill's vendored schema without adding plugin paths globally."""
+    """Load one skill's vendored schema, its imports resolved from that skill's shared/ for this load only."""
 
     schema = mechanical_validators(skill)["schema"]
     spec = importlib.util.spec_from_file_location(f"eval_schema_{skill.replace('-', '_')}", schema)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"{skill}: vendored schema cannot be loaded from {schema}")
     module = importlib.util.module_from_spec(spec)
-    previous = sys.dont_write_bytecode
-    sys.dont_write_bytecode = True
+    saved = sys.dont_write_bytecode, sys.path[:]
+    sys.dont_write_bytecode, sys.path[:0] = True, [str(Path(schema).parent)]
     try:
         spec.loader.exec_module(module)
     finally:
-        sys.dont_write_bytecode = previous
+        sys.dont_write_bytecode, sys.path[:] = saved
     return module
 
 

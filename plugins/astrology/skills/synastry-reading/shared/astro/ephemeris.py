@@ -9,19 +9,12 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any
 
+from .houses import HOUSE_SYSTEMS
 from .request_schema import CalculationOptions, ExactBirth, Subject, TimeInterval, resolve_interval
 
 SOFTWARE_VERSION = "2.0"
 SAMPLE_INTERVAL = timedelta(minutes=15)
 
-HOUSE_SYSTEMS: Mapping[str, bytes] = {
-    "placidus": b"P",
-    "koch": b"K",
-    "campanus": b"C",
-    "regiomontanus": b"R",
-    "equal": b"E",
-    "whole-sign": b"W",
-}
 _DATA_PATH_ATTRIBUTE = "_synastry_ephemeris_data_path"
 
 

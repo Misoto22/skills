@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SHARED = ROOT / "plugins" / "chinese-metaphysics" / "shared"
 sys.path.insert(0, str(SHARED))
 
+from bazi.pillars import STEMS
 from ziwei.palaces import Bureau, ZiweiError
 from ziwei.stars import (
     place_stars,
@@ -109,7 +110,7 @@ class StarSetTests(unittest.TestCase):
         self.assertEqual(carried, {"禄": "武曲", "权": "贪狼", "科": "天梁", "忌": "文曲"})
 
     def test_every_year_stem_places_all_four_transformations(self):
-        for stem in RULES["stems"]:
+        for stem in STEMS:
             stars = self.place(year_stem=stem)
             carried = [star for star in stars if star.transformation]
             self.assertEqual(len(carried), 4, stem)

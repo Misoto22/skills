@@ -8,6 +8,7 @@ would have named two different versions of itself, with nothing comparing them.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 import sys
@@ -55,35 +56,45 @@ class NoLiteralsTests(unittest.TestCase):
                     )
 
 
+@functools.cache
+def produced_artifacts() -> tuple[dict, dict]:
+    """Build one BaZi and one Zi Wei artifact, once per run, for every class that reads them.
+
+    Each class asks for them itself, so a class run alone or in any order gets the
+    same artifacts, and a missing ephemeris skips the class instead of erroring.
+    """
+
+    try:
+        from bazi.ephemeris import EphemerisUnavailable, SwissEphemeris
+    except ImportError:  # pragma: no cover
+        raise unittest.SkipTest("shared engine unavailable") from None
+    try:
+        ephemeris = SwissEphemeris()
+    except EphemerisUnavailable:
+        raise unittest.SkipTest("pyswisseph is not installed") from None
+
+    from bazi.engine import build_chart
+    from ziwei.engine import build_chart as build_ziwei
+
+    request = {
+        "name": "Subject A",
+        "birth_place": "Shanghai, China",
+        "birth_date": "1988-04-11",
+        "birth_time": "09:15",
+        "calendar": "gregorian",
+        "timezone": "Asia/Shanghai",
+        "latitude": 31.23,
+        "longitude": 121.47,
+    }
+    return build_chart(dict(request), ephemeris), build_ziwei(dict(request) | {"gender": "male"}, ephemeris)
+
+
 class ProducedArtifactTests(unittest.TestCase):
     """The ids in a real artifact must trace back to the rules that produced it."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        try:
-            from bazi.ephemeris import EphemerisUnavailable, SwissEphemeris
-        except ImportError:  # pragma: no cover
-            raise unittest.SkipTest("shared engine unavailable") from None
-        try:
-            ephemeris = SwissEphemeris()
-        except EphemerisUnavailable:
-            raise unittest.SkipTest("pyswisseph is not installed") from None
-
-        from bazi.engine import build_chart
-        from ziwei.engine import build_chart as build_ziwei
-
-        request = {
-            "name": "Subject A",
-            "birth_place": "Shanghai, China",
-            "birth_date": "1988-04-11",
-            "birth_time": "09:15",
-            "calendar": "gregorian",
-            "timezone": "Asia/Shanghai",
-            "latitude": 31.23,
-            "longitude": 121.47,
-        }
-        cls.bazi = build_chart(dict(request), ephemeris)
-        cls.ziwei = build_ziwei(dict(request) | {"gender": "male"}, ephemeris)
+        cls.bazi, cls.ziwei = produced_artifacts()
 
     def test_the_bazi_artifact_names_the_rules_that_built_it(self) -> None:
         methodology = self.bazi["methodology"]
@@ -147,7 +158,7 @@ class SchemaIdentityTests(unittest.TestCase):
 
         from bazi.artifacts import SCHEMAS, validate_envelope
 
-        for envelope in (ProducedArtifactTests.bazi, ProducedArtifactTests.ziwei):
+        for envelope in produced_artifacts():
             with self.subTest(schema=envelope["schema"]):
                 self.assertEqual(envelope["schema_version"], SCHEMAS[envelope["schema"]])
                 validate_envelope(envelope)
@@ -169,6 +180,37 @@ class SharedCycleTests(unittest.TestCase):
             source = path.read_text(encoding="utf-8")
             with self.subTest(file=path.name):
                 self.assertNotRegex(source, r"(?m)^(BRANCHES|STEMS)\s*=\s*tuple\(")
+
+    def test_the_cycle_is_read_from_the_chart_rules(self) -> None:
+        """The rules file is the source; the engine holds what it read, not a copy."""
+
+        from bazi.pillars import BRANCHES, STEMS
+
+        self.assertEqual(STEMS, tuple(DECLARED["chart-v1.json"]["stems"]))
+        self.assertEqual(BRANCHES, tuple(DECLARED["chart-v1.json"]["branches"]))
+        self.assertEqual((len(STEMS), len(BRANCHES)), (10, 12))
+
+    def test_no_other_rules_file_carries_the_cycle(self) -> None:
+        """An unread copy in a second rules file is the one an editor fixes in vain."""
+
+        for name, rules in DECLARED.items():
+            if name == "chart-v1.json":
+                continue
+            for key in ("stems", "branches"):
+                with self.subTest(rules=name, key=key):
+                    self.assertNotIn(key, rules)
+
+    def test_no_module_writes_the_cycle_as_a_literal(self) -> None:
+        for path in sorted((SHARED / "bazi").glob("*.py")) + sorted((SHARED / "ziwei").glob("*.py")):
+            source = path.read_text(encoding="utf-8")
+            for cycle in ("甲乙丙丁戊己庚辛壬癸", "子丑寅卯辰巳午未申酉戌亥"):
+                with self.subTest(file=path.name, cycle=cycle):
+                    self.assertNotIn(cycle, source)
+
+    def test_zi_wei_keeps_no_unused_element_order(self) -> None:
+        import ziwei.palaces
+
+        self.assertFalse(hasattr(ziwei.palaces, "ELEMENTS"))
 
 
 if __name__ == "__main__":

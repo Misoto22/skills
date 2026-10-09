@@ -9,16 +9,12 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-SCHEMA_VERSION = "2.0"
-CALCULATION_PROFILE = "western-tropical-v1"
-ASPECT_PROFILE = "ptolemaic-minor-v1"
-DERIVED_PROFILE = "classical-derived-v1"
-EVIDENCE_POLICY = "editorial-v1"
+from .houses import HOUSE_SYSTEM_NAMES
+from .profiles import ASPECT_PROFILE, CALCULATION_PROFILE, SCHEMA_VERSION
 
 _DATE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
 _TIME = re.compile(r"\A\d{2}:\d{2}\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-_HOUSE_SYSTEMS = frozenset({"placidus", "koch", "campanus", "regiomontanus", "equal", "whole-sign"})
 _LANGUAGES = frozenset({"en", "zh"})
 _EPHEMERIS_POLICIES = frozenset({"swiss-only", "allow-moshier"})
 _PRIVACY_MODES = frozenset({"minimal", "full"})
@@ -391,7 +387,7 @@ def _parse_options(value: object, problems: list[str]) -> CalculationOptions | N
     if options is None:
         return None
     language = _enum(options.get("language"), _LANGUAGES, f"{where}.language", problems)
-    house_system = _enum(options.get("house_system"), _HOUSE_SYSTEMS, f"{where}.house_system", problems)
+    house_system = _enum(options.get("house_system"), HOUSE_SYSTEM_NAMES, f"{where}.house_system", problems)
     major_orb = _number(options.get("major_orb"), f"{where}.major_orb", problems, minimum=0, maximum=15)
     minor_orb = _number(options.get("minor_orb"), f"{where}.minor_orb", problems, minimum=0, maximum=3)
     if major_orb is not None and minor_orb is not None and major_orb + minor_orb > 12:

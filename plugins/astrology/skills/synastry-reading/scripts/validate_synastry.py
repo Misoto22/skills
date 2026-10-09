@@ -20,7 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
 
-from synastry_schema import SchemaError, canonical_json, validate_artifact
+from synastry_schema import SCHEMA_VERSION, SchemaError, canonical_json, validate_artifact
 
 
 class SourceIdentityError(ValueError):
@@ -63,7 +63,7 @@ class EvidenceLedger:
     source_device: int | None = field(default=None, compare=False, repr=False)
     source_inode: int | None = field(default=None, compare=False, repr=False)
     source_digest: str = ""
-    schema_version: str = "2.0"
+    schema_version: str = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, object]:
         """Return the canonical JSON-ready ledger representation."""

@@ -41,15 +41,7 @@ Do not infer romance from two names, genders, or a vague “do we match?” requ
 
 ## Numeric model contract
 
-`bazi-compatibility-v1` always calculates five general dimensions with exact weights:
-
-| Dimension | Weight |
-|---|---:|
-| Element complementarity | 25% |
-| Directional day-master support | 20% |
-| Cross-chart stem/branch interactions | 20% |
-| Day-pillar core | 20% |
-| Structural stability | 15% |
+`bazi-compatibility-v1` always calculates five general dimensions: element complementarity, directional day-master support, cross-chart stem/branch interactions, day-pillar core, and structural stability. Their exact weights, the contextual profiles, and every adjustment live in `shared/rules/compatibility-v1.json`, and each artifact echoes the weights it used under `methodology.general_weights`. Quote them from there; never restate them from memory.
 
 Every dimension carries positive and negative ledger entries. Preserve ownership for directional support: “A supplies B” is not interchangeable with “B supplies A.” Swapping left and right must preserve all numeric scores while reversing directional owners.
 

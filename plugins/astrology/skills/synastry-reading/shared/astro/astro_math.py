@@ -90,6 +90,8 @@ ASPECT_KINDS = (
     AspectKind("biquintile", 144.0, False),
     AspectKind("quincunx", 150.0, False),
 )
+ASPECT_NAMES = frozenset(kind.name for kind in ASPECT_KINDS)
+MAJOR_ASPECT_NAMES = frozenset(kind.name for kind in ASPECT_KINDS if kind.major)
 
 
 class Aspect(NamedTuple):
