@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""Union the desktop app's per-account conversation indexes.
+"""Align the desktop app's per-account conversation indexes onto one identical set.
 
 Claude's desktop app keeps one conversation index per signed-in account under
 
     ~/Library/Application Support/Claude/claude-code-sessions/<account>/<org>/local_*.json
 
 so signing in as a second account hides the first account's conversations from the
-sidebar. It never deletes them: the transcripts live in ~/.claude/projects/ keyed by
-working directory and carry no account field at all, which is why `claude --resume`
-still lists every one of them. Only the index is partitioned.
+sidebar, and a rename, archive or deletion made under one account never reaches the
+others. The transcripts themselves live in ~/.claude/projects/ keyed by working
+directory and carry no account field at all, which is why `claude --resume` still
+lists every one of them. Only the index is partitioned.
 
-This copies each account's index entries into every other account's index, and brings
-the copies of a shared conversation back onto one title when a rename has moved only
-one of them. It adds files and never removes one, records both the files it wrote and
-the titles it overwrote so `--undo` can take either back, and leaves every transcript
-untouched.
+This makes every account hold the same conversations with byte-identical index files:
+the copy the user touched last wins, an archive or deletion under one account reaches
+all of them, and an entry whose transcript is gone is kept but archived. Every file it
+creates and every original it overwrites or removes is recorded, so `--undo` puts the
+tree back. Transcripts are never touched.
 
 The desktop app reads the index at startup and does not rescan it while running, so a
-merge lands in the sidebar only after the app restarts.
+run lands in the sidebar only after the app restarts.
 """
 
 from __future__ import annotations
@@ -25,15 +26,22 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import lifecycle
+import mirror
+from manifest import BACKUP_DIR, MANIFEST_NAME, index_path, read_manifest, restore_backups, write_manifest
 
 SESSIONS_ROOT_ENV = "CLAUDE_DESKTOP_SESSIONS_DIR"
 DEFAULT_ROOT = "~/Library/Application Support/Claude/claude-code-sessions"
 DESKTOP_CONFIG = "~/Library/Application Support/Claude/config.json"
-MANIFEST_NAME = ".session-merge-manifest.json"
+TITLE_FIELDS = ("title", "titleSource", "previousTitles")
+REPORTED_FIELDS = ("title", "isArchived", "isStarred")
 
 
 @dataclass(frozen=True)
@@ -43,14 +51,9 @@ class Entry:
     path: Path
     session_id: str
     cli_session_id: str | None
-    title: str
-    title_source: str | None
-    previous_titles: list[str] | None
     last_activity: int
     mtime: float
-
-
-TITLE_FIELDS = ("title", "titleSource", "previousTitles")
+    archived: bool = False
 
 
 def sessions_root() -> Path:
@@ -73,23 +76,20 @@ def read_entry(path: Path) -> Entry | None:
     session_id = data.get("sessionId")
     if not isinstance(session_id, str) or not session_id:
         return None
-    previous = data.get("previousTitles")
     return Entry(
         path=path,
         session_id=session_id,
         cli_session_id=data.get("cliSessionId"),
-        title=data.get("title") or "(untitled)",
-        title_source=data.get("titleSource"),
-        previous_titles=previous if isinstance(previous, list) else None,
         last_activity=data.get("lastActivityAt") or 0,
         mtime=path.stat().st_mtime,
+        archived=bool(data.get(lifecycle.ARCHIVE_FIELD)),
     )
 
 
 def scan(root: Path) -> dict[str, dict[str, list[Entry]]]:
-    """Map account -> org -> entries, skipping anything that is not an index file."""
+    """Map account -> org -> entries, skipping this script's own dot-directories."""
     tree: dict[str, dict[str, list[Entry]]] = {}
-    for account in sorted(p for p in root.iterdir() if p.is_dir()):
+    for account in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")):
         orgs: dict[str, list[Entry]] = {}
         for org in sorted(p for p in account.iterdir() if p.is_dir()):
             entries = [e for e in (read_entry(f) for f in org.glob("local_*.json")) if e]
@@ -97,6 +97,11 @@ def scan(root: Path) -> dict[str, dict[str, list[Entry]]]:
         if orgs:
             tree[account.name] = orgs
     return tree
+
+
+def flatten(tree: dict[str, dict[str, list[Entry]]]) -> list[Entry]:
+    """Every entry under every account and org."""
+    return [e for orgs in tree.values() for entries in orgs.values() for e in entries]
 
 
 def transcript_ids() -> set[str]:
@@ -145,42 +150,6 @@ def signed_in_account() -> str | None:
     return None
 
 
-def plan_copies(
-    root: Path,
-    tree: dict[str, dict[str, list[Entry]]],
-    targets: list[str],
-    keep_orphans: bool,
-) -> tuple[list[tuple[Path, Path]], int, int]:
-    """Pair every entry missing from a target account with where it should land.
-
-    Returns the copies, the bytes they add, and how many were skipped as orphans —
-    index entries whose transcript is gone, which would open an empty conversation.
-    """
-    live = transcript_ids()
-    copies: list[tuple[Path, Path]] = []
-    added = orphans = 0
-    for target in targets:
-        orgs = tree[target]
-        dest_org = landing_org(orgs)
-        if dest_org is None:
-            continue
-        dest = root / target / dest_org
-        held = {e.session_id for entries in orgs.values() for e in entries}
-        for source, source_orgs in tree.items():
-            if source == target:
-                continue
-            for entry in (e for entries in source_orgs.values() for e in entries):
-                if entry.session_id in held:
-                    continue
-                if not keep_orphans and entry.cli_session_id not in live:
-                    orphans += 1
-                    continue
-                held.add(entry.session_id)
-                copies.append((entry.path, dest / entry.path.name))
-                added += entry.path.stat().st_size
-    return copies, added, orphans
-
-
 def human(size: int) -> str:
     """Byte count as the report should read it."""
     for unit in ("B", "KB", "MB", "GB"):
@@ -200,147 +169,38 @@ def report_state(root: Path, tree: dict[str, dict[str, list[Entry]]], current: s
         print(f"  account {account}  {total:>4} conversations  lands in {landing}{mark}")
 
 
-def plan_titles(
-    tree: dict[str, dict[str, list[Entry]]],
-    targets: list[str],
-) -> list[tuple[Path, Entry]]:
-    """Pair every stale copy of a shared conversation with the copy holding its newest title.
-
-    A rename writes one index file, so a conversation that lives in three indexes ends up
-    renamed in one of them and stale in the other two. File mtime is the only timestamp a
-    rename actually moves — `lastActivityAt` records the conversation, not the record of
-    it — so the most recently written copy wins.
-
-    That signal is not infallible: an unrelated rewrite of a stale copy makes it the newest
-    and it then wins with the older title. Every reconciliation is therefore reported by
-    name, and the value it replaced is recorded for `--undo`.
-    """
-    newest: dict[str, Entry] = {}
-    for orgs in tree.values():
-        for entry in (e for entries in orgs.values() for e in entries):
-            held = newest.get(entry.session_id)
-            if held is None or entry.mtime > held.mtime:
-                newest[entry.session_id] = entry
-    updates: list[tuple[Path, Entry]] = []
-    for target in targets:
-        for entry in (e for entries in tree[target].values() for e in entries):
-            winner = newest[entry.session_id]
-            if winner.path != entry.path and winner.title != entry.title:
-                updates.append((entry.path, winner))
-    return updates
-
-
-def apply_copies(copies: list[tuple[Path, Path]]) -> list[str]:
-    """Copy each planned file and return the paths written, for the manifest."""
-    written: list[str] = []
-    for source, dest in copies:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, dest)
-        written.append(str(dest))
-    return written
-
-
-def apply_titles(updates: list[tuple[Path, Entry]]) -> list[dict[str, object]]:
-    """Write the winning title into each stale copy, returning what it replaced.
-
-    Only the three title fields move. Everything else in the file belongs to that
-    account's record of the conversation and is left exactly as the app wrote it.
-    """
-    replaced: list[dict[str, object]] = []
-    for path, winner in updates:
-        data = json.loads(path.read_text())
-        replaced.append({"path": str(path), **{f: data.get(f) for f in TITLE_FIELDS}})
-        data["title"] = winner.title
-        data["titleSource"] = winner.title_source
-        if winner.previous_titles is not None:
-            data["previousTitles"] = winner.previous_titles
-        path.write_text(json.dumps(data, separators=(",", ":")))
-    return replaced
-
-
-def index_path(root: Path, raw_path: object) -> Path | None:
-    """Resolve a manifest entry only when it names a session index below ``root``.
-
-    ``--undo`` reads a local manifest that can survive app updates, manual edits and
-    interrupted runs. Treat it as untrusted input: it is allowed to name only an actual
-    ``<account>/<organisation>/local_*.json`` entry in the selected session tree. Older
-    manifests stored absolute paths, so accept those only after resolving them back into
-    the same root.
-    """
-    if not isinstance(raw_path, str) or not raw_path:
-        return None
-    resolved_root = root.resolve()
-    candidate = Path(raw_path)
-    resolved = candidate.resolve() if candidate.is_absolute() else (resolved_root / candidate).resolve()
-    try:
-        relative = resolved.relative_to(resolved_root)
-    except ValueError:
-        return None
-    if len(relative.parts) != 3 or not relative.name.startswith("local_") or relative.suffix != ".json":
-        return None
-    return resolved
-
-
-def manifest_path(root: Path, raw_path: object) -> str | None:
-    """The portable root-relative form for one validated index path."""
-    resolved = index_path(root, raw_path)
-    if resolved is None:
-        return None
-    return resolved.relative_to(root.resolve()).as_posix()
-
-
-def title_record(root: Path, record: object) -> dict[str, object] | None:
-    """Keep a title recovery record only when its path belongs to this session tree."""
-    if not isinstance(record, dict):
-        return None
-    path = manifest_path(root, record.get("path"))
-    if path is None:
-        return None
-    return {**record, "path": path}
-
-
-def write_manifest(root: Path, copied: list[str], titles: list[dict[str, object]]) -> Path:
-    """Merge this run's record into the manifest --undo reads."""
-    manifest = root / MANIFEST_NAME
-    held_copied, held_titles = read_manifest(root, manifest)
-    copied_paths = [path for raw_path in copied if (path := manifest_path(root, raw_path)) is not None]
-    title_records = [record for entry in titles if (record := title_record(root, entry)) is not None]
-    # An earlier title is the one to restore, so a path already recorded keeps its record.
-    recorded = {entry["path"] for entry in held_titles}
-    merged_titles = held_titles + [entry for entry in title_records if entry["path"] not in recorded]
-    manifest.write_text(
-        json.dumps(
-            {"copied": sorted(set(held_copied) | set(copied_paths)), "titles": merged_titles},
-            indent=2,
-        )
-    )
-    return manifest
-
-
-def read_manifest(root: Path, manifest: Path) -> tuple[list[str], list[dict[str, object]]]:
-    """What a previous --apply wrote: the paths it copied, and the titles it replaced.
-
-    A manifest written before titles were reconciled is a bare list of paths. Read it as
-    copies with no title records rather than discarding a record of files still on disk.
-    """
-    try:
-        data = json.loads(manifest.read_text())
-    except (OSError, ValueError):
-        return [], []
-    if isinstance(data, list):
-        return [path for entry in data if (path := manifest_path(root, entry)) is not None], []
-    if not isinstance(data, dict):
-        return [], []
-    copied = [path for entry in data.get("copied", []) if (path := manifest_path(root, entry)) is not None]
-    titles = [record for entry in data.get("titles", []) if (record := title_record(root, entry)) is not None]
-    return copied, titles
+def report_plan(
+    plan: mirror.MirrorPlan, life: lifecycle.LifecyclePlan, targets: list[str], orphans: int
+) -> None:
+    """Print what --apply would write, broken down by the fields a sidebar shows."""
+    created = [w for w in plan.writes if w.created]
+    updated = [w for w in plan.writes if not w.created]
+    added = sum(len(w.content) for w in created)
+    print(f"\nPlan: align {len(targets)} account index(es)")
+    print(f"  {len(created)} copies to create, +{human(added)}")
+    print(f"  {len(updated)} copies to overwrite with the canonical copy")
+    fields = Counter(f for w in updated for f in w.fields)
+    for name in REPORTED_FIELDS:
+        print(f"    {fields.pop(name, 0):>5} change {name}")
+    other = sum(1 for w in updated if set(w.fields) - set(REPORTED_FIELDS))
+    print(f"    {other:>5} change other fields only the app reads")
+    deleted = len(life.newly_deleted)
+    print(f"  {len(plan.removals)} copies to remove — {deleted} conversations deleted under one account")
+    if orphans:
+        print(f"  {orphans} conversations have no transcript left; archived unless --from says otherwise")
+    titled = [w for w in updated if "title" in w.fields]
+    for write in titled[:10]:
+        title = json.loads(write.content).get("title") or "(untitled)"
+        print(f"    {write.dest.parent.parent.name[:8]}  → {title}")
+    if len(titled) > 10:
+        print(f"    … and {len(titled) - 10} more")
 
 
 def undo(root: Path) -> int:
-    """Remove only the files a previous --apply wrote, and restore the titles it replaced."""
+    """Remove the files previous runs created and restore every original they replaced."""
     manifest = root / MANIFEST_NAME
-    copied, titles = read_manifest(root, manifest)
-    if not copied and not titles:
+    copied, titles, backups = read_manifest(root, manifest)
+    if not copied and not titles and not backups:
         print(f"Nothing to undo — no {MANIFEST_NAME} under {root}")
         return 0
     removed = 0
@@ -355,23 +215,24 @@ def undo(root: Path) -> int:
             continue
         except OSError as error:
             print(f"  could not remove {path}: {error}", file=sys.stderr)
-    restored = restore_titles(root, titles)
+    restored = restore_backups(root, backups, set(copied))
+    retitled = restore_titles(root, titles)
+    (root / lifecycle.BASELINE_NAME).unlink(missing_ok=True)
     manifest.unlink(missing_ok=True)
-    print(f"Removed {removed} of {len(copied)} merged entries.")
+    print(f"Removed {removed} of {len(copied)} created entries.")
+    print(f"Restored {restored} of {len(backups)} originals.")
     if titles:
-        print(f"Restored {restored} of {len(titles)} replaced titles.")
+        print(f"Restored {retitled} of {len(titles)} replaced titles.")
     print("Restart the desktop app.")
     return 0
 
 
 def restore_titles(root: Path, titles: list[dict[str, object]]) -> int:
-    """Put each recorded title back, skipping a file the merge no longer owns."""
+    """Put back titles recorded by a run from before whole files were mirrored."""
     restored = 0
     for record in titles:
         path = index_path(root, record.get("path"))
-        if path is None:
-            continue
-        if not path.is_file():
+        if path is None or not path.is_file():
             continue
         try:
             data = json.loads(path.read_text())
@@ -382,29 +243,26 @@ def restore_titles(root: Path, titles: list[dict[str, object]]) -> int:
                 data.pop(field, None)
             else:
                 data[field] = record[field]
+        stat = path.stat()
         path.write_text(json.dumps(data, separators=(",", ":")))
+        os.utime(path, (stat.st_atime, stat.st_mtime))
         restored += 1
     return restored
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--apply", action="store_true", help="write the copies (default: report only)")
-    parser.add_argument("--undo", action="store_true", help="remove what a previous --apply wrote")
+    parser.add_argument("--apply", action="store_true", help="write the plan (default: report only)")
+    parser.add_argument("--undo", action="store_true", help="put back everything previous runs changed")
     parser.add_argument(
         "--into",
         default="all",
-        help="which account indexes receive the union: 'all' (default), 'current', or an accountUuid",
+        help="which account indexes are aligned: 'all' (default), 'current', or an accountUuid",
     )
     parser.add_argument(
-        "--keep-orphans",
-        action="store_true",
-        help="also copy entries whose transcript is gone; they open to an empty conversation",
-    )
-    parser.add_argument(
-        "--no-titles",
-        action="store_true",
-        help="copy entries only; leave a shared conversation's diverged titles alone",
+        "--from",
+        dest="authority",
+        help="make one account the whole truth: 'current' or an accountUuid; what it lacks is deleted",
     )
     return parser.parse_args()
 
@@ -415,13 +273,35 @@ def resolve_targets(tree: dict[str, dict[str, list[Entry]]], into: str, current:
         return list(tree)
     if into == "current":
         if current is None:
-            sys.exit("Cannot read the signed-in account from ~/.claude.json — pass --into=<accountUuid>.")
+            sys.exit("Cannot read the signed-in account — pass --into=<accountUuid>.")
         if current not in tree:
             sys.exit(f"Signed-in account {current} has no index directory yet — open one conversation first.")
         return [current]
     if into not in tree:
         sys.exit(f"No index directory for account {into}. Known: {', '.join(tree)}")
     return [into]
+
+
+def plan_run(root: Path, tree, targets: list[str], authority: str | None = None):
+    """Settle archive state and deletions, then plan the writes that align the targets."""
+    entries = flatten(tree)
+    live = transcript_ids()
+    orphans = {e.session_id for e in entries if e.cli_session_id not in live}
+    sessions = lifecycle.copies_by_session(entries)
+    copied_before = read_manifest(root, root / MANIFEST_NAME)[0]
+    if authority:
+        life = lifecycle.authoritative_plan(sessions, authority)
+    else:
+        life = lifecycle.plan_lifecycle(
+            sessions,
+            set(tree),
+            lifecycle.load_baseline(root),
+            lifecycle.vanished_copies(root, copied_before),
+            orphans,
+        )
+    landing = {a: root / a / org for a in targets if (org := landing_org(tree[a])) is not None}
+    plan = mirror.plan_mirror(sessions, landing, targets, life, authority)
+    return plan, life, len(orphans), set(copied_before)
 
 
 def main() -> int:
@@ -432,36 +312,38 @@ def main() -> int:
 
     tree = scan(root)
     if len(tree) < 2:
-        print(f"Only one account index under {root} — nothing to union.")
+        print(f"Only one account index under {root} — nothing to align.")
         return 0
 
     current = signed_in_account()
     report_state(root, tree, current)
-
     targets = resolve_targets(tree, args.into, current)
-    copies, added, orphans = plan_copies(root, tree, targets, args.keep_orphans)
-    retitles = [] if args.no_titles else plan_titles(tree, targets)
-
-    print(f"\nPlan: {len(copies)} entries to copy into {len(targets)} account index(es), +{human(added)}")
-    if orphans:
-        print(f"  skipped {orphans} whose transcript is gone (--keep-orphans copies them anyway)")
-    print(f"  {len(retitles)} stale titles to reconcile" + (" (--no-titles leaves them)" if retitles else ""))
-    for path, winner in retitles[:10]:
-        print(f"    {path.parent.parent.name[:8]}  → {winner.title}")
-    if len(retitles) > 10:
-        print(f"    … and {len(retitles) - 10} more")
-    if not copies and not retitles:
-        print("  every account already sees every conversation, under the same names.")
-        return 0
+    if args.authority == "all":
+        sys.exit("--from names one account: 'current' or an accountUuid.")
+    authority = resolve_targets(tree, args.authority, current)[0] if args.authority else None
+    if authority:
+        print(f"\nAuthority: {authority} — every other account becomes a copy of it.")
+    plan, life, orphans, created_before = plan_run(root, tree, targets, authority)
+    report_plan(plan, life, targets, orphans)
+    if not plan.writes and not plan.removals:
+        print("  every account already holds the same conversations, byte for byte.")
     if not args.apply:
         print("  report only — rerun with --apply to write.")
         return 0
 
-    written = apply_copies(copies)
-    replaced = apply_titles(retitles)
-    manifest = write_manifest(root, written, replaced)
-    print(f"\nCopied {len(written)} entries, reconciled {len(replaced)} titles.")
-    print(f"Recorded in {manifest.name}; --undo removes those entries and puts those titles back.")
+    created, backups = mirror.apply_mirror(root, plan, created_before)
+    manifest = write_manifest(root, created, backups)
+    after = lifecycle.copies_by_session(flatten(scan(root)))
+    # Recorded even when nothing was written: without it, the next deletion is invisible.
+    lifecycle.save_baseline(root, after, life.deleted)
+    wrong = mirror.misaligned(after, targets, life.deleted)
+    overwrote = len(plan.writes) - len(created)
+    print(f"\nCreated {len(created)}, overwrote {overwrote}, removed {len(plan.removals)}.")
+    print(f"Originals kept in {BACKUP_DIR}/ and recorded in {manifest.name}; --undo puts them back.")
+    if wrong:
+        print(f"NOT ALIGNED: {len(wrong)} conversations still differ, e.g. {', '.join(wrong[:3])}")
+        return 1
+    print(f"Aligned: {len(after)} conversations identical across {len(targets)} account index(es).")
     print("Restart the desktop app — it reads this index at startup and does not rescan while running.")
     return 0
 

@@ -71,6 +71,7 @@ def main() -> int:
         _unregister_marketplace(args.plugin, touched)
         _unregister_bundle(args.plugin, touched)
     else:
+        _unregister_marketplace_skill(args.plugin, args.skill, touched)
         _unregister_plugin_manifest(plugin_root, args.skill, touched)
         _unregister_plugin_readme(plugin_root / "skills" / "README.md", args.skill, touched)
     # Last two, in this order: both read the tree the steps above changed, and
@@ -195,6 +196,18 @@ def _unregister_marketplace(plugin: str, touched: list[str]) -> None:
     path = ROOT / ".claude-plugin" / "marketplace.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest["plugins"] = [entry for entry in manifest["plugins"] if entry["name"] != plugin]
+    path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    touched.append(f"{path.relative_to(ROOT)} (updated)")
+
+
+def _unregister_marketplace_skill(plugin: str, skill: str, touched: list[str]) -> None:
+    """The marketplace lists each plugin's skills too, so a plugin that stays loses one line."""
+
+    path = ROOT / ".claude-plugin" / "marketplace.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    for entry in manifest["plugins"]:
+        if entry["name"] == plugin:
+            entry["skills"] = [item for item in entry.get("skills", []) if item != f"./skills/{skill}"]
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     touched.append(f"{path.relative_to(ROOT)} (updated)")
 

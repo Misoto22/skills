@@ -2552,6 +2552,18 @@ class RepositoryContractTests(unittest.TestCase):
                 )
             self._run_in(copied, "scripts/run-evals.py", "--check")
 
+    def test_retiring_one_skill_drops_it_from_the_marketplace_entry(self) -> None:
+        """The marketplace lists skills per plugin, not only plugins, so a plugin that
+        keeps other skills still has a line to remove."""
+
+        with repository_copy() as copied:
+            self._run_in(copied, "scripts/remove-skill.py", "dev", "sync")
+            manifest = copied / ".claude-plugin" / "marketplace.json"
+            marketplace = json.loads(manifest.read_text(encoding="utf-8"))
+            dev = next(entry for entry in marketplace["plugins"] if entry["name"] == "dev")
+            self.assertNotIn("./skills/sync", dev["skills"])
+            self.assertIn("./skills/ship", dev["skills"])
+
     def _run(self, *command: str, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
         return self._run_in(ROOT, *command, expect_success=expect_success)
 

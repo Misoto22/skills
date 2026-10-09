@@ -29,6 +29,8 @@ select = [
 # of running them that no installed copy has. The shebang stays as interpreter
 # documentation.
 "plugins/*/skills/*/scripts/*.py" = ["EXE001"]
+# A retired skill keeps its scripts exactly as they shipped.
+"deprecated/*/*/scripts/*.py" = ["EXE001"]
 
 # The scaffold's description has to be one physical line: the frontmatter parser
 # reads plain key/value pairs and does not fold YAML scalars, so a wrapped

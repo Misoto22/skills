@@ -8,7 +8,6 @@
   "license": "MIT",
   "skills": [
     "./skills/cleanup",
-    "./skills/handoff",
     "./skills/retitle",
     "./skills/reunite",
     "./skills/ship",
