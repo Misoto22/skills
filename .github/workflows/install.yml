@@ -21,9 +21,11 @@ on:
 permissions:
   contents: read
 
+# Only a pull request's run is superseded. main keeps one result per commit,
+# and a canary call arrives as schedule or workflow_dispatch, so it never is.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.channel || 'pinned' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CI_CHANNEL: ${{ inputs.channel || 'pinned' }}

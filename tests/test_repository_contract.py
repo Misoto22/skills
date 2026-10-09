@@ -1752,7 +1752,19 @@ class RepositoryContractTests(unittest.TestCase):
                 r"(?m)^concurrency:\n  group: \$\{\{ github\.workflow \}\}",
                 path.name,
             )
-            self.assertRegex("\n".join(lines), r"(?m)^  cancel-in-progress: (true|false)$", path.name)
+            self.assertRegex(
+                "\n".join(lines),
+                r"(?m)^  cancel-in-progress: (true|false|\$\{\{ github\.event_name == 'pull_request' \}\})$",
+                path.name,
+            )
+            # A `pull_request` run is superseded by the next push; a run on main
+            # is not, because each commit there keeps its own result.
+            if re.search(r"(?m)^  pull_request:$", "\n".join(lines)):
+                self.assertIn(
+                    "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                    lines,
+                    f"{path.name} cancels its main runs too, or none of its pull request runs",
+                )
 
             runners = [index for index, line in enumerate(lines) if line.strip().startswith("runs-on:")]
             # A job that only calls a reusable workflow declares no runner, so

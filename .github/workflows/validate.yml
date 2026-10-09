@@ -8,9 +8,11 @@ on:
 permissions:
   contents: read
 
+# A new push supersedes a pull request's run, but every commit on main keeps
+# its own result: that history is what a bisect or a release reads.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # setup-uv takes its version as an input, the same shape as ruff-action, so this
 # is the second pin no script can resolve. `ci-pins.py check` holds it to
