@@ -17,15 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(SKILL_ROOT / "shared"))
 
 from astro.ephemeris import EphemerisError, ResolvedChart, resolve_subject, set_ephemeris_path
-from astro.request_schema import (
-    ASPECT_PROFILE,
-    CALCULATION_PROFILE,
-    SCHEMA_VERSION,
-    CalculationOptions,
-    RequestError,
-    Subject,
-    parse_request,
-)
+from astro.profiles import ASPECT_PROFILE, CALCULATION_PROFILE, SCHEMA_VERSION
+from astro.request_schema import CalculationOptions, RequestError, Subject, parse_request
 from natal_artifact import NatalArtifactError, build_artifact, write_artifact_pair
 
 Resolver = Callable[[Subject, CalculationOptions], ResolvedChart]

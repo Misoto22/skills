@@ -10,13 +10,13 @@ import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
-from astro.astro_math import ASPECT_KINDS, SIGNS
-from astro.request_schema import (
+from astro.astro_math import ASPECT_NAMES, MAJOR_ASPECT_NAMES, SIGNS
+from astro.houses import HOUSE_SYSTEM_NAMES
+from astro.profiles import (
     ASPECT_PROFILE,
     CALCULATION_PROFILE,
     DERIVED_PROFILE,
     EVIDENCE_POLICY,
-    HOUSE_SYSTEMS,
     SCHEMA_VERSION,
 )
 
@@ -39,13 +39,9 @@ _TOP_LEVEL_FIELDS = frozenset(
         "integrity",
     }
 )
-_MAJOR_ASPECTS = frozenset(kind.name for kind in ASPECT_KINDS if kind.major)
-_MINOR_ASPECTS = frozenset(kind.name for kind in ASPECT_KINDS if not kind.major)
-_ASPECTS = _MAJOR_ASPECTS | _MINOR_ASPECTS
 _ANGLE_NAMES = frozenset({"ascendant", "medium_coeli", "descendant", "imum_coeli", "vertex", "east_point"})
 _DIGNITIES = frozenset({"domicile", "exaltation", "detriment", "fall"})
 _SIGN_SET = frozenset(SIGNS)
-_HOUSE_SYSTEMS = frozenset(HOUSE_SYSTEMS)
 _BIRTH_NORMALIZED_FIELDS = frozenset(
     {
         "mode",
@@ -343,7 +339,7 @@ def _validate_configuration(value: object) -> dict[str, object]:
     if "house_system" in configuration:
         _enum(
             configuration["house_system"],
-            _HOUSE_SYSTEMS,
+            HOUSE_SYSTEM_NAMES,
             "artifact.configuration.house_system",
         )
     _enum(
@@ -665,11 +661,11 @@ def _validate_aspects(
             raise SchemaError(f"artifact.aspects[{index}]: source and target subjects must differ")
         _body_owner(aspect["source_body"], chart_bodies[source], f"artifact.aspects[{index}].source_body")
         _body_owner(aspect["target_body"], chart_bodies[target], f"artifact.aspects[{index}].target_body")
-        kind = _enum(aspect["kind"], _ASPECTS, f"artifact.aspects[{index}].kind")
+        kind = _enum(aspect["kind"], ASPECT_NAMES, f"artifact.aspects[{index}].kind")
         certainty = _enum(
             aspect["certainty"], {"exact", "confirmed", "possible"}, f"artifact.aspects[{index}].certainty"
         )
-        allowed_orb = major_orb if kind in _MAJOR_ASPECTS else minor_orb
+        allowed_orb = major_orb if kind in MAJOR_ASPECT_NAMES else minor_orb
         if certainty == "exact":
             if chart_modes[source] != "exact" or chart_modes[target] != "exact":
                 raise SchemaError(f"artifact.aspects[{index}]: exact aspect requires exact charts")

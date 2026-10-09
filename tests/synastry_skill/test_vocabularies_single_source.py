@@ -25,7 +25,7 @@ sys.path.insert(0, str(SKILLS / "synastry-reading" / "scripts"))
 
 import synastry_schema
 import validate_reading
-from astro import astro_math, ephemeris, request_schema
+from astro import astro_math, ephemeris, houses, request_schema
 
 # A literal that only a copy of the vocabulary would write, and the one module
 # allowed to write it.
@@ -33,8 +33,8 @@ OWNED_LITERALS = (
     (re.compile(r"""["']sesquiquadrate["']"""), SHARED / "astro" / "astro_math.py"),
     (re.compile(r"""["']biquintile["']"""), SHARED / "astro" / "astro_math.py"),
     (re.compile(r"""["']Ari["'],\s*["']Tau["']"""), SHARED / "astro" / "astro_math.py"),
-    (re.compile(r"""["']regiomontanus["']"""), SHARED / "astro" / "request_schema.py"),
-    (re.compile(r"""["']campanus["']"""), SHARED / "astro" / "request_schema.py"),
+    (re.compile(r"""["']regiomontanus["']"""), SHARED / "astro" / "houses.py"),
+    (re.compile(r"""["']campanus["']"""), SHARED / "astro" / "houses.py"),
 )
 
 
@@ -47,25 +47,26 @@ def production_sources() -> list[Path]:
 
 class VocabularyIdentityTests(unittest.TestCase):
     def test_the_schema_accepts_exactly_the_aspects_the_geometry_finds(self) -> None:
-        names = {kind.name for kind in astro_math.ASPECT_KINDS}
-        self.assertEqual(synastry_schema._ASPECTS, names)
+        self.assertEqual(astro_math.ASPECT_NAMES, {kind.name for kind in astro_math.ASPECT_KINDS})
         self.assertEqual(
-            synastry_schema._MAJOR_ASPECTS,
+            astro_math.MAJOR_ASPECT_NAMES,
             {kind.name for kind in astro_math.ASPECT_KINDS if kind.major},
         )
-        self.assertEqual(synastry_schema._MAJOR_ASPECTS & synastry_schema._MINOR_ASPECTS, set())
+        self.assertIs(synastry_schema.ASPECT_NAMES, astro_math.ASPECT_NAMES)
+        self.assertIs(synastry_schema.MAJOR_ASPECT_NAMES, astro_math.MAJOR_ASPECT_NAMES)
 
     def test_the_reading_validator_knows_the_same_aspects(self) -> None:
-        self.assertEqual(validate_reading._ASPECT_KINDS, {kind.name for kind in astro_math.ASPECT_KINDS})
+        self.assertIs(validate_reading.ASPECT_NAMES, astro_math.ASPECT_NAMES)
 
     def test_signs_are_the_geometry_layers_tuple(self) -> None:
         self.assertIs(synastry_schema.SIGNS, astro_math.SIGNS)
         self.assertEqual(synastry_schema._SIGN_SET, set(astro_math.SIGNS))
 
     def test_house_systems_are_one_table(self) -> None:
-        self.assertIs(ephemeris.HOUSE_SYSTEMS, request_schema.HOUSE_SYSTEMS)
-        self.assertEqual(synastry_schema._HOUSE_SYSTEMS, set(request_schema.HOUSE_SYSTEMS))
-        self.assertEqual(request_schema._HOUSE_SYSTEMS, set(request_schema.HOUSE_SYSTEMS))
+        self.assertIs(ephemeris.HOUSE_SYSTEMS, houses.HOUSE_SYSTEMS)
+        self.assertEqual(houses.HOUSE_SYSTEM_NAMES, set(houses.HOUSE_SYSTEMS))
+        self.assertIs(synastry_schema.HOUSE_SYSTEM_NAMES, houses.HOUSE_SYSTEM_NAMES)
+        self.assertIs(request_schema.HOUSE_SYSTEM_NAMES, houses.HOUSE_SYSTEM_NAMES)
 
 
 class NoCopiesTests(unittest.TestCase):
