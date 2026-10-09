@@ -7,6 +7,13 @@ the two heading shapes differ. There is no `## Unreleased` section to keep
 current any more — an unreleased change is described by its own commit subject,
 and the open release pull request always shows what the next release would say.
 
+## [0.18.3](https://github.com/Misoto22/skills/compare/v0.18.2...v0.18.3) (2026-10-09)
+
+
+### Refactoring
+
+* **divination:** give every rule and vocabulary one owner ([#123](https://github.com/Misoto22/skills/issues/123)) ([4db6cc5](https://github.com/Misoto22/skills/commit/4db6cc5a71a9e6731f1989b1040d645378f9f1e3))
+
 ## [0.18.2](https://github.com/Misoto22/skills/compare/v0.18.1...v0.18.2) (2026-10-09)
 
 
