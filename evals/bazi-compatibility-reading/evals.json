@@ -83,6 +83,7 @@
     {
       "id": "alternate-sensitivity",
       "prompt": "Explain this comparison whose alternate variants have a wide score range.",
+      "artifact": "fixtures/wide-sensitivity.json",
       "expectations": [
         "Uses primary-primary as displayed and reports minimum, maximum, spread, and changed source boundary.",
         "Never averages variants or describes the range as probability."
