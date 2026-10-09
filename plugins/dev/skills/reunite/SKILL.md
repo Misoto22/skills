@@ -3,7 +3,7 @@ name: reunite
 description: Make every signed-in account in the desktop app hold the same conversations, byte for byte. The app keeps one sidebar index per account and writes a rename, star, archive or deletion only into the signed-in account's copy, so the lists drift apart; this aligns every account onto the copy touched last, carries archives and deletions to all of them, and records every change for --undo. Use when asked why sessions disappeared after switching accounts, where my old conversations went, share sessions between two accounts, merge the session lists, an archived or deleted session still shows under another account, 换账号以后 session 都不见了, 会话历史没了, 两个账号共享会话, 把 session 列表合起来, 找回以前的对话, 删掉的会话在另一个账号还在. Not for deleting conversations on request, renaming them (that is retitle), or moving history between machines.
 license: MIT
 metadata:
-  version: "0.18.3" # x-release-please-version
+  version: "0.18.4" # x-release-please-version
 argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--from=current|<accountUuid>] [--undo]"
 ---
 
