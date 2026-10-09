@@ -1,12 +1,5 @@
 {
   "model_id": "bazi-score-v1",
-  "elements": ["木", "火", "土", "金", "水"],
-  "stem_elements": {
-    "甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
-    "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"
-  },
-  "element_produces": {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"},
-  "element_controls": {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"},
   "visible_stem_weights": {"year": 1.0, "month": 1.2, "day": 1.2, "hour": 1.0},
   "hidden_branch_weights": {"year": 0.8, "month": 1.4, "day": 1.0, "hour": 0.8},
   "hidden_stem_shares": {

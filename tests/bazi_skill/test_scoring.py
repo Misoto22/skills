@@ -8,12 +8,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SHARED = ROOT / "plugins" / "chinese-metaphysics" / "shared"
 CHART_RULES = json.loads((SHARED / "rules" / "chart-v1.json").read_text(encoding="utf-8"))
-SCORING_RULES = json.loads((SHARED / "rules" / "scoring-v1.json").read_text(encoding="utf-8"))
 sys.path.insert(0, str(SHARED))
 
 from bazi.pillars import FourPillars, Pillar
 from bazi.relations import derive_chart_facts
+from bazi.rules import scoring_rules
 from bazi.scoring import score_chart
+
+# The scoring weights carry no element tables of their own; the engine joins
+# them with the chart rules', and so does this.
+SCORING_RULES = scoring_rules()
 
 
 def chart(*texts: str) -> FourPillars:

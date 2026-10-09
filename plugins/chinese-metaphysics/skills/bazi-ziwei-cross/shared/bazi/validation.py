@@ -32,6 +32,7 @@ from .artifacts import (
     ArtifactError,
     validate_envelope,
 )
+from .rules import COMPATIBILITY_RULES, load_rules
 
 CHART = "chart"
 COMPATIBILITY = "compatibility"
@@ -46,15 +47,10 @@ SCHEMA_FOR_KIND = {
 POSITIONS = ("year", "month", "day", "hour")
 PALACE_COUNT = 12
 ELEMENT_COUNT = 5
-# The five the model always calculates. A comparison carrying four of them, or a
-# sixth nobody weighted, is not this model's output whatever it hashes to.
-GENERAL_DIMENSIONS = (
-    "element_complementarity",
-    "directional_day_master_support",
-    "stem_branch_interactions",
-    "day_pillar_core",
-    "structural_stability",
-)
+# The five the model always calculates, read from the weights that define them. A
+# comparison carrying four of them, or a sixth nobody weighted, is not this
+# model's output whatever it hashes to.
+GENERAL_DIMENSIONS = tuple(load_rules(COMPATIBILITY_RULES)["general_weights"])
 # Scores round to two decimals, so a recomputation that lands within a cent of
 # the stored figure agrees with it. Anything wider is arithmetic, not rounding.
 ARITHMETIC_TOLERANCE = 0.01

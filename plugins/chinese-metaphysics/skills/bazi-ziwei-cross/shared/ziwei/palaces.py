@@ -12,7 +12,6 @@ from typing import Any
 from bazi.pillars import BRANCHES, STEMS
 
 YIN_BRANCH = 2
-ELEMENTS = tuple("金木水火土")
 
 
 class ZiweiError(ValueError):

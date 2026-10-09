@@ -181,6 +181,37 @@ class SharedCycleTests(unittest.TestCase):
             with self.subTest(file=path.name):
                 self.assertNotRegex(source, r"(?m)^(BRANCHES|STEMS)\s*=\s*tuple\(")
 
+    def test_the_cycle_is_read_from_the_chart_rules(self) -> None:
+        """The rules file is the source; the engine holds what it read, not a copy."""
+
+        from bazi.pillars import BRANCHES, STEMS
+
+        self.assertEqual(STEMS, tuple(DECLARED["chart-v1.json"]["stems"]))
+        self.assertEqual(BRANCHES, tuple(DECLARED["chart-v1.json"]["branches"]))
+        self.assertEqual((len(STEMS), len(BRANCHES)), (10, 12))
+
+    def test_no_other_rules_file_carries_the_cycle(self) -> None:
+        """An unread copy in a second rules file is the one an editor fixes in vain."""
+
+        for name, rules in DECLARED.items():
+            if name == "chart-v1.json":
+                continue
+            for key in ("stems", "branches"):
+                with self.subTest(rules=name, key=key):
+                    self.assertNotIn(key, rules)
+
+    def test_no_module_writes_the_cycle_as_a_literal(self) -> None:
+        for path in sorted((SHARED / "bazi").glob("*.py")) + sorted((SHARED / "ziwei").glob("*.py")):
+            source = path.read_text(encoding="utf-8")
+            for cycle in ("甲乙丙丁戊己庚辛壬癸", "子丑寅卯辰巳午未申酉戌亥"):
+                with self.subTest(file=path.name, cycle=cycle):
+                    self.assertNotIn(cycle, source)
+
+    def test_zi_wei_keeps_no_unused_element_order(self) -> None:
+        import ziwei.palaces
+
+        self.assertFalse(hasattr(ziwei.palaces, "ELEMENTS"))
+
 
 if __name__ == "__main__":
     unittest.main()
