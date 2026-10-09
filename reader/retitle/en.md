@@ -58,7 +58,7 @@ The release check runs the installed Codex plugin hook and verifies its first-pr
 /dev:retitle
 ```
 
-It prints a two-column table first (original name, new name), acts only after you confirm, and backs up the store before writing to it. That order holds whatever flags were passed — several hundred titles rewritten in a store you cannot easily diff is not a place to skip the preview.
+It prints a two-column table (original name, new name) and stops there: on its own it proposes and writes nothing. `/dev:retitle --apply` prints the same table and then renames exactly those rows, backing up the store before writing to it. The table comes first whatever flags were passed — several hundred titles rewritten in a store you cannot easily diff is not a place to skip the preview.
 
 A conversation whose subject cannot be recovered keeps its name and is counted as skipped rather than guessed at.
 

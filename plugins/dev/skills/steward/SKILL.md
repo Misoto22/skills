@@ -20,7 +20,7 @@ This skill owns three things the skills it delegates to cannot see: **which repo
 |---|---|---|
 | fast-forward the base | `/dev:sync` | runs it in every repository |
 | merged branches, worktrees, residue | `/dev:cleanup` | the occupancy list — worktrees it must keep |
-| conversation titles | `/dev:retitle` | unattended runs propose and never write |
+| conversation titles | `/dev:retitle` | invoked without `--apply`, so it proposes and writes nothing, unless an attended person asked for the renames |
 | landing a branch | nobody | reported as ready, with the command; `/dev:ship` is the person's to run |
 
 It never merges, rebases, resolves a conflict, deletes anything cleanup would keep, or renames a title without the two-column table.
@@ -39,7 +39,7 @@ Two consequences the rest of this skill is written around:
 Decide before anything runs, and say which in the report's first line.
 
 - **Attended** — a person is at the keyboard. Sub-skills keep their own stop-and-ask behaviour, and the steward relays each question as it comes, one repository at a time.
-- **Unattended** — `--unattended`, or the prompt arrived from a scheduler rather than a person: a scheduled-task run, a cron-fired session, a `claude -p` invocation. Nobody can answer, so **no pass may block on a question**. Every question a sub-skill would have asked is written into the report under *Needs you*, and the pass moves on. Retitle proposes and does not write. Cleanup removes only what its own rules remove without asking.
+- **Unattended** — `--unattended`, or the prompt arrived from a scheduler rather than a person: a scheduled-task run, a cron-fired session, a `claude -p` invocation. Nobody can answer, so **no pass may block on a question**. Every question a sub-skill would have asked is written into the report under *Needs you*, and the pass moves on. Retitle runs without `--apply`, so it proposes and does not write. Cleanup removes only what its own rules remove without asking.
 
 `--dry-run` is stricter than either: inventory and report only. No fetch, no fast-forward, no deletion, no rename — and the report says its branch states are as of the last fetch, whenever that was.
 
@@ -145,7 +145,7 @@ Two things, and the second is the one that needs a person.
 
 **The session scan** comes from step 1's JSON and costs nothing more: per repository, how many sessions in the window, which worktrees they stand in, and which worktrees have *no* session inside the window — those are the ones cleanup can take once their branch merges, and the ones to name when a worktree count is climbing.
 
-**Titles** are `/dev:retitle`'s. Attended, run it as written: the two-column proposal table, confirmation, then the write. Unattended, run it up to the table and stop — it shows the table before writing for a reason, and a scheduler is not a confirmation. Put the table in the report, or the count and where the table was written when it runs long. The hook that keeps new sessions named needs no installation check. Installed as the `dev` plugin, `hooks/hooks.json` registers it on every `UserPromptSubmit`, and disabling the plugin unregisters it. What is worth reporting is the opposite case: a machine that installed it by hand before the plugin carried it now runs two copies, and the second one is a `UserPromptSubmit` entry in the agent's settings pointing at a copied script. Report that as a duplicate to remove; report nothing when the plugin is the only registrar.
+**Titles** are `/dev:retitle`'s, and its `--apply` flag is the only switch between proposing and renaming. Invoke `/dev:retitle` without `--apply` by default: it prints the two-column table and writes nothing. Pass `--apply` only on an attended run whose person asked the steward to rename the titles, not just to sweep; retitle then prints the same table and renames those rows. Unattended, never pass it — a scheduler is not a confirmation. Put the table in the report, or the count and where the table was written when it runs long. The hook that keeps new sessions named needs no installation check. Installed as the `dev` plugin, `hooks/hooks.json` registers it on every `UserPromptSubmit`, and disabling the plugin unregisters it. What is worth reporting is the opposite case: a machine that installed it by hand before the plugin carried it now runs two copies, and the second one is a `UserPromptSubmit` entry in the agent's settings pointing at a copied script. Report that as a duplicate to remove; report nothing when the plugin is the only registrar.
 
 Where the skill was copied on its own — `npx skills add`, skills.sh, any client that installs a skill directory rather than a plugin — no plugin exists to register it, and retitle's `references/hook-install.md` is the manual route.
 
