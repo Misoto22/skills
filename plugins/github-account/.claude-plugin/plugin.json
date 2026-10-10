@@ -1,0 +1,12 @@
+{
+  "name": "github-account",
+  "version": "0.18.7",
+  "description": "Housekeeping for a GitHub account: star Lists and the repositories filed in them.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "skills": [
+    "./skills/star-lists"
+  ]
+}

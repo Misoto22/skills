@@ -66,6 +66,13 @@
       "skills": [
         "photo-abstract-editorial-native"
       ]
+    },
+    {
+      "title": "Github Account",
+      "description": "Housekeeping for a GitHub account: star Lists and the repositories filed in them.",
+      "skills": [
+        "star-lists"
+      ]
     }
   ]
 }

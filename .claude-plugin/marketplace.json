@@ -140,6 +140,14 @@
       "skills": [
         "./skills/photo-abstract-editorial-native"
       ]
+    },
+    {
+      "name": "github-account",
+      "category": "development",
+      "source": "./plugins/github-account",
+      "skills": [
+        "./skills/star-lists"
+      ]
     }
   ]
 }

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "github-account",
+  "version": "0.18.7",
+  "description": "Housekeeping for a GitHub account: star Lists and the repositories filed in them.",
+  "author": {
+    "name": "skills contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "stars",
+    "starred-repositories",
+    "star-lists",
+    "organize",
+    "gh-cli",
+    "graphql"
+  ],
+  "homepage": "https://github.com/Misoto22/skills",
+  "repository": "https://github.com/Misoto22/skills"
+}

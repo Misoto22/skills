@@ -1,0 +1,6 @@
+interface:
+  display_name: "Star Lists"
+  short_description: "Sort GitHub stars into clean, named star Lists"
+  default_prompt: "Use $star-lists to organize my GitHub stars into lists; check dependencies and sign-in first, show me the diff, and apply only after I confirm."
+policy:
+  allow_implicit_invocation: true
