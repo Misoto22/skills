@@ -132,6 +132,10 @@
         },
         {
           "type": "generic",
+          "path": "plugins/github-account/skills/star-prune/SKILL.md"
+        },
+        {
+          "type": "generic",
           "path": "plugins/github-account/skills/star-lists/SKILL.md"
         },
         {

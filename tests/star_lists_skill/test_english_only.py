@@ -1,4 +1,4 @@
-"""The skill and everything it generates are English: no CJK text may ship in it.
+"""The github-account skills and everything they generate are English: no CJK text may ship in it.
 
 The Chinese reader document and i18n entry are the repository's translations for
 the website, outside the skill directory, and are not covered here.
@@ -12,19 +12,20 @@ import unittest
 from pathlib import Path
 
 from star_lists_skill import fakes
-from star_lists_skill.fakes import ROOT, SKILL, account
+from star_lists_skill.fakes import ROOT, account
 
 lists_plan = fakes.load("lists_plan")
 lists_review = fakes.load("lists_review")
 
 
 COVERED = (
-    SKILL,
-    ROOT / "plugins" / "github-account" / "plugin.json",
-    ROOT / "plugins" / "github-account" / ".claude-plugin" / "plugin.json",
+    ROOT / "plugins" / "github-account",
     ROOT / "reader" / "star-lists" / "en.md",
+    ROOT / "reader" / "star-prune" / "en.md",
     ROOT / "evals" / "star-lists",
-    Path(__file__).resolve().parent,
+    ROOT / "evals" / "star-prune",
+    ROOT / "tests" / "star_lists_skill",
+    ROOT / "tests" / "star_prune_skill",
 )
 
 

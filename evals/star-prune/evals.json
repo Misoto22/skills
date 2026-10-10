@@ -1,0 +1,75 @@
+{
+  "skill": "star-prune",
+  "data_classification": "synthetic",
+  "triggers": [
+    {
+      "id": "dead-stars",
+      "prompt": "A lot of the repos I starred on GitHub are dead now. Clean them out.",
+      "expected": "Fires, runs doctor, scans, and shows the flagged stars with reasons before unstarring anything."
+    },
+    {
+      "id": "archived-stars",
+      "prompt": "Remove every archived repository from my GitHub stars.",
+      "expected": "Fires and proposes unstarring only the archived candidates, after showing them."
+    },
+    {
+      "id": "unmaintained-stars",
+      "prompt": "Which of my starred repos are no longer maintained?",
+      "expected": "Fires and reports the scan without writing anything."
+    },
+    {
+      "id": "undo-prune",
+      "holdout": true,
+      "prompt": "I unstarred too much in yesterday's GitHub stars cleanup. Bring those stars back.",
+      "expected": "Fires and restores from the backup apply wrote, after showing what it would do."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "sort-into-lists",
+      "prompt": "Sort my GitHub stars into lists with better names.",
+      "expected": "Does not fire; organizing lists is star-lists.",
+      "routes_to": "star-lists"
+    },
+    {
+      "id": "archive-own-repos",
+      "holdout": true,
+      "prompt": "Archive my own GitHub repositories that I haven't touched in two years.",
+      "expected": "Does not fire; it unstars other people's repositories and never changes repositories the user owns."
+    },
+    {
+      "id": "notifications",
+      "prompt": "Unsubscribe me from noisy GitHub notification threads.",
+      "expected": "Does not fire; notifications are out of scope."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "dormant-is-kept",
+      "prompt": "Prune my GitHub stars. The scan says 3 are archived and 18 haven't been pushed in over two years.",
+      "expectations": [
+        "Proposes unstarring the 3 archived repositories and keeping the 18 dormant ones unless the user says otherwise.",
+        "Explains that dormant can mean finished rather than abandoned.",
+        "Runs apply without --yes first and waits for an explicit yes."
+      ]
+    },
+    {
+      "id": "archive-list-instead",
+      "holdout": true,
+      "prompt": "I don't want to unstar the archived repos, I just don't want them mixed in with the others.",
+      "expectations": [
+        "Does not unstar anything.",
+        "Suggests an Archive list and hands that to star-lists."
+      ]
+    },
+    {
+      "id": "restore-warning",
+      "prompt": "Restore the stars from star-prune-backups/star-prune-octo-20261010T010101Z.json.",
+      "expectations": [
+        "Runs restore without --yes first and shows the result, including lists that no longer exist.",
+        "Says restored stars get a new star date because GitHub cannot keep the original.",
+        "Runs restore --yes only after the user confirms."
+      ]
+    }
+  ]
+}

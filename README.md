@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twenty-four skills in eight plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twenty-five skills in eight plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -57,6 +57,7 @@ Enabling the plugin also registers three hooks, no skill involved: the session-n
 #### `github-account` — the account behind the repositories
 
 - **[star-lists](plugins/github-account/skills/star-lists/SKILL.md)** (`/github-account:star-lists`) — sorts a GitHub account's starred repositories into named star Lists: renames, creates or deletes lists and files every star into one or more of them. Changes go through a plan file that is checked, shown as a diff, backed up and verified after applying; `run.sh doctor --install` brings gh and Python onto a bare machine, checksum-verified and without root.
+- **[star-prune](plugins/github-account/skills/star-prune/SKILL.md)** (`/github-account:star-prune`) — finds the stars that are archived, disabled, deprecated or dormant and says why each was flagged; unstars only what you confirm, after backing up every removed star and its lists, and `restore` re-stars them. Dormant repositories are listed but kept by default, since finished is not the same as dead.
 
 #### `brand` — visual identity assets
 

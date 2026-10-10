@@ -27,7 +27,7 @@ sh scripts/run.sh doctor
 
 The report has one line per dependency: Python 3.9+, the GitHub CLI, the github.com sign-in, and the `user` token scope that writing lists requires. When anything is missing, read the line out and act on its fix:
 
-- **Python or gh missing.** Ask before installing, then run `sh scripts/run.sh doctor --install`. It downloads gh and uv from their GitHub releases, verifies each archive's SHA-256 against the release checksums, and puts them in `~/.local/share/star-lists/bin` (override with `STAR_LISTS_TOOLS_DIR`). It never runs `sudo` and writes nowhere else; uv provides Python on first use. If neither `curl` nor `wget` exists, it prints the package-manager command for the machine; ask the user to run it.
+- **Python or gh missing.** Ask before installing, then run `sh scripts/run.sh doctor --install`. It downloads gh and uv from their GitHub releases, verifies each archive's SHA-256 against the release checksums, and puts them in `~/.local/share/github-account/bin` (override with `GITHUB_ACCOUNT_TOOLS_DIR`). It never runs `sudo` and writes nowhere else; uv provides Python on first use. If neither `curl` nor `wget` exists, it prints the package-manager command for the machine; ask the user to run it.
 - **Not signed in.** Run `gh auth login --hostname github.com --web --scopes user` from the tools directory or PATH. It prints a one-time code and a URL; the user enters the code in their browser. Never ask for a password or token in chat. `GH_TOKEN` in the environment also works.
 - **Scope missing.** Run `gh auth refresh --hostname github.com --scopes user`, which goes through the same browser step.
 
@@ -96,6 +96,10 @@ sh scripts/run.sh apply star-lists-backups/<file>.json --yes --allow-unassigned
 ```
 
 `--allow-unassigned` is there because the backup may predate repositories that were in no list at the time. A list deleted since the backup is recreated with a new id; GitHub cannot bring the old id back.
+
+## Unstarring
+
+This skill never stars or unstars. To remove archived, deprecated or dormant stars, use `star-prune`; run it before organizing so the lists are designed around what stays.
 
 ## Limits to tell the user
 

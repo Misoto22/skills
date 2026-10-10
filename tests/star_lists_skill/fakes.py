@@ -10,8 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "plugins" / "github-account" / "skills" / "star-lists"
 SCRIPTS = SKILL / "scripts"
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+SHARED = SKILL / "shared"
+for path in (SHARED, SCRIPTS):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 
 def load(name: str):
@@ -76,6 +78,7 @@ class FakeGitHub:
     def __init__(self, state: dict | None = None):
         self.state = copy.deepcopy(state or account())
         self.calls: list[tuple] = []
+        self.unstarred: dict[str, dict] = {}
         self._next = 100
 
     def snapshot(self) -> dict:
@@ -114,6 +117,20 @@ class FakeGitHub:
     def delete_list(self, list_id: str) -> None:
         self.calls.append(("delete", list_id))
         self.state["lists"] = [item for item in self.state["lists"] if item["id"] != list_id]
+
+    def remove_star(self, repo_id: str) -> None:
+        self.calls.append(("unstar", repo_id))
+        star = next(star for star in self.state["stars"] if star["id"] == repo_id)
+        self.unstarred[repo_id] = star
+        self.state["stars"].remove(star)
+        for item in self.state["lists"]:
+            if star["name"] in item["items"]:
+                item["items"].remove(star["name"])
+
+    def add_star(self, repo_id: str) -> None:
+        self.calls.append(("star", repo_id))
+        if not any(star["id"] == repo_id for star in self.state["stars"]):
+            self.state["stars"].append(self.unstarred.pop(repo_id))
 
     def set_item_lists(self, repo_id: str, list_ids: list[str]) -> None:
         self.calls.append(("set", repo_id, tuple(list_ids)))

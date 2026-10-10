@@ -146,7 +146,8 @@
       "category": "development",
       "source": "./plugins/github-account",
       "skills": [
-        "./skills/star-lists"
+        "./skills/star-lists",
+        "./skills/star-prune"
       ]
     }
   ]

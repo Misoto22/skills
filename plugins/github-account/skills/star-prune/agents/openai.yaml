@@ -1,0 +1,6 @@
+interface:
+  display_name: "Star Prune"
+  short_description: "Unstar archived, deprecated and dormant repos"
+  default_prompt: "Use $star-prune to find my archived, deprecated and dormant GitHub stars; show me the candidates and unstar only the ones I confirm."
+policy:
+  allow_implicit_invocation: true

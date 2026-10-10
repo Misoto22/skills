@@ -7,6 +7,7 @@
   },
   "license": "MIT",
   "skills": [
-    "./skills/star-lists"
+    "./skills/star-lists",
+    "./skills/star-prune"
   ]
 }

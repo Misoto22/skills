@@ -31,7 +31,7 @@
 
 ### Skills
 
-八个 plugin，二十四个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
+八个 plugin，二十五个 skill。plugin 名就是命令前缀，每个 plugin 都能单独安装 —— plugin 划分的是主题，不是杂物筐。
 
 #### `writing` —— 写给人看的文字
 
@@ -57,6 +57,7 @@
 #### `github-account` —— 仓库背后的那个账号
 
 - **[star-lists](plugins/github-account/skills/star-lists/SKILL.md)**（`/github-account:star-lists`）—— 把 GitHub 账号的 star 整理进命名清楚的 star Lists：改名、新建或删除收藏夹，让每个 star 进到一个或几个对的收藏夹里。所有改动都先写成方案文件，校验、给出差异、备份，写入后再读回核对；`run.sh doctor --install` 能在一台什么都没装的机器上补齐 gh 和 Python，校验 checksum，不需要 root。
+- **[star-prune](plugins/github-account/skills/star-prune/SKILL.md)**（`/github-account:star-prune`）—— 找出已归档、被禁用、标为 deprecated 或长期没更新的 star，逐个说明原因；只取消你确认过的，取消前先备份每个 star 和它所在的收藏夹，`restore` 能原样加回来。很久没更新的默认只列出、不取消，做完了不等于没用了。
 
 #### `brand` —— 视觉识别资产
 
