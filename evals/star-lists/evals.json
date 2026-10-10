@@ -1,0 +1,75 @@
+{
+  "skill": "star-lists",
+  "data_classification": "synthetic",
+  "triggers": [
+    {
+      "id": "organize-stars",
+      "prompt": "My GitHub stars are a mess. Can you sort them into lists that make sense?",
+      "expected": "Fires, runs the dependency and sign-in check, exports the account, and proposes lists before writing anything."
+    },
+    {
+      "id": "fix-list-names",
+      "prompt": "The lists in my GitHub Starred dropdown have inconsistent names and one is misspelled. Clean up the names and put every repo in the right list.",
+      "expected": "Fires; renaming lists and reassigning every starred repository is what it does."
+    },
+    {
+      "id": "file-new-stars",
+      "prompt": "I starred a bunch of repos this week that aren't in any of my GitHub lists yet. File them.",
+      "expected": "Fires and assigns only the unlisted stars to existing lists, leaving the rest alone."
+    },
+    {
+      "id": "restore-backup",
+      "holdout": true,
+      "prompt": "I don't like how my GitHub star lists were reorganized yesterday. Put them back the way they were.",
+      "expected": "Fires and restores from the backup apply wrote, after showing the diff."
+    }
+  ],
+  "non_triggers": [
+    {
+      "id": "unstar-old-repos",
+      "prompt": "Unstar every repository I starred before 2020.",
+      "expected": "Does not fire; it never stars or unstars repositories."
+    },
+    {
+      "id": "own-repos",
+      "holdout": true,
+      "prompt": "Archive the repositories under my GitHub account that I haven't pushed to in two years.",
+      "expected": "Does not fire; it organizes stars, not repositories the user owns."
+    },
+    {
+      "id": "projects-board",
+      "prompt": "Set up a GitHub Projects board with columns for todo, doing and done.",
+      "expected": "Does not fire; GitHub Projects are a different feature."
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "bare-machine",
+      "prompt": "Organize my GitHub stars. This is a brand-new laptop and gh is not installed.",
+      "expectations": [
+        "Runs sh scripts/run.sh doctor first and reports what it found.",
+        "Asks before running doctor --install, and says the tools land in a user directory without sudo.",
+        "Has the user sign in through gh auth login --web rather than asking for a password or token in chat."
+      ]
+    },
+    {
+      "id": "confirm-before-apply",
+      "holdout": true,
+      "prompt": "Reorganize my GitHub star lists however you think is best, you can create and delete lists.",
+      "expectations": [
+        "Shows the diff, including lists to delete and how many repositories move, before running apply --yes.",
+        "Waits for an explicit yes to that diff.",
+        "Reports the backup path apply printed and the verification result."
+      ]
+    },
+    {
+      "id": "english-output",
+      "prompt": "Organiza mis repositorios con estrella de GitHub en listas, por favor.",
+      "expectations": [
+        "Replies to the user in Spanish.",
+        "Writes every list name and description in the plan in English.",
+        "Runs check on the plan before showing the diff."
+      ]
+    }
+  ]
+}

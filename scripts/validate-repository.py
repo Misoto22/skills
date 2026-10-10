@@ -24,10 +24,10 @@ KEBAB_CASE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 # A quoted frontmatter scalar, with the YAML comment that may trail it.
 QUOTED_SCALAR = re.compile(r"""\A(?P<quote>["'])(?P<value>.*?)(?P=quote)(?:\s+\#.*)?\Z""")
 
-# The published surface, asserted exactly: a plugin or skill that appears on disk
-# without being added here is unregistered somewhere, and one listed here without
-# appearing on disk has been dropped.
+# The published surface, asserted exactly: a plugin or skill that appears on disk without being
+# added here is unregistered somewhere, and one listed here without appearing on disk has been dropped.
 PUBLISHED = {
+    "github-account": ["star-lists"],
     "photography": ["photo-abstract-editorial-native"],
     "brand": ["logo-banner"],
     "chinese-metaphysics": [

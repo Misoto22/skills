@@ -117,8 +117,22 @@
         },
         {
           "type": "json",
+          "path": "plugins/github-account/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/github-account/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "registry.json",
           "jsonpath": "$..version"
+        },
+        {
+          "type": "generic",
+          "path": "plugins/github-account/skills/star-lists/SKILL.md"
         },
         {
           "type": "generic",

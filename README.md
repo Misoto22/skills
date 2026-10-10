@@ -31,7 +31,7 @@ Personal skills for Claude Code, Codex, and ~70 other agents.
 
 ### Skills
 
-Twenty-three skills in seven plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
+Twenty-four skills in eight plugins. The plugin name is the command prefix, and each plugin installs on its own — a plugin is a subject, not a bucket.
 
 #### `writing` — prose aimed at a person
 
@@ -53,6 +53,10 @@ Twenty-three skills in seven plugins. The plugin name is the command prefix, and
 - **[steward](plugins/dev/skills/steward/SKILL.md)** (`/dev:steward`) — sweeps every repository your sessions have touched: fast-forwards each base, removes what merged, keeps titles in scheme, and reports what is ready to merge and which worktrees a live session still occupies. It runs forked and unattended, so a question a pass would have asked lands in the report instead of blocking a run nobody is watching.
 
 Enabling the plugin also registers three hooks, no skill involved: the session-naming hook `retitle` ships, `hooks/guard-git.py`, which refuses a bare force-push, `--no-verify`, and `gh pr merge --admin` before they run, and [hooks/orchestrate.py](plugins/dev/hooks/orchestrate.py), which — on an orchestrator-class model — tells the main thread to delegate on every prompt and refuses its own writes into the project: `Edit`, `Write`, Codex's `apply_patch`, and the common shell forms of a file write. Subagents and everything outside the repository are left alone. The `orchestrator_models` option is the list it matches on, `fable,gpt-6` by default and empty to switch the hook off. Under Codex this option and retitle's `session_title_lang` are inert, because codex-cli does not pass `CLAUDE_PLUGIN_OPTION_*` to plugin hooks; set `ORCHESTRATOR_MODELS` or `SESSION_TITLE_LANG` in Codex's own environment instead. In Claude Code, the hook sends authorized changes through the current `Task` tool (`Agent` on clients that still use that name) to [implementer](plugins/dev/agents/implementer.md) on Opus, then sends the checks to an independent [verifier](plugins/dev/agents/verifier.md) on Sonnet. In Codex, it uses `collaboration.spawn_agent` with `fork_turns: "none"` and explicit configured models: `agents.default_subagent_model` for implementation, and `review_model` for verification when set, otherwise the implementation model. Codex hook events do not expose per-invocation profile or `-c` overrides, so the directive reads these values from the base config rather than promising that an override will be visible.
+
+#### `github-account` — the account behind the repositories
+
+- **[star-lists](plugins/github-account/skills/star-lists/SKILL.md)** (`/github-account:star-lists`) — sorts a GitHub account's starred repositories into named star Lists: renames, creates or deletes lists and files every star into one or more of them. Changes go through a plan file that is checked, shown as a diff, backed up and verified after applying; `run.sh doctor --install` brings gh and Python onto a bare machine, checksum-verified and without root.
 
 #### `brand` — visual identity assets
 

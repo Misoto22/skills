@@ -63,9 +63,18 @@
     {
       "path": "plugins/photography/plugin.json",
       "field": "version"
+    },
+    {
+      "path": "plugins/github-account/.claude-plugin/plugin.json",
+      "field": "version"
+    },
+    {
+      "path": "plugins/github-account/plugin.json",
+      "field": "version"
     }
   ],
   "text": [
+    "plugins/github-account/skills/star-lists/SKILL.md",
     "plugins/dev/skills/reunite/SKILL.md",
     "plugins/dev/skills/steward/SKILL.md",
     "plugins/dev/skills/retitle/SKILL.md",
