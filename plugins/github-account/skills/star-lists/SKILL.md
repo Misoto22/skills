@@ -3,7 +3,7 @@ name: star-lists
 description: Organize a GitHub account's starred repositories into GitHub star Lists - design a clear set of lists, rename, create or delete lists, and put every starred repository into the right one or several, through a plan file that is validated, shown as a diff, backed up, applied and verified. Also files newly starred repositories into existing lists and restores a backup. Use when asked to organize, sort, clean up, categorize or tidy GitHub stars, star lists or the Lists dropdown, fix messy list names, put each starred repo in the right list, or file new stars. Not for starring or unstarring repositories, organizing repositories you own, GitHub Projects boards, or browser bookmarks.
 license: MIT
 metadata:
-  version: "0.18.7" # x-release-please-version
+  version: "0.19.0" # x-release-please-version
 argument-hint: "[organize | file new stars | review | restore <backup.json>]"
 ---
 
