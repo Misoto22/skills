@@ -11,18 +11,24 @@ from star_lists_skill import fakes
 github_api = fakes.load("github_api")
 
 
-def page(nodes: list, cursor: str | None) -> dict:
-    return {"pageInfo": {"hasNextPage": cursor is not None, "endCursor": cursor}, "nodes": nodes}
+def page(nodes: list, cursor: str | None, key: str = "nodes") -> dict:
+    return {"pageInfo": {"hasNextPage": cursor is not None, "endCursor": cursor}, key: nodes}
 
 
 def star(name: str) -> dict:
     return {
-        "id": "R-" + name,
-        "nameWithOwner": name,
-        "description": None,
-        "primaryLanguage": None,
-        "isArchived": False,
-        "repositoryTopics": {"nodes": [{"topic": {"name": "cli"}}]},
+        "starredAt": "2024-01-02T03:04:05Z",
+        "node": {
+            "id": "R-" + name,
+            "nameWithOwner": name,
+            "description": None,
+            "primaryLanguage": None,
+            "owner": {"login": name.split("/")[0]},
+            "isArchived": False,
+            "isDisabled": False,
+            "pushedAt": "2025-05-06T00:00:00Z",
+            "repositoryTopics": {"nodes": [{"topic": {"name": "cli"}}]},
+        },
     }
 
 
@@ -50,8 +56,22 @@ class SnapshotTests(unittest.TestCase):
         }
         runner = ScriptedRunner(
             [
-                {"data": {"viewer": {"login": "octo", "starredRepositories": page([star("a/one")], "s1")}}},
-                {"data": {"viewer": {"login": "octo", "starredRepositories": page([star("b/two")], None)}}},
+                {
+                    "data": {
+                        "viewer": {
+                            "login": "octo",
+                            "starredRepositories": page([star("a/one")], "s1", "edges"),
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "viewer": {
+                            "login": "octo",
+                            "starredRepositories": page([star("b/two")], None, "edges"),
+                        }
+                    }
+                },
                 {"data": {"viewer": {"lists": page([big_list], None)}}},
                 {
                     "data": {
@@ -66,6 +86,9 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(snapshot["login"], "octo")
         self.assertEqual([repo["name"] for repo in snapshot["stars"]], ["a/one", "b/two"])
         self.assertEqual(snapshot["stars"][0]["topics"], ["cli"])
+        self.assertEqual(snapshot["stars"][0]["owner"], "a")
+        self.assertEqual(snapshot["stars"][0]["starred_at"], "2024-01-02T03:04:05Z")
+        self.assertEqual(snapshot["stars"][0]["pushed_at"], "2025-05-06T00:00:00Z")
         self.assertEqual(snapshot["lists"][0]["items"], ["a/one", "b/two"])
         self.assertEqual(runner.bodies[1]["variables"]["after"], "s1")
 
@@ -103,6 +126,8 @@ class MutationTests(unittest.TestCase):
                 {"data": {"updateUserList": {"list": {"id": "L9"}}}},
                 {"data": {"updateUserListsForItem": {"clientMutationId": None}}},
                 {"data": {"deleteUserList": {"clientMutationId": None}}},
+                {"data": {"removeStar": {"clientMutationId": None}}},
+                {"data": {"addStar": {"clientMutationId": None}}},
             ]
         )
         github = github_api.GitHub(runner, sleep=lambda _: None)
@@ -110,10 +135,15 @@ class MutationTests(unittest.TestCase):
         github.update_list("L9", "AI Tools", "", False)
         github.set_item_lists("R1", ["L9"])
         github.delete_list("L9")
+        github.remove_star("R1")
+        github.add_star("R1")
         variables = [body["variables"] for body in runner.bodies]
         self.assertEqual(variables[0], {"name": "AI", "description": "Agents", "private": True})
         self.assertEqual(variables[2], {"item": "R1", "lists": ["L9"]})
         self.assertEqual(variables[3], {"id": "L9"})
+        self.assertIn("removeStar", runner.bodies[4]["query"])
+        self.assertIn("addStar", runner.bodies[5]["query"])
+        self.assertEqual(variables[4:], [{"id": "R1"}, {"id": "R1"}])
 
 
 class GhRunnerTests(unittest.TestCase):

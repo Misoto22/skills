@@ -27,7 +27,7 @@ QUOTED_SCALAR = re.compile(r"""\A(?P<quote>["'])(?P<value>.*?)(?P=quote)(?:\s+\#
 # The published surface, asserted exactly: a plugin or skill that appears on disk without being
 # added here is unregistered somewhere, and one listed here without appearing on disk has been dropped.
 PUBLISHED = {
-    "github-account": ["star-lists"],
+    "github-account": ["star-lists", "star-prune"],
     "photography": ["photo-abstract-editorial-native"],
     "brand": ["logo-banner"],
     "chinese-metaphysics": [

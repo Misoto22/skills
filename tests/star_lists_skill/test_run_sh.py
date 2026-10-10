@@ -50,6 +50,8 @@ def stub(path: Path, body: str) -> None:
 
 
 class RunShTests(unittest.TestCase):
+    RUN_SH = RUN_SH
+
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
@@ -80,9 +82,13 @@ esac
         )
 
     def run_sh(self, *args: str) -> subprocess.CompletedProcess:
-        env = {"PATH": str(self.bin), "HOME": str(self.root), "STAR_LISTS_TOOLS_DIR": str(self.tools)}
+        env = {"PATH": str(self.bin), "HOME": str(self.root), "GITHUB_ACCOUNT_TOOLS_DIR": str(self.tools)}
         return subprocess.run(
-            [str(self.bin / "sh"), str(RUN_SH), *args], capture_output=True, text=True, env=env, check=False
+            [str(self.bin / "sh"), str(self.RUN_SH), *args],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
         )
 
     def test_doctor_passes_when_everything_is_present(self) -> None:
@@ -91,6 +97,21 @@ esac
         result = self.run_sh("doctor")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("signed in to github.com as octo", result.stdout)
+
+    def test_the_tools_directory_star_lists_documented_is_still_used(self) -> None:
+        self.with_python()
+        legacy = self.root / "legacy"
+        legacy.mkdir()
+        stub(legacy / "gh", 'case "$1" in --version) echo "gh version 1.0.0" ;; *) exit 1 ;; esac\n')
+        env = {"PATH": str(self.bin), "HOME": str(self.root), "STAR_LISTS_TOOLS_DIR": str(legacy)}
+        result = subprocess.run(
+            [str(self.bin / "sh"), str(self.RUN_SH), "doctor"],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+        self.assertIn("ok       gh       gh version 1.0.0", result.stdout)
 
     def test_doctor_names_the_fix_for_each_missing_piece(self) -> None:
         result = self.run_sh("doctor")
@@ -117,7 +138,8 @@ esac
         self.assertIn("gh auth refresh --hostname github.com --scopes user", doctor.stdout)
         result = self.run_sh("apply", "plan.json", "--yes")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("cannot write lists", result.stderr)
+        self.assertIn("cannot make these writes", result.stderr)
+        self.assertIn("--scopes user", result.stderr)
 
     def test_fine_grained_token_without_scope_header_is_not_blocked(self) -> None:
         self.with_python()

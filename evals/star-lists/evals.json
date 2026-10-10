@@ -28,7 +28,8 @@
     {
       "id": "unstar-old-repos",
       "prompt": "Unstar every repository I starred before 2020.",
-      "expected": "Does not fire; it never stars or unstars repositories."
+      "expected": "Does not fire; unstarring is star-prune.",
+      "routes_to": "star-prune"
     },
     {
       "id": "own-repos",

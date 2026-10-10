@@ -23,12 +23,14 @@ from pathlib import Path
 if sys.version_info < (3, 9):  # noqa: UP036 - the guard has to run on the old interpreter it rejects
     sys.exit("star-lists needs Python 3.9 or newer; run it through scripts/run.sh")
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+sys.path.insert(0, str(SKILL_ROOT / "shared"))
 
-import lists_changes as changes
-import lists_plan as plans
-import lists_review as review
-from github_api import GitHub, GitHubError
+import lists_changes as changes  # noqa: E402 - the skill directories go on sys.path first
+import lists_plan as plans  # noqa: E402 - the skill directories go on sys.path first
+import lists_review as review  # noqa: E402 - the skill directories go on sys.path first
+from github_api import GitHub, GitHubError  # noqa: E402 - the skill directories go on sys.path first
 
 EXIT_OK, EXIT_FAILED, EXIT_NEEDS_CONFIRMATION = 0, 1, 2
 

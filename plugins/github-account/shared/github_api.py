@@ -1,6 +1,7 @@
-"""GitHub's star-list GraphQL API, reached through the gh CLI.
+"""GitHub's stars and star-list GraphQL API, reached through the gh CLI.
 
-Lists have no REST endpoint; only GraphQL exposes them. Going through
+Shared by the github-account skills. Lists have no REST endpoint; only GraphQL
+exposes them. Going through
 `gh api graphql` means gh owns authentication, so no token passes through this
 code, its arguments, or its output.
 """
@@ -19,8 +20,8 @@ _THROTTLED = ("secondary rate limit", "submitted too quickly", "abuse detection"
 
 STARS_QUERY = """query($after: String) { viewer { login starredRepositories(first: 100, after: $after) {
   pageInfo { hasNextPage endCursor }
-  nodes { id nameWithOwner description primaryLanguage { name } isArchived
-    repositoryTopics(first: 10) { nodes { topic { name } } } } } } }"""
+  edges { starredAt node { id nameWithOwner description primaryLanguage { name } owner { login }
+    isArchived isDisabled pushedAt repositoryTopics(first: 10) { nodes { topic { name } } } } } } } }"""
 
 LISTS_QUERY = """query($after: String) { viewer { lists(first: 32, after: $after) {
   pageInfo { hasNextPage endCursor }
@@ -41,8 +42,28 @@ UPDATE = """mutation($id: ID!, $name: String, $description: String, $private: Bo
 
 DELETE = """mutation($id: ID!) { deleteUserList(input: {listId: $id}) { clientMutationId } }"""
 
+ADD_STAR = """mutation($id: ID!) { addStar(input: {starrableId: $id}) { clientMutationId } }"""
+
+REMOVE_STAR = """mutation($id: ID!) { removeStar(input: {starrableId: $id}) { clientMutationId } }"""
+
 SET_ITEM_LISTS = """mutation($item: ID!, $lists: [ID!]!) {
   updateUserListsForItem(input: {itemId: $item, listIds: $lists}) { clientMutationId } }"""
+
+
+def _star(edge: dict) -> dict:
+    node = edge["node"]
+    return {
+        "id": node["id"],
+        "name": node["nameWithOwner"],
+        "owner": node["owner"]["login"],
+        "description": node["description"] or "",
+        "language": (node["primaryLanguage"] or {}).get("name", ""),
+        "topics": [entry["topic"]["name"] for entry in node["repositoryTopics"]["nodes"]],
+        "archived": node["isArchived"],
+        "disabled": node["isDisabled"],
+        "pushed_at": node["pushedAt"] or "",
+        "starred_at": edge["starredAt"],
+    }
 
 
 class GitHubError(RuntimeError):
@@ -86,35 +107,32 @@ class GitHub:
             self._sleep(delay)
         raise AssertionError("unreachable")
 
-    def _pages(self, query: str, pick: Callable[[dict], dict], **variables: object) -> list[dict]:
+    def _pages(
+        self, query: str, pick: Callable[[dict], dict], key: str = "nodes", **variables: object
+    ) -> list[dict]:
         nodes: list[dict] = []
         after = None
         while True:
             connection = pick(self.call(query, after=after, **variables))
-            nodes.extend(node for node in connection["nodes"] if node)
+            nodes.extend(node for node in connection[key] if node)
             if not connection["pageInfo"]["hasNextPage"]:
                 return nodes
             after = connection["pageInfo"]["endCursor"]
 
     def snapshot(self) -> dict:
-        """Read the signed-in account's stars, lists, and list memberships."""
+        """Read the signed-in account's stars, lists, and list memberships.
+
+        A star carries id, name, owner, description, language, topics, archived,
+        disabled, pushed_at and starred_at; a list carries id, name, slug,
+        description, private and the names of its items.
+        """
         seen: dict[str, str] = {}
 
         def stars_page(data: dict) -> dict:
             seen["login"] = data["viewer"]["login"]
             return data["viewer"]["starredRepositories"]
 
-        stars = [
-            {
-                "id": node["id"],
-                "name": node["nameWithOwner"],
-                "description": node["description"] or "",
-                "language": (node["primaryLanguage"] or {}).get("name", ""),
-                "topics": [entry["topic"]["name"] for entry in node["repositoryTopics"]["nodes"]],
-                "archived": node["isArchived"],
-            }
-            for node in self._pages(STARS_QUERY, stars_page)
-        ]
+        stars = [_star(edge) for edge in self._pages(STARS_QUERY, stars_page, key="edges")]
         lists = []
         for node in self._pages(LISTS_QUERY, lambda data: data["viewer"]["lists"]):
             items = [item for item in node["items"]["nodes"] if item]
@@ -145,6 +163,14 @@ class GitHub:
     def delete_list(self, list_id: str) -> None:
         """Delete a list. Its repositories stay starred."""
         self.call(DELETE, id=list_id)
+
+    def add_star(self, repo_id: str) -> None:
+        """Star a repository."""
+        self.call(ADD_STAR, id=repo_id)
+
+    def remove_star(self, repo_id: str) -> None:
+        """Unstar a repository. Its list memberships go with the star."""
+        self.call(REMOVE_STAR, id=repo_id)
 
     def set_item_lists(self, repo_id: str, list_ids: list[str]) -> None:
         """Replace the full set of lists one starred repository belongs to."""
