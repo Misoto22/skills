@@ -3,7 +3,7 @@ name: star-prune
 description: Find the starred GitHub repositories that are archived, disabled, deprecated or dormant, explain why each was flagged, and unstar the ones the user confirms, backing up every removed star and its lists so a restore can re-star them. Use when asked to clean up dead or stale GitHub stars, remove archived or deprecated repos from my stars, prune or declutter starred repositories, find stars that are no longer maintained, or undo a star cleanup. Not for sorting stars into lists or renaming lists, starring new repositories, deleting or archiving repositories you own, or GitHub notifications.
 license: MIT
 metadata:
-  version: "0.19.0" # x-release-please-version
+  version: "0.20.0" # x-release-please-version
 argument-hint: "[scan | apply | restore <backup.json>] [--dormant-years N]"
 ---
 
