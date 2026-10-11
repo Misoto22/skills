@@ -6,6 +6,10 @@ edits and interrupted runs, so every path read back from it is treated as untrus
 it may name only an actual ``<account>/<organisation>/local_*.json`` entry in the
 selected session tree. An original is kept gzipped under ``BACKUP_DIR`` at the same
 relative path, so its location is derived from a validated path, never read from disk.
+
+A copy of the desktop app's Local Storage, taken before the sidebar layout is written,
+is recorded by its directory name under ``BACKUP_DIR`` and the store it was taken from;
+only a name in the shape this script writes is accepted back.
 """
 
 from __future__ import annotations
@@ -13,11 +17,14 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 
 MANIFEST_NAME = ".session-merge-manifest.json"
 BACKUP_DIR = ".session-merge-backup"
+LOCAL_STORAGE_KEY = "localStorage"
+_LOCAL_STORAGE_BACKUP = re.compile(r"local-storage-\d{8}T\d{6}Z(-\d+)?")
 
 
 def index_path(root: Path, raw_path: object) -> Path | None:
@@ -71,16 +78,55 @@ def _merge_records(held: list[dict[str, object]], new: list[dict[str, object]]) 
     return held + [entry for entry in new if entry["path"] not in recorded]
 
 
-def write_manifest(root: Path, copied: list[str], backups: list[dict[str, object]]) -> Path:
+def local_storage_record(_root: Path, record: object) -> dict[str, str] | None:
+    """Keep a Local Storage backup record only when its name is one this script writes."""
+    if not isinstance(record, dict):
+        return None
+    name, store = record.get("backup"), record.get("store")
+    if not isinstance(name, str) or not _LOCAL_STORAGE_BACKUP.fullmatch(name) or not isinstance(store, str):
+        return None
+    return {"backup": name, "store": store}
+
+
+def local_storage_records(root: Path) -> list[dict[str, str]]:
+    """Every Local Storage backup recorded so far, earliest first."""
+    try:
+        data = json.loads((root / MANIFEST_NAME).read_text())
+    except (OSError, ValueError):
+        return []
+    return _valid(root, data.get(LOCAL_STORAGE_KEY), local_storage_record) if isinstance(data, dict) else []
+
+
+def drop_local_storage(root: Path, record: dict[str, str]) -> None:
+    """Forget one Local Storage backup record, leaving every other key of the manifest as it is."""
+    manifest = root / MANIFEST_NAME
+    data = json.loads(manifest.read_text())
+    kept = [held for held in data.get(LOCAL_STORAGE_KEY, []) if held != record]
+    if kept:
+        data[LOCAL_STORAGE_KEY] = kept
+    else:
+        data.pop(LOCAL_STORAGE_KEY, None)
+    manifest.write_text(json.dumps(data, indent=2))
+
+
+def write_manifest(
+    root: Path,
+    copied: list[str],
+    backups: list[dict[str, object]],
+    local_storage: dict[str, str] | None = None,
+) -> Path:
     """Merge this run's record into the manifest --undo reads."""
     manifest = root / MANIFEST_NAME
     held_copied, held_titles, held_backups = read_manifest(root, manifest)
-    payload = {
+    stores = local_storage_records(root) + _valid(root, [local_storage], local_storage_record)
+    payload: dict[str, object] = {
         "copied": sorted(set(held_copied) | set(_valid(root, copied, manifest_path))),
         "backups": _merge_records(held_backups, _valid(root, backups, field_record)),
     }
     if held_titles:
         payload["titles"] = held_titles
+    if stores:
+        payload[LOCAL_STORAGE_KEY] = stores
     manifest.write_text(json.dumps(payload, indent=2))
     return manifest
 

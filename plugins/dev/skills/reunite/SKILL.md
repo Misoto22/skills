@@ -4,7 +4,7 @@ description: Make every signed-in account in the desktop app hold the same conve
 license: MIT
 metadata:
   version: "0.20.0" # x-release-please-version
-argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--from=current|<accountUuid>] [--undo]"
+argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--from=current|<accountUuid>] [--sidebar-from=current|<accountUuid>] [--undo] [--undo-sidebar]"
 ---
 
 # Reunite
@@ -66,8 +66,25 @@ A report-only run records nothing, so a deletion made between two reports is sti
 
 - **Everything it changes can be put back.** Each file it creates is listed in `.session-merge-manifest.json`; the original of each file it overwrites or removes is gzipped into `.session-merge-backup/` first, keeping only the earliest so a later run cannot replace it with something this script wrote. `--undo` removes the created files, restores every original with its mtime, and forgets the baseline. It is cumulative: it reverses every run since the manifest was started, not only the last. Manifests from before whole files were mirrored — a bare path list, or per-field title records — are still read.
 - **It never deletes on request.** The only removals are the copies of a conversation the user already deleted under one account. Tidying the sidebar is not one of them: when rows a run added are unwanted, offer `--undo`, which takes back exactly what earlier runs wrote, and otherwise point the user at deleting in the app, which the next run carries to every account.
-- **It never touches a transcript.** Everything it writes is under the index root.
+- **It never touches a transcript.** Everything it writes is under the index root, plus — only with `--sidebar-from` — one Local Storage key.
 - **It is idempotent.** A second run with nothing new plans no writes. Run it again after every stretch of work under one account: new conversations, names and archives only land in that account's copy.
+
+## The sidebar layout
+
+The index is not the whole sidebar. Manual groups and their members, section order, collapsed sections and per-section display prefs live in the app's Local Storage — a LevelDB at `~/Library/Application Support/Claude/Local Storage/leveldb/`, key `dframe-store`, one entry per `<accountUuid>/<orgUuid>` scope — so a group made under one account is missing under every other.
+
+```bash
+python3 scripts/merge.py --sidebar-from=current                # report each scope's manual groups and what would change
+python3 scripts/merge.py --sidebar-from=<accountUuid> --apply  # write
+```
+
+`--sidebar-from` names the account whose layout is right and copies its sections and group names to every other account with an index directory, under `<account>/<the org that account lands in>` — created when missing. A copied manual group keeps only the conversations that account's index holds once aligned, which is why it runs in the same pass after the alignment. Global prefs and cached row counts are left alone, and no other key is written.
+
+**The app must be fully quit** — Cmd-Q, not a closed window. It holds the database open and writes the layout back from memory, so anything written while it runs is lost. The script refuses while a process named `Claude` runs or anything holds LevelDB's `LOCK`, so it cannot run from the app's own Code tab or terminal: hand the user the command for Terminal, or run it from a `claude` session started there. It refuses before writing anything, the index included.
+
+Before writing it copies the whole LevelDB directory to `.session-merge-backup/local-storage-<UTC timestamp>/` and records it in the manifest, appends one record, and reads the key back — restoring the copy and exiting non-zero if what landed differs. `--undo`, again only with the app quit, restores the earliest copy and keeps the directory it replaced under `.session-merge-replaced/`. `--undo-sidebar` reverts only the latest sidebar write — same checks, same kept copy — and forgets just its record, leaving every index file, the baseline and the rest of the manifest as they are. The layout appears when the app next starts.
+
+It reaches only this machine's Code-tab sidebar. Artifacts, projects, chats and anything else claude.ai keeps server-side per account cannot be synced from here — say so when asked.
 
 ## The restart
 
@@ -94,8 +111,18 @@ Plan: align <M> account index(es)
     <account>  → <new title>
 ```
 
+With `--sidebar-from`, the report continues:
+
+```
+Sidebar layout <leveldb dir>
+  from <scope>  <N> sections, <N> manual groups
+  <scope>  <N> manual groups | (no layout yet)  → <N> sections, <N> manual groups, <N> members not in its index dropped
+```
+
+After `--apply`, quote `Sidebar layout written to <N> scope(s)` — or `SIDEBAR NOT WRITTEN`, a failure whose backup was already restored.
+
 After `--apply`, say how many were created, overwritten and removed, quote the `Aligned:` line — or the `NOT ALIGNED` one, which is a failure to report as such — say that `--undo` takes all of it back, and that the sidebar is unchanged until the app restarts. A run reported as done while the sidebar still looks the same reads as a failure.
 
 ## Platform
 
-The paths above are macOS. `CLAUDE_DESKTOP_SESSIONS_DIR` overrides the index root; the script exits with that hint rather than guessing when the directory is not there.
+The paths above are macOS. `CLAUDE_DESKTOP_SESSIONS_DIR` overrides the index root and `CLAUDE_DESKTOP_LOCAL_STORAGE_DIR` the Local Storage database; the script exits with that hint rather than guessing when either is not there.

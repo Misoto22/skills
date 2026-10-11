@@ -38,6 +38,12 @@ The first time it runs there is no record to compare against, so copies that dis
 
 Each file it creates is listed; the original of each file it overwrites or removes is backed up first. `--undo` removes what it created and restores every original, timestamps included. It never touches a transcript, and it never deletes anything you did not already delete yourself.
 
+## Your sidebar groups, too
+
+The conversation list is only half of what the sidebar shows. The groups you made — their names, which conversations sit in each, their order, which ones are collapsed — are stored separately, per account, in the app's own browser storage. `--sidebar-from=<account>` copies one account's layout to every other account, dropping any grouped conversation that account does not hold.
+
+This one needs the app fully quit (Cmd-Q), because the app keeps the layout in memory and would write over the change; the script checks and refuses otherwise, so run it from Terminal rather than from inside the app. It copies the whole storage directory first, checks the new value after writing and puts the copy back if anything is off, and `--undo` restores it. To take back only the latest layout change and keep your aligned conversation lists, use `--undo-sidebar` instead. It only reaches the desktop app's sidebar on this machine: artifacts and anything claude.ai keeps on its servers per account stay where they are.
+
 ## The restart
 
 A run does not appear until the desktop app restarts. The app reads this index when it starts and does not look at the directory again while it is running.
