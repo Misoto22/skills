@@ -1,6 +1,6 @@
 {
   "name": "github-account",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Housekeeping for a GitHub account: star Lists and the repositories filed in them.",
   "author": {
     "name": "skills contributors"

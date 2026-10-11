@@ -7,6 +7,13 @@ the two heading shapes differ. There is no `## Unreleased` section to keep
 current any more — an unreleased change is described by its own commit subject,
 and the open release pull request always shows what the next release would say.
 
+## [0.21.0](https://github.com/Misoto22/skills/compare/v0.20.0...v0.21.0) (2026-10-11)
+
+
+### Features
+
+* **reunite:** sync the sidebar layout across accounts ([#138](https://github.com/Misoto22/skills/issues/138)) ([799214b](https://github.com/Misoto22/skills/commit/799214b744d9c473dca089772a022eff13823cfb))
+
 ## [0.20.0](https://github.com/Misoto22/skills/compare/v0.19.0...v0.20.0) (2026-10-10)
 
 
