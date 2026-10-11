@@ -21,7 +21,7 @@ import ldb_store
 import local_storage
 import sidebar
 from ldb_codec import LevelDBError
-from manifest import BACKUP_DIR, write_manifest
+from manifest import BACKUP_DIR, drop_local_storage, local_storage_records, write_manifest
 
 
 def held_sessions(entries: Iterable[object], plan: object | None = None) -> dict[str, set[str]]:
@@ -117,19 +117,53 @@ def check(store: Path, source: str, scopes: dict[str, str]) -> None:
         pass
 
 
-def undo(root: Path, records: list[dict[str, str]]) -> None:
-    """Put back the Local Storage copied before the first recorded sidebar write."""
+def add_arguments(parser) -> None:
+    """The command-line flags this step owns."""
+    parser.add_argument(
+        "--sidebar-from",
+        dest="sidebar_from",
+        help="copy this account's sidebar layout to every other account: 'current' or an accountUuid",
+    )
+    parser.add_argument(
+        "--undo-sidebar",
+        action="store_true",
+        help="restore only the sidebar layout, from the most recent backup; the index stays as it is",
+    )
+
+
+def undo(root: Path, records: list[dict[str, str]]) -> bool:
+    """Put back the Local Storage copied before the first recorded sidebar write.
+
+    Returns whether it was restored; exits while the app holds the database.
+    """
+    return _restore(root, records[0])
+
+
+def undo_latest(root: Path) -> int:
+    """Revert only the latest sidebar write: restore its backup and forget its record."""
+    records = local_storage_records(root)
+    if not records:
+        print(f"Nothing to undo — no sidebar layout backup recorded under {root}")
+        return 0
+    if not _restore(root, records[-1]):
+        return 1
+    drop_local_storage(root, records[-1])
+    print("Conversation indexes are unchanged. Open Claude again to see the restored layout.")
+    return 0
+
+
+def _restore(root: Path, record: dict[str, str]) -> bool:
     store = local_storage.store_dir()
-    earliest = records[0]
-    if Path(earliest["store"]).resolve() != store.resolve():
+    if Path(record["store"]).resolve() != store.resolve():
         sys.exit(
-            f"The sidebar backup was taken from {earliest['store']}, but {local_storage.STORE_ENV} "
-            f"now names {store}. Point it back and rerun --undo."
+            f"The sidebar backup was taken from {record['store']}, but {local_storage.STORE_ENV} "
+            f"now names {store}. Point it back and rerun."
         )
-    saved = root / BACKUP_DIR / earliest["backup"]
+    saved = root / BACKUP_DIR / record["backup"]
     if not (saved / "CURRENT").is_file():
         print(f"  Local Storage backup {saved.name} is missing; the sidebar layout was not restored.")
-        return
+        return False
     with local_storage.exclusive(store):
         kept = local_storage.restore(saved, store, root / local_storage.REPLACED_DIR)
     print(f"Restored Local Storage from {saved.name}; the replaced copy is in {kept}.")
+    return True

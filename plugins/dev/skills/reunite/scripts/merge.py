@@ -290,11 +290,7 @@ def parse_args() -> argparse.Namespace:
         dest="authority",
         help="make one account the whole truth: 'current' or an accountUuid; what it lacks is deleted",
     )
-    parser.add_argument(
-        "--sidebar-from",
-        dest="sidebar_from",
-        help="copy this account's sidebar layout to every other account: 'current' or an accountUuid",
-    )
+    sidebar_sync.add_arguments(parser)
     return parser.parse_args()
 
 
@@ -342,6 +338,8 @@ def main() -> int:
     root = sessions_root()
     if args.undo:
         return undo(root)
+    if args.undo_sidebar:
+        return sidebar_sync.undo_latest(root)
 
     tree = scan(root)
     if len(tree) < 2:

@@ -289,6 +289,70 @@ class SidebarRunTests(unittest.TestCase):
         self.assertIn("was not restored", report)
         self.assertFalse((self.root / B / ORGS[B] / "local_s1.json").exists())
 
+    def manifest_without_sidebar(self) -> dict:
+        data = json.loads((self.root / merge.MANIFEST_NAME).read_text())
+        data.pop("localStorage", None)
+        return data
+
+    def test_undo_sidebar_reverts_only_the_layout(self) -> None:
+        self.run_merge(f"--sidebar-from={A}", "--apply")
+        written = snapshot(self.store)
+        index = snapshot(self.root / B)
+        baseline = (self.root / merge.lifecycle.BASELINE_NAME).read_bytes()
+        rest = self.manifest_without_sidebar()
+
+        report = self.run_merge("--undo-sidebar")
+
+        self.assertIn("Restored Local Storage", report)
+        self.assertEqual(snapshot(self.store), self.original)
+        self.assertEqual(snapshot(self.root / B), index)
+        self.assertTrue((self.root / B / ORGS[B] / "local_s1.json").exists())
+        self.assertEqual((self.root / merge.lifecycle.BASELINE_NAME).read_bytes(), baseline)
+        self.assertEqual(json.loads((self.root / merge.MANIFEST_NAME).read_text()), rest)
+        kept = list((self.root / local_storage.REPLACED_DIR).glob("local-storage-*"))
+        self.assertEqual([snapshot(path) for path in kept], [written])
+        self.assertIn("Nothing to undo", self.run_merge("--undo-sidebar"))
+
+    def test_undo_sidebar_takes_the_latest_backup_and_undo_the_earliest(self) -> None:
+        self.run_merge(f"--sidebar-from={A}", "--apply")
+        state = sidebar.decode(ldb_store.read(self.store, sidebar.STORE_KEY))
+        state["state"][sidebar.SECTIONS_BY_SCOPE][SCOPES[B]]["sections"].pop()
+        ldb_store.put(self.store, sidebar.STORE_KEY, sidebar.encode(state))
+        edited = snapshot(self.store)
+        self.run_merge(f"--sidebar-from={A}", "--apply")
+        records = json.loads((self.root / merge.MANIFEST_NAME).read_text())["localStorage"]
+        self.assertEqual(len(records), 2)
+
+        self.run_merge("--undo-sidebar")
+
+        self.assertEqual(snapshot(self.store), edited)
+        remaining = json.loads((self.root / merge.MANIFEST_NAME).read_text())["localStorage"]
+        self.assertEqual(remaining, records[:1])
+        self.run_merge("--undo")
+        self.assertEqual(snapshot(self.store), self.original)
+
+    def test_undo_sidebar_refuses_while_the_app_is_running(self) -> None:
+        self.run_merge(f"--sidebar-from={A}", "--apply")
+        written = snapshot(self.store)
+        manifest_before = (self.root / merge.MANIFEST_NAME).read_bytes()
+
+        with patch.object(local_storage, "app_running", return_value=True):
+            self.assertIn("Claude is running", self.refused("--undo-sidebar"))
+
+        self.assertEqual(snapshot(self.store), written)
+        self.assertEqual((self.root / merge.MANIFEST_NAME).read_bytes(), manifest_before)
+
+    def test_undo_sidebar_without_its_backup_keeps_the_record(self) -> None:
+        self.run_merge(f"--sidebar-from={A}", "--apply")
+        for backup in (self.root / merge.BACKUP_DIR).glob("local-storage-*"):
+            shutil.rmtree(backup)
+        manifest_before = (self.root / merge.MANIFEST_NAME).read_bytes()
+
+        report = self.run_merge("--undo-sidebar", code=1)
+
+        self.assertIn("was not restored", report)
+        self.assertEqual((self.root / merge.MANIFEST_NAME).read_bytes(), manifest_before)
+
     def test_bad_sources_and_stores_are_refused(self) -> None:
         self.assertIn("name one account", self.refused("--sidebar-from=all"))
         self.assertIn("No index directory", self.refused("--sidebar-from=nobody"))

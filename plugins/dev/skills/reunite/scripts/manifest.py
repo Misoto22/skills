@@ -97,6 +97,18 @@ def local_storage_records(root: Path) -> list[dict[str, str]]:
     return _valid(root, data.get(LOCAL_STORAGE_KEY), local_storage_record) if isinstance(data, dict) else []
 
 
+def drop_local_storage(root: Path, record: dict[str, str]) -> None:
+    """Forget one Local Storage backup record, leaving every other key of the manifest as it is."""
+    manifest = root / MANIFEST_NAME
+    data = json.loads(manifest.read_text())
+    kept = [held for held in data.get(LOCAL_STORAGE_KEY, []) if held != record]
+    if kept:
+        data[LOCAL_STORAGE_KEY] = kept
+    else:
+        data.pop(LOCAL_STORAGE_KEY, None)
+    manifest.write_text(json.dumps(data, indent=2))
+
+
 def write_manifest(
     root: Path,
     copied: list[str],
