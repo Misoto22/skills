@@ -20,6 +20,10 @@ tree back. Transcripts are never touched.
 
 The desktop app reads the index at startup and does not rescan it while running, so a
 run lands in the sidebar only after the app restarts.
+
+`--sidebar-from` also copies one account's sidebar layout — its manual groups and their
+members, section order and collapsed state — to every other account. That lives in the
+app's Local Storage, which can only be written while the app is fully quit.
 """
 
 from __future__ import annotations
@@ -35,8 +39,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import lifecycle
+import local_storage
 import mirror
-from manifest import BACKUP_DIR, MANIFEST_NAME, index_path, read_manifest, restore_backups, write_manifest
+import sidebar_sync
+from manifest import (
+    BACKUP_DIR,
+    MANIFEST_NAME,
+    index_path,
+    local_storage_records,
+    read_manifest,
+    restore_backups,
+    write_manifest,
+)
 
 SESSIONS_ROOT_ENV = "CLAUDE_DESKTOP_SESSIONS_DIR"
 CONFIG_DIR_ENV = "CLAUDE_CONFIG_DIR"
@@ -208,9 +222,13 @@ def undo(root: Path) -> int:
     """Remove the files previous runs created and restore every original they replaced."""
     manifest = root / MANIFEST_NAME
     copied, titles, backups = read_manifest(root, manifest)
-    if not copied and not titles and not backups:
+    stores = local_storage_records(root)
+    if not copied and not titles and not backups and not stores:
         print(f"Nothing to undo — no {MANIFEST_NAME} under {root}")
         return 0
+    if stores:
+        # First, before anything else is undone: it exits while the app is running.
+        sidebar_sync.undo(root, stores)
     removed = 0
     for path in copied:
         target = index_path(root, path)
@@ -272,6 +290,11 @@ def parse_args() -> argparse.Namespace:
         dest="authority",
         help="make one account the whole truth: 'current' or an accountUuid; what it lacks is deleted",
     )
+    parser.add_argument(
+        "--sidebar-from",
+        dest="sidebar_from",
+        help="copy this account's sidebar layout to every other account: 'current' or an accountUuid",
+    )
     return parser.parse_args()
 
 
@@ -328,8 +351,15 @@ def main() -> int:
     current = signed_in_account()
     report_state(root, tree, current)
     targets = resolve_targets(tree, args.into, current)
-    if args.authority == "all":
-        sys.exit("--from names one account: 'current' or an accountUuid.")
+    if "all" in (args.authority, args.sidebar_from):
+        sys.exit("--from and --sidebar-from name one account: 'current' or an accountUuid.")
+    store = local_storage.store_dir() if args.sidebar_from else None
+    if store:
+        source = resolve_targets(tree, args.sidebar_from, current)[0]
+        # Each account's scope is the org reunite lands its conversations in.
+        scopes = {a: f"{a}/{org}" for a, orgs in tree.items() if (org := landing_org(orgs)) is not None}
+        if args.apply:
+            sidebar_sync.check(store, source, scopes)
     authority = resolve_targets(tree, args.authority, current)[0] if args.authority else None
     if authority:
         print(f"\nAuthority: {authority} — every other account becomes a copy of it.")
@@ -338,6 +368,9 @@ def main() -> int:
     if not plan.writes and not plan.removals:
         print("  every account already holds the same conversations, byte for byte.")
     if not args.apply:
+        if store:
+            held = sidebar_sync.held_sessions(flatten(tree), plan)
+            sidebar_sync.run(root, store, source, scopes, held, apply=False)
         print("  report only — rerun with --apply to write.")
         return 0
 
@@ -352,10 +385,14 @@ def main() -> int:
     print(f"Originals kept in {BACKUP_DIR}/ and recorded in {manifest.name}; --undo puts them back.")
     if wrong:
         print(f"NOT ALIGNED: {len(wrong)} conversations still differ, e.g. {', '.join(wrong[:3])}")
-        return 1
-    print(f"Aligned: {len(after)} conversations identical across {len(targets)} account index(es).")
-    print("Restart the desktop app — it reads this index at startup and does not rescan while running.")
-    return 0
+    else:
+        print(f"Aligned: {len(after)} conversations identical across {len(targets)} account index(es).")
+        print("Restart the desktop app — it reads this index at startup and does not rescan while running.")
+    status = 0
+    if store:
+        held = sidebar_sync.held_sessions(flatten(scan(root)))
+        status = sidebar_sync.run(root, store, source, scopes, held, apply=True)
+    return 1 if wrong else status
 
 
 if __name__ == "__main__":
