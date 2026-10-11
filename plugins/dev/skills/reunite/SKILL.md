@@ -4,7 +4,7 @@ description: Make every signed-in account in the desktop app hold the same conve
 license: MIT
 metadata:
   version: "0.20.0" # x-release-please-version
-argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--from=current|<accountUuid>] [--sidebar-from=current|<accountUuid>] [--undo]"
+argument-hint: "[--apply] [--into=all|current|<accountUuid>] [--from=current|<accountUuid>] [--sidebar-from=current|<accountUuid>] [--undo] [--undo-sidebar]"
 ---
 
 # Reunite
@@ -82,7 +82,7 @@ python3 scripts/merge.py --sidebar-from=<accountUuid> --apply  # write
 
 **The app must be fully quit** — Cmd-Q, not a closed window. It holds the database open and writes the layout back from memory, so anything written while it runs is lost. The script refuses while a process named `Claude` runs or anything holds LevelDB's `LOCK`, so it cannot run from the app's own Code tab or terminal: hand the user the command for Terminal, or run it from a `claude` session started there. It refuses before writing anything, the index included.
 
-Before writing it copies the whole LevelDB directory to `.session-merge-backup/local-storage-<UTC timestamp>/` and records it in the manifest, appends one record, and reads the key back — restoring the copy and exiting non-zero if what landed differs. `--undo`, again only with the app quit, restores the earliest copy and keeps the directory it replaced under `.session-merge-replaced/`. The layout appears when the app next starts.
+Before writing it copies the whole LevelDB directory to `.session-merge-backup/local-storage-<UTC timestamp>/` and records it in the manifest, appends one record, and reads the key back — restoring the copy and exiting non-zero if what landed differs. `--undo`, again only with the app quit, restores the earliest copy and keeps the directory it replaced under `.session-merge-replaced/`. `--undo-sidebar` reverts only the latest sidebar write — same checks, same kept copy — and forgets just its record, leaving every index file, the baseline and the rest of the manifest as they are. The layout appears when the app next starts.
 
 It reaches only this machine's Code-tab sidebar. Artifacts, projects, chats and anything else claude.ai keeps server-side per account cannot be synced from here — say so when asked.
 
