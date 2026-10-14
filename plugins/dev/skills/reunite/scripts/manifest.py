@@ -9,7 +9,9 @@ relative path, so its location is derived from a validated path, never read from
 
 A copy of the desktop app's Local Storage, taken before the sidebar layout is written,
 is recorded by its directory name under ``BACKUP_DIR`` and the store it was taken from;
-only a name in the shape this script writes is accepted back.
+only a name in the shape this script writes is accepted back. The environments file's
+original is recorded the same way: a gzipped copy under ``BACKUP_DIR`` by a name in the
+shape this script writes, and the file it was taken from.
 """
 
 from __future__ import annotations
@@ -25,6 +27,8 @@ MANIFEST_NAME = ".session-merge-manifest.json"
 BACKUP_DIR = ".session-merge-backup"
 LOCAL_STORAGE_KEY = "localStorage"
 _LOCAL_STORAGE_BACKUP = re.compile(r"local-storage-\d{8}T\d{6}Z(-\d+)?")
+ENVIRONMENTS_KEY = "environments"
+ENVIRONMENTS_BACKUP = re.compile(r"ccd-session-presets-\d{8}T\d{6}Z\.json\.gz")
 
 
 def index_path(root: Path, raw_path: object) -> Path | None:
@@ -97,6 +101,30 @@ def local_storage_records(root: Path) -> list[dict[str, str]]:
     return _valid(root, data.get(LOCAL_STORAGE_KEY), local_storage_record) if isinstance(data, dict) else []
 
 
+def environments_record(_root: Path, record: object) -> dict[str, object] | None:
+    """Keep an environments-file backup record only when its name is one this script writes."""
+    if not isinstance(record, dict):
+        return None
+    name, source, mtime = record.get("backup"), record.get("file"), record.get("mtime")
+    if not isinstance(name, str) or not ENVIRONMENTS_BACKUP.fullmatch(name):
+        return None
+    if not isinstance(source, str) or not source:
+        return None
+    kept: dict[str, object] = {"backup": name, "file": source}
+    if isinstance(mtime, (int, float)):
+        kept["mtime"] = mtime
+    return kept
+
+
+def environments_records(root: Path) -> list[dict[str, object]]:
+    """Every environments-file backup recorded so far, earliest first."""
+    try:
+        data = json.loads((root / MANIFEST_NAME).read_text())
+    except (OSError, ValueError):
+        return []
+    return _valid(root, data.get(ENVIRONMENTS_KEY), environments_record) if isinstance(data, dict) else []
+
+
 def drop_local_storage(root: Path, record: dict[str, str]) -> None:
     """Forget one Local Storage backup record, leaving every other key of the manifest as it is."""
     manifest = root / MANIFEST_NAME
@@ -114,6 +142,7 @@ def write_manifest(
     copied: list[str],
     backups: list[dict[str, object]],
     local_storage: dict[str, str] | None = None,
+    environments: dict[str, object] | None = None,
 ) -> Path:
     """Merge this run's record into the manifest --undo reads."""
     manifest = root / MANIFEST_NAME
@@ -127,6 +156,9 @@ def write_manifest(
         payload["titles"] = held_titles
     if stores:
         payload[LOCAL_STORAGE_KEY] = stores
+    presets = environments_records(root) + _valid(root, [environments], environments_record)
+    if presets:
+        payload[ENVIRONMENTS_KEY] = presets
     manifest.write_text(json.dumps(payload, indent=2))
     return manifest
 

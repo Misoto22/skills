@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import align
+import environments_sync
 import lifecycle as lifecycle
 import local_storage
 import sidebar_sync
@@ -62,6 +63,12 @@ def parse_args() -> argparse.Namespace:
         "--from",
         dest="authority",
         help="make one account the whole truth: 'current' or an accountUuid; what it lacks is deleted",
+    )
+    parser.add_argument(
+        "--no-environments",
+        dest="environments",
+        action="store_false",
+        help="leave the environments file alone; by default every account gets the same environments",
     )
     sidebar_sync.add_arguments(parser)
     return parser.parse_args()
@@ -114,7 +121,10 @@ def main() -> int:
     report_plan(plan, life, targets, orphans)
     if not plan.writes and not plan.removals:
         print("  every account already holds the same conversations, byte for byte.")
+    everyone = args.into == "all"
     if not args.apply:
+        if args.environments:
+            environments_sync.run(root, targets, everyone, apply=False)
         if store:
             held = sidebar_sync.held_sessions(flatten(tree), plan)
             sidebar_sync.run(root, store, source, scopes, held, apply=False)
@@ -131,11 +141,12 @@ def main() -> int:
         across = f"across {len(targets)} account index(es)"
         print(f"Aligned: {applied.conversations} conversations identical {across}.")
         print("Restart the desktop app — it reads this index at startup and does not rescan while running.")
+    env_status = environments_sync.run(root, targets, everyone, apply=True) if args.environments else 0
     status = 0
     if store:
         held = sidebar_sync.held_sessions(flatten(scan(root)))
         status = sidebar_sync.run(root, store, source, scopes, held, apply=True)
-    return 1 if wrong else status
+    return 1 if wrong else status or env_status
 
 
 if __name__ == "__main__":

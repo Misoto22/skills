@@ -7,9 +7,17 @@ import os
 import sys
 from pathlib import Path
 
+import environments_sync
 import lifecycle
 import sidebar_sync
-from manifest import MANIFEST_NAME, index_path, local_storage_records, read_manifest, restore_backups
+from manifest import (
+    MANIFEST_NAME,
+    environments_records,
+    index_path,
+    local_storage_records,
+    read_manifest,
+    restore_backups,
+)
 
 TITLE_FIELDS = ("title", "titleSource", "previousTitles")
 
@@ -19,12 +27,17 @@ def undo(root: Path) -> int:
     manifest = root / MANIFEST_NAME
     copied, titles, backups = read_manifest(root, manifest)
     stores = local_storage_records(root)
-    if not copied and not titles and not backups and not stores:
+    presets = environments_records(root)
+    if not copied and not titles and not backups and not stores and not presets:
         print(f"Nothing to undo — no {MANIFEST_NAME} under {root}")
         return 0
+    # These two exit when they cannot restore, so they run before anything else is undone.
+    environments_sync.check_undo(root, presets)
     if stores:
-        # First, before anything else is undone: it exits while the app is running.
         sidebar_sync.undo(root, stores)
+    if presets:
+        # Before restore_backups, which drops the backup directory this one is read from.
+        environments_sync.undo(root, presets)
     removed = 0
     for path in copied:
         target = index_path(root, path)
