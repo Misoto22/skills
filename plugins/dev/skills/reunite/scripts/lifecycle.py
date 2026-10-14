@@ -84,8 +84,11 @@ def load_baseline(root: Path) -> Baseline | None:
 def save_baseline(root: Path, sessions: dict[str, list[Copy]], deleted: set[str]) -> None:
     """Record what is on disk now, so the next run can tell what the user changed."""
     held = {sid: {c.account: c.archived for c in copies} for sid, copies in sorted(sessions.items())}
-    payload = {"held": held, "deleted": sorted(deleted)}
-    (root / BASELINE_NAME).write_text(json.dumps(payload, separators=(",", ":")))
+    payload = json.dumps({"held": held, "deleted": sorted(deleted)}, separators=(",", ":"))
+    path = root / BASELINE_NAME
+    # Rewriting identical bytes would still be a write, and the service must be able to do nothing.
+    if not path.exists() or path.read_text() != payload:
+        path.write_text(payload)
 
 
 def vanished_copies(root: Path, copied: list[str]) -> dict[str, set[str]]:

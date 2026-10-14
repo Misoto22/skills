@@ -21,9 +21,17 @@ tree back. Transcripts are never touched.
 The desktop app reads the index at startup and does not rescan it while running, so a
 run lands in the sidebar only after the app restarts.
 
+Every account also gets the same environments — the named working directories the app
+offers when a session starts — with deletions carried and never brought back;
+`--no-environments` skips that.
+
 `--sidebar-from` also copies one account's sidebar layout — its manual groups and their
-members, section order and collapsed state — to every other account. That lives in the
-app's Local Storage, which can only be written while the app is fully quit.
+members, section order and collapsed state — and its starred environments to every other
+account. That lives in the app's Local Storage, which can only be written while the app
+is fully quit.
+
+`--install-service` keeps all of this in step in the background with a launchd agent;
+`--service-status` and `--uninstall-service` look at it and remove it.
 """
 
 from __future__ import annotations
@@ -38,6 +46,8 @@ import align
 import environments_sync
 import lifecycle as lifecycle
 import local_storage
+import service
+import service_run
 import sidebar_sync
 from index_tree import CONFIG_DIR_ENV as CONFIG_DIR_ENV
 from index_tree import SESSIONS_ROOT_ENV as SESSIONS_ROOT_ENV
@@ -71,6 +81,7 @@ def parse_args() -> argparse.Namespace:
         help="leave the environments file alone; by default every account gets the same environments",
     )
     sidebar_sync.add_arguments(parser)
+    service.add_arguments(parser)
     return parser.parse_args()
 
 
@@ -92,11 +103,31 @@ def resolve_targets(tree: dict[str, dict[str, list[Entry]]], into: str, current:
 def main() -> int:
     args = parse_args()
     root = sessions_root()
+    if args.service_run:
+        return service_run.run(root)
+    if args.install_service:
+        return service.install(root, Path(__file__).resolve().parent)
+    if args.uninstall_service:
+        return service.uninstall()
+    if args.service_status:
+        return service.status(root)
+    if (args.undo or args.undo_sidebar) and service.installed():
+        # The agent would realign straight after, and a pass could interleave with the restore.
+        sys.exit("The reunite service is installed. Run merge.py --uninstall-service first, then undo.")
     if args.undo:
         return undo(root)
     if args.undo_sidebar:
         return sidebar_sync.undo_latest(root)
+    if args.apply:
+        with service_run.exclusive_run(root) as acquired:
+            if not acquired:
+                sys.exit("A reunite service pass is running right now; rerun in a minute.")
+            return align_and_report(root, args)
+    return align_and_report(root, args)
 
+
+def align_and_report(root: Path, args: argparse.Namespace) -> int:
+    """Report the plan, and with --apply write it."""
     tree = scan(root)
     if len(tree) < 2:
         print(f"Only one account index under {root} — nothing to align.")

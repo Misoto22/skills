@@ -55,7 +55,8 @@ def plan_run(root: Path, tree, targets: list[str], authority: str | None = None,
 def apply_plan(root: Path, plan, life, targets: list[str], created_before: set[str]) -> Applied:
     """Write the plan, record it for --undo, save the baseline, and rescan to verify."""
     created, backups = mirror.apply_mirror(root, plan, created_before)
-    manifest = write_manifest(root, created, backups)
+    # Only a run that wrote something changes the record, so a run with nothing to do writes nothing.
+    manifest = write_manifest(root, created, backups) if created or backups else root / MANIFEST_NAME
     after = lifecycle.copies_by_session(flatten(scan(root)))
     # Recorded even when nothing was written: without it, the next deletion is invisible.
     lifecycle.save_baseline(root, after, life.deleted)
