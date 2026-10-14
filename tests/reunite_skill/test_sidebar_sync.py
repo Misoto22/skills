@@ -221,26 +221,26 @@ class SidebarRunTests(unittest.TestCase):
         self.assertEqual(len(list((self.root / merge.BACKUP_DIR).glob("local-storage-*"))), 1)
 
     def test_a_value_that_reads_back_wrong_is_rolled_back(self) -> None:
-        real_put = ldb_store.put
+        real_put = ldb_store.put_many
 
-        def corrupting_put(store: Path, key: bytes, value: bytes) -> int:
-            return real_put(store, key, value + b" ")
+        def corrupting_put(store: Path, operations) -> int:
+            return real_put(store, [(key, value + b" ") for key, value in operations])
 
-        with patch.object(ldb_store, "put", corrupting_put):
+        with patch.object(ldb_store, "put_many", corrupting_put):
             report = self.run_merge(f"--sidebar-from={A}", "--apply", code=1)
 
         self.assertIn("SIDEBAR NOT WRITTEN", report)
         self.assertEqual(snapshot(self.store), self.original)
 
     def test_a_write_that_fails_part_way_is_rolled_back(self) -> None:
-        real_put = ldb_store.put
+        real_put = ldb_store.put_many
 
-        def failing_put(store: Path, key: bytes, value: bytes) -> int:
-            real_put(store, key, value)
+        def failing_put(store: Path, operations) -> int:
+            real_put(store, operations)
             raise ldb_store.LevelDBError("disk went away")
 
         errors = io.StringIO()
-        with patch.object(ldb_store, "put", failing_put), contextlib.redirect_stderr(errors):
+        with patch.object(ldb_store, "put_many", failing_put), contextlib.redirect_stderr(errors):
             report = self.run_merge(f"--sidebar-from={A}", "--apply", code=1)
 
         self.assertIn("disk went away", errors.getvalue())
