@@ -44,6 +44,16 @@ The conversation list is only half of what the sidebar shows. The groups you mad
 
 This one needs the app fully quit (Cmd-Q), because the app keeps the layout in memory and would write over the change; the script checks and refuses otherwise, so run it from Terminal rather than from inside the app. It copies the whole storage directory first, checks the new value after writing and puts the copy back if anything is off, and `--undo` restores it. To take back only the latest layout change and keep your aligned conversation lists, use `--undo-sidebar` instead. It only reaches the desktop app's sidebar on this machine: artifacts and anything claude.ai keeps on its servers per account stay where they are.
 
+## Environments and stars
+
+The environment picker is per account too. Every run now gives each account the same environments — the named working folders offered when a session starts — and carries a deletion to every account without ever copying it back. An account that suddenly holds none is left alone rather than read as "delete everything", because the app empties an account when it resets one. Which environments are starred is kept with the sidebar layout, so `--sidebar-from` copies the stars along with the groups.
+
+## Keeping it in step in the background
+
+`--install-service` installs a small macOS background agent that reruns the alignment whenever the index or the environments change, and every five minutes. It waits until you have run `--apply` yourself once, never deletes anything you did not delete, never brings a deleted conversation or environment back, and only touches the sidebar layout while the app is quit. `--service-status` shows its last run; `--uninstall-service` removes it, and is needed before `--undo`.
+
+Some things cannot be synced from this machine at all, because claude.ai keeps them on its servers per account: cloud environments, artifacts, projects, chats, and routines or scheduled tasks.
+
 ## The restart
 
 A run does not appear until the desktop app restarts. The app reads this index when it starts and does not look at the directory again while it is running.

@@ -6,9 +6,10 @@ last sequence number handed out. A key's value is the entry with the highest seq
 number across those tables and the live logs; a deletion with the highest sequence
 means the key is gone.
 
-Writing appends one WriteBatch to the newest live log, numbered past every sequence on
-disk. LevelDB replays its logs when it next opens the database, so the value takes
-effect then — which is also why nothing may hold the database open while this writes.
+Writing appends one WriteBatch — one or several puts and deletes — to the newest live
+log, numbered past every sequence on disk. LevelDB replays its logs when it next opens
+the database, so the value takes effect then — which is also why nothing may hold the
+database open while this writes.
 """
 
 from __future__ import annotations
@@ -144,8 +145,30 @@ def read(directory: Path, key: bytes) -> bytes | None:
     return find(directory, key).value
 
 
+def read_many(directory: Path, keys: list[bytes]) -> dict[bytes, bytes | None]:
+    """The current value of each of ``keys`` — None where absent or deleted — in one pass."""
+    version = read_version(directory)
+    sources = [ldb_table.table_entries(table_path(directory, n)) for n in sorted(version.tables)]
+    sources += [_log_entries(path) for path in live_logs(directory, version)]
+    wanted = set(keys)
+    best: dict[bytes, tuple[int, int, bytes | None]] = {}
+    for source in sources:
+        for user_key, sequence, kind, value in source:
+            if user_key in wanted and sequence > best.get(user_key, (-1,))[0]:
+                best[user_key] = (sequence, kind, value)
+    return {key: best[key][2] if key in best and best[key][1] == ldb_log.TYPE_VALUE else None for key in keys}
+
+
 def put(directory: Path, key: bytes, value: bytes) -> int:
     """Append a put for ``key`` to the newest live log; return the sequence it was given."""
+    return put_many(directory, [(key, value)])
+
+
+def put_many(directory: Path, operations: list[tuple[bytes, bytes | None]]) -> int:
+    """Append one batch of puts and deletes (a None value) to the newest live log.
+
+    Returns the sequence the first operation was given; the rest follow it in order.
+    """
     version = read_version(directory)
     logs = live_logs(directory, version)
     if not logs:
@@ -153,6 +176,6 @@ def put(directory: Path, key: bytes, value: bytes) -> int:
     current = logs[-1]
     if not ldb_log.read_records(current.read_bytes()).clean_end:
         raise LevelDBError(f"{current.name} ends inside a record; the database was not closed cleanly")
-    sequence = find(directory, key).max_sequence + 1
-    ldb_log.append_record(current, ldb_log.encode_batch(sequence, key, value))
+    sequence = find(directory, operations[0][0]).max_sequence + 1
+    ldb_log.append_record(current, ldb_log.encode_operations(sequence, operations))
     return sequence

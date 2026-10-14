@@ -19,7 +19,9 @@ import copy
 import json
 from dataclasses import dataclass
 
-STORE_KEY = b"_https://claude.ai\x00\x01dframe-store"
+# Chromium prefixes every Local Storage key with its origin, then 0x00 0x01.
+ORIGIN = b"_https://claude.ai\x00\x01"
+STORE_KEY = ORIGIN + b"dframe-store"
 SECTIONS_BY_SCOPE = "codeSidebarByScope"
 GROUPS_BY_SCOPE = "customGroupsByScope"
 MANUAL = "manual"

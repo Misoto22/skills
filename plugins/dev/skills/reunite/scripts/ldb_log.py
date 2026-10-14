@@ -120,8 +120,22 @@ def append_record(path: Path, payload: bytes) -> None:
 
 def encode_batch(sequence: int, key: bytes, value: bytes) -> bytes:
     """A WriteBatch holding exactly one put."""
-    body = bytes([TYPE_VALUE]) + encode_varint(len(key)) + key + encode_varint(len(value)) + value
-    return _BATCH_HEADER.pack(sequence, 1) + body
+    return encode_operations(sequence, [(key, value)])
+
+
+def encode_operations(sequence: int, operations: list[tuple[bytes, bytes | None]]) -> bytes:
+    """A WriteBatch applying every (key, value) in order; a None value deletes the key.
+
+    LevelDB applies a batch whole or not at all, which is why several keys that must
+    change together are written as one.
+    """
+    body = bytearray()
+    for key, value in operations:
+        if value is None:
+            body += bytes([TYPE_DELETION]) + encode_varint(len(key)) + key
+        else:
+            body += bytes([TYPE_VALUE]) + encode_varint(len(key)) + key + encode_varint(len(value)) + value
+    return _BATCH_HEADER.pack(sequence, len(operations)) + bytes(body)
 
 
 def decode_batch(payload: bytes) -> list[tuple[int, int, bytes, bytes | None]]:

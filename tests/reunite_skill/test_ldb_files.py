@@ -106,6 +106,19 @@ class WriteBatchTests(unittest.TestCase):
         batch = struct.pack("<QI", 7, 2) + b"\x00\x01a" + b"\x01\x01b\x01c"
         self.assertEqual(ldb_log.decode_batch(batch), [(7, 0, b"a", None), (8, 1, b"b", b"c")])
 
+    def test_several_puts_and_a_delete_encode_as_one_batch(self) -> None:
+        batch = ldb_log.encode_operations(9, [(b"a", b"1"), (b"b", None), (b"c", b"3")])
+
+        self.assertEqual(
+            ldb_log.decode_batch(batch),
+            [
+                (9, ldb_log.TYPE_VALUE, b"a", b"1"),
+                (10, ldb_log.TYPE_DELETION, b"b", None),
+                (11, 1, b"c", b"3"),
+            ],
+        )
+        self.assertEqual(ldb_log.encode_batch(9, b"a", b"1"), ldb_log.encode_operations(9, [(b"a", b"1")]))
+
     def test_malformed_batches_are_errors(self) -> None:
         for batch in (
             b"short",
@@ -192,6 +205,19 @@ class StoreTests(FixtureCase):
         self.assertEqual(ldb_store.put(self.db, DFRAME, b"\x01{}"), sequence + 1)
         self.assertEqual(ldb_store.read(self.db, DFRAME), b"\x01{}")
         self.assertEqual(ldb_store.read(self.db, ORIGIN + b"after-compaction"), b"\x01log-only")
+
+    def test_put_many_writes_puts_and_deletes_in_one_record(self) -> None:
+        log = self.db / "000004.log"
+        records_before = len(ldb_log.read_records(log.read_bytes()).records)
+        before = ldb_store.find(self.db, DFRAME).max_sequence
+
+        sequence = ldb_store.put_many(self.db, [(ORIGIN + b"new", b"\x01v"), (ORIGIN + b"filler-000", None)])
+
+        self.assertEqual(sequence, before + 1)
+        self.assertEqual(len(ldb_log.read_records(log.read_bytes()).records), records_before + 1)
+        self.assertEqual(ldb_store.read(self.db, ORIGIN + b"new"), b"\x01v")
+        self.assertIsNone(ldb_store.read(self.db, ORIGIN + b"filler-000"))
+        self.assertEqual(ldb_store.find(self.db, DFRAME).max_sequence, before + 2)
 
     def test_put_refuses_a_log_that_ends_inside_a_record(self) -> None:
         log = self.db / "000004.log"
