@@ -18,6 +18,7 @@ from manifest import (
     read_manifest,
     restore_backups,
 )
+from service import STATE_NAME
 
 TITLE_FIELDS = ("title", "titleSource", "previousTitles")
 
@@ -52,7 +53,10 @@ def undo(root: Path) -> int:
             print(f"  could not remove {path}: {error}", file=sys.stderr)
     restored = restore_backups(root, backups, set(copied))
     retitled = restore_titles(root, titles)
-    (root / lifecycle.BASELINE_NAME).unlink(missing_ok=True)
+    # Every record of a previous state goes, so the next run starts over rather than comparing
+    # against what this undo just took back.
+    for name in (lifecycle.BASELINE_NAME, environments_sync.BASELINE_NAME, STATE_NAME):
+        (root / name).unlink(missing_ok=True)
     manifest.unlink(missing_ok=True)
     print(f"Removed {removed} of {len(copied)} created entries.")
     print(f"Restored {restored} of {len(backups)} originals.")

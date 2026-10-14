@@ -334,6 +334,8 @@ class ServiceRunTests(ServiceCase):
 
         self.assertFalse((self.root / B / ORGS[B] / "local_s2.json").exists())
         self.assertFalse((self.root / B / ORGS[B] / "local_s1.json").exists())
+        # A later install starts over: its first pass records rather than compares.
+        self.assertFalse((self.root / service.STATE_NAME).exists())
 
     def test_an_error_is_logged_and_recorded_without_contents(self) -> None:
         self.run_merge("--apply")
