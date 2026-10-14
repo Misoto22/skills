@@ -8,7 +8,8 @@ and every target account receives exactly those bytes — overwriting a stale co
 creating one where the account has none. A conversation deleted under one account is
 removed from all of them.
 
-Every overwritten or removed original is backed up first, and every written file takes
+Every overwritten or removed original is backed up first, every file is replaced in one
+rename so neither the app nor a crash ever sees half of one, and every written file takes
 the canonical copy's mtime, so the copies stay identical down to the timestamp and a
 later change by the user is the only thing that can make one of them newest.
 """
@@ -16,10 +17,10 @@ later change by the user is the only thing that can make one of them newest.
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import atomic
 from lifecycle import ARCHIVE_FIELD, Copy, LifecyclePlan
 from manifest import manifest_path, save_backup
 
@@ -120,8 +121,8 @@ def apply_mirror(root: Path, plan: MirrorPlan, created_before: set[str]) -> tupl
             created.append(str(write.dest))
         else:
             back_up(write.dest)
-        write.dest.write_bytes(write.content)
-        os.utime(write.dest, (write.mtime, write.mtime))
+        # Atomic: the app may read this file at any moment, and a crash must not halve it.
+        atomic.write_bytes(write.dest, write.content, write.mtime)
     return created, backups
 
 
