@@ -71,6 +71,15 @@
         "Writes every list name and description in the plan in English.",
         "Runs check on the plan before showing the diff."
       ]
+    },
+    {
+      "id": "restore-shows-deletions",
+      "prompt": "Restore my star lists from star-lists-backups/star-lists-octo-20261101T120000Z.json. I've created two new lists since that backup.",
+      "expectations": [
+        "Runs diff on the backup with --allow-unassigned before any write.",
+        "Points out that the two lists created after the backup would be deleted by the restore.",
+        "Waits for an explicit yes before running apply --yes."
+      ]
     }
   ]
 }

@@ -106,6 +106,24 @@
         "Does not copy commands, versions, licences, or topics between the repositories without evidence in each repository.",
         "Returns one handoff with a separate result, verification state, and blocker for each repository."
       ]
+    },
+    {
+      "id": "render-check-unpushed",
+      "prompt": "Rewrite the README for this repo. I've read it for you: package.json name is tidewatch, description \"Offline tide and swell tables for small-boat sailors\", license MIT, scripts dev: \"vite\", build: \"vite build\", test: \"vitest run\"; source is in src/; CI runs npm ci and npm test. I'm on a local branch I haven't pushed, and this machine has no network access.",
+      "expectations": [
+        "Writes the README from the stated facts rather than refusing for lack of network.",
+        "Reports the rendered-page check on the forge as not run, and says why.",
+        "Does not describe the README as verified, checked, or rendering correctly on the forge."
+      ]
+    },
+    {
+      "id": "picture-without-asset",
+      "prompt": "Tidy the top of this README. It opens with a <picture> block whose <source> and <img> both point at assets/hero-light.svg and assets/hero-dark.svg, but there is no assets/ directory and no image anywhere in the repo. Don't design a new banner.",
+      "expectations": [
+        "Removes the whole <picture> block, the <source> as well as the <img>, together with the <br /> that follows it.",
+        "Leaves no placeholder or empty image path behind.",
+        "Does not draw or commission new artwork."
+      ]
     }
   ]
 }
