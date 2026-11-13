@@ -45,16 +45,26 @@ def compute(plan: dict, snapshot: dict) -> Changes:
             changes.creates.append(planned)
         elif _differs(live, planned):
             changes.updates.append((live, planned))
-    name_by_key = {item["key"]: item["name"] for item in plan["lists"]}
-    current: dict[str, list[str]] = {repo["name"]: [] for repo in snapshot["stars"]}
-    for item in snapshot["lists"]:
-        for repo in item["items"]:
-            current.setdefault(repo, []).append(item["name"])
-    for repo in sorted(current):
-        target = sorted(name_by_key[key] for key in plan["assignments"].get(repo, []))
-        if sorted(current[repo]) != target:
-            changes.moves.append((repo, sorted(current[repo]), target))
+    changes.moves = _moves(plan, snapshot)
     return changes
+
+
+def _moves(plan: dict, snapshot: dict) -> list[tuple[str, list[str], list[str]]]:
+    # Membership is compared by list identity, not name: a renamed list keeps
+    # its members, so none of them needs a write.
+    name_by_key = {item["key"]: item["name"] for item in plan["lists"]}
+    key_by_id = {item["id"]: item["key"] for item in plan["lists"] if item.get("id")}
+    current: dict[str, dict[str, str]] = {repo["name"]: {} for repo in snapshot["stars"]}
+    for item in snapshot["lists"]:
+        key = key_by_id.get(item["id"], f"deleted {item['id']}")
+        for repo in item["items"]:
+            current.setdefault(repo, {})[key] = item["name"]
+    moves = []
+    for repo in sorted(current):
+        target = set(plan["assignments"].get(repo, []))
+        if set(current[repo]) != target:
+            moves.append((repo, sorted(current[repo].values()), sorted(name_by_key[key] for key in target)))
+    return moves
 
 
 def render(changes: Changes) -> str:

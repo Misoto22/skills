@@ -32,6 +32,16 @@ class ComputeTests(unittest.TestCase):
         self.assertTrue(changes.empty())
         self.assertIn("No changes", lists_changes.render(changes))
 
+    def test_renaming_a_list_moves_none_of_its_members(self) -> None:
+        plan = lists_plan.snapshot_to_plan(account())
+        plan["lists"][0]["name"] = "Dev Tools"
+        changes = lists_changes.compute(plan, account())
+        self.assertEqual(changes.moves, [])
+        github = run(plan)
+        self.assertFalse([call for call in github.calls if call[0] == "set"])
+        tools = next(item for item in github.snapshot()["lists"] if item["id"] == "L1")
+        self.assertEqual((tools["name"], tools["items"]), ("Dev Tools", ["a/agent"]))
+
     def test_every_kind_of_change_is_found_and_rendered(self) -> None:
         plan = base_plan()
         plan["lists"][0].update(name="Dev Tools", description="CLI")
