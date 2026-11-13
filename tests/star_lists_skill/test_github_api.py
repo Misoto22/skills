@@ -111,6 +111,21 @@ class RetryTests(unittest.TestCase):
         with self.assertRaisesRegex(github_api.GitHubError, "Could not resolve"):
             github_api.GitHub(runner, sleep=lambda _: None).call("query { x }")
 
+    def test_http_error_body_without_data_is_retried_when_throttled(self) -> None:
+        # gh prints a REST-style body on a 403, with a message and no errors list.
+        sleeps: list[float] = []
+        runner = ScriptedRunner(
+            [{"message": "You have exceeded a secondary rate limit."}, {"data": {"ok": 1}}]
+        )
+        data = github_api.GitHub(runner, sleep=sleeps.append).call("mutation { x }")
+        self.assertEqual(data, {"ok": 1})
+        self.assertEqual(sleeps, [github_api.RETRY_DELAYS[0]])
+
+    def test_http_error_body_without_data_fails_cleanly(self) -> None:
+        runner = ScriptedRunner([{"message": "Bad credentials"}])
+        with self.assertRaisesRegex(github_api.GitHubError, "Bad credentials"):
+            github_api.GitHub(runner, sleep=lambda _: None).call("query { x }")
+
     def test_throttling_that_never_ends_gives_up(self) -> None:
         throttled = {"errors": [{"message": "was submitted too quickly"}]}
         runner = ScriptedRunner([throttled] * (len(github_api.RETRY_DELAYS) + 1))

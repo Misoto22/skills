@@ -109,6 +109,42 @@ class PruneCliTests(unittest.TestCase):
         self.assertIn("list no longer exists, skipped: Old", out)
         self.assertEqual(self.run_cli("restore", str(backup), "--yes")[0], 0)
 
+    def test_apply_unstars_by_the_live_id_not_the_file(self) -> None:
+        document = self.scanned()
+        target = next(c for c in document["candidates"] if c["name"] == "old/archived")
+        target["id"] = "R-live/tool"
+        other = next(c for c in document["candidates"] if c["action"] == "unstar" and c is not target)
+        del other["id"]
+        (self.dir / "prune.json").write_text(json.dumps(document))
+        code, out, _ = self.run_cli("apply", "prune.json", "--yes")
+        self.assertEqual(code, 0, out)
+        starred = {star["name"] for star in self.github.snapshot()["stars"]}
+        self.assertIn("live/tool", starred)
+        self.assertNotIn("old/archived", starred)
+        self.assertNotIn(other["name"], starred)
+
+    def test_restore_keeps_lists_added_since_the_prune(self) -> None:
+        self.scanned()
+        self.run_cli("apply", "prune.json", "--yes")
+        backup = next((self.dir / "star-prune-backups").glob("*.json"))
+        self.github.add_star("R-old/archived")
+        added = self.github.create_list("Later", "", False)
+        self.github.set_item_lists("R-old/archived", [added])
+        code, out, _ = self.run_cli("restore", str(backup), "--yes")
+        self.assertEqual(code, 0, out)
+        member_of = {i["name"] for i in self.github.snapshot()["lists"] if "old/archived" in i["items"]}
+        self.assertEqual(member_of, {"Later", "Old", "Tools"})
+
+    def test_restore_fails_when_lists_did_not_come_back(self) -> None:
+        self.scanned()
+        self.run_cli("apply", "prune.json", "--yes")
+        backup = next((self.dir / "star-prune-backups").glob("*.json"))
+        with mock.patch.object(self.github, "set_item_lists", lambda *_: None):
+            code, out, _ = self.run_cli("restore", str(backup), "--yes")
+        self.assertEqual(code, prune.EXIT_FAILED)
+        self.assertIn("old/archived", out)
+        self.assertNotIn("Restored and verified", out)
+
     def test_generated_files_are_english(self) -> None:
         state = account()
         state["stars"][1]["description"] = chr(0x5DE5) + chr(0x5177)

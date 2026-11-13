@@ -89,11 +89,18 @@ def cmd_scan(github: GitHub, args: argparse.Namespace) -> int:
 
 
 def _targets(document: dict, snapshot: dict) -> list[dict]:
-    starred = {star["name"] for star in snapshot["stars"]}
-    for candidate in document.get("candidates", []):
+    # The id comes from the live account, never from the editable file, so a
+    # hand-edited or missing id cannot unstar the wrong repository.
+    live_ids = {star["name"]: star["id"] for star in snapshot["stars"]}
+    candidates = document.get("candidates", [])
+    for candidate in candidates:
         if candidate.get("action") not in rules.ACTIONS:
             raise PruneError(f"{candidate.get('name')}: action must be one of {', '.join(rules.ACTIONS)}")
-    return [c for c in document["candidates"] if c["action"] == "unstar" and c["name"] in starred]
+    return [
+        {**c, "id": live_ids[c["name"]]}
+        for c in candidates
+        if c["action"] == "unstar" and c.get("name") in live_ids
+    ]
 
 
 def cmd_apply(github: GitHub, args: argparse.Namespace) -> int:
@@ -135,6 +142,14 @@ def cmd_apply(github: GitHub, args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _list_ids_by_repo(snapshot: dict) -> dict[str, list[str]]:
+    members: dict[str, list[str]] = {}
+    for item in snapshot["lists"]:
+        for repo in item["items"]:
+            members.setdefault(repo, []).append(item["id"])
+    return members
+
+
 def cmd_restore(github: GitHub, args: argparse.Namespace) -> int:
     snapshot = github.snapshot()
     backup = _read(args.backup, BACKUP_FORMAT, snapshot["login"])
@@ -153,14 +168,22 @@ def cmd_restore(github: GitHub, args: argparse.Namespace) -> int:
         return EXIT_NEEDS_CONFIRMATION
     for repo in missing:
         github.add_star(repo["id"])
+    wanted = {repo["name"]: [e["id"] for e in repo["lists"] if e["id"] in live_lists] for repo in repos}
+    have = _list_ids_by_repo(snapshot)
     for repo in repos:
-        github.set_item_lists(
-            repo["id"], [entry["id"] for entry in repo["lists"] if entry["id"] in live_lists]
-        )
+        current = have.get(repo["name"], []) if repo not in missing else []
+        # Setting lists replaces them all, so keep any list added since the prune.
+        if not set(wanted[repo["name"]]) <= set(current):
+            github.set_item_lists(repo["id"], current + [i for i in wanted[repo["name"]] if i not in current])
     after = github.snapshot()
     not_back = sorted({repo["name"] for repo in repos} - {star["name"] for star in after["stars"]})
     if not_back:
         print(f"Restored, but these are still not starred: {', '.join(not_back)}")
+        return EXIT_FAILED
+    landed = _list_ids_by_repo(after)
+    short = sorted(name for name, ids in wanted.items() if not set(ids) <= set(landed.get(name, [])))
+    if short:
+        print(f"Restored, but these are not back in all their lists: {', '.join(short)}")
         return EXIT_FAILED
     restored = _count(len(repos), "repository", "repositories")
     print(f"Restored and verified: {restored} starred and back in their lists.")

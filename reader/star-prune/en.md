@@ -1,4 +1,4 @@
-`star-prune` is for the stars that have quietly stopped being useful: repositories their owners archived, ones whose README now says "deprecated, use X instead", a few GitHub disabled outright. They sit between the stars you still return to and make the whole list harder to use. This finds them, says exactly why each one was flagged, and unstars only the ones you agree to.
+`star-prune` is for the stars that have quietly stopped being useful: repositories their owners archived, ones whose description now says "deprecated, use X instead", a few GitHub disabled outright. They sit between the stars you still return to and make the whole list harder to use. This finds them, says exactly why each one was flagged, and unstars only the ones you agree to.
 
 ## What it flags, and what it leaves alone
 

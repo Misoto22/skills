@@ -1,5 +1,10 @@
 # Published skills
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/hero-dark.svg">
+  <img alt="github-account plugin: star-lists sorts starred repositories into GitHub Lists; star-prune unstars dead ones with a backup" src="../assets/hero-light.svg" width="820">
+</picture>
+
 Only release-ready, recursively discoverable skills belong in this directory.
 
 - [star-lists](star-lists/SKILL.md) — sorts starred repositories into GitHub star Lists through a checked, diffed, backed-up plan file.

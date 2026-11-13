@@ -99,9 +99,14 @@ class GitHub:
         for delay in (*RETRY_DELAYS, None):
             reply = self._runner({"query": query, "variables": variables})
             errors = reply.get("errors") or []
-            if not errors:
+            if not errors and "data" in reply:
                 return reply["data"]
-            message = "; ".join(str(error.get("message", error)) for error in errors)
+            if errors:
+                message = "; ".join(str(error.get("message", error)) for error in errors)
+            else:
+                # gh prints the REST-style body of an HTTP error, a 403 secondary
+                # rate limit among them: a message and no data.
+                message = str(reply.get("message") or f"GitHub returned no data: {str(reply)[:200]}")
             if delay is None or not any(marker in message.lower() for marker in _THROTTLED):
                 raise GitHubError(message)
             self._sleep(delay)

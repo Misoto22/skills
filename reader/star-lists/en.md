@@ -9,7 +9,7 @@ Lists: 1 to create, 20 to update, 0 to delete. Repositories: 155 to move.
   update  Tools - Cluade Code: rename to 'AI · Claude Code'
   update  Study - CI/CD: rename to 'Study · Interview & Algorithms'
   create  AI · Design Skills
-  move    obra/superpowers: Tools - Cluade Code -> AI · Claude Code
+  move    obra/superpowers: (none) -> AI · Claude Code
   move    vercel/geist-font: Fonts -> Design · Fonts & Icons
   ...
 ```
